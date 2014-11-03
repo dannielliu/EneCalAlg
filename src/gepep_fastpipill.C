@@ -58,12 +58,14 @@ bool gepep_fastpipill::Loop()
    Long64_t nentries = fChain->GetEntriesFast();
 
    std::cout<<"Toral entry is "<<nentries<<std::endl;
+   //int nBins=12;
    int nBins=12;
    double NBratio=((double)nentries)/nBins;
    double psilow=3.0;
    double psiup=3.2;
    double psiplow=3.6;
    double psipup=3.8;
+   double factorstart=0.99;
    //TF1 *brewig = new TF1("BreWig",BreitWigner,3.05,3.15,3);
    //######## for psi(2S)
    TF1 *fit = new TF1("fit",fitfun,3.0,3.2,5);
@@ -81,18 +83,18 @@ bool gepep_fastpipill::Loop()
    TF1 *facfit = new TF1("facfit",line2,3.0,3.2,2);
 
    // try to use roofit
-   RooRealVar x("x","energy",3.0,3.2,"GeV");
+   RooRealVar x("x","energy",3.097,3.0,3.2,"GeV");
    RooRealVar mean("mean","mean of gaussian",3.0,3.8);
-   RooRealVar sigma("sigma","width of gaussian",0.03,0.04);
+   RooRealVar sigma("sigma","width of gaussian",0.023,0.02,0.025);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
-   RooRealVar co1("co1","coefficient #1",0);
-   RooRealVar co2("co2","coefficient #2",0);
-   RooRealVar co3("co3","coefficient #3",0);
-   RooRealVar co4("co4","coefficient #4",0);
+   RooRealVar co1("co1","coefficient #1",0,-3.,3.);
+   //RooRealVar co2("co2","coefficient #2",0);
+   //RooRealVar co3("co3","coefficient #3",0);
+   //RooRealVar co4("co4","coefficient #4",0);
    RooChebychev bkg("bkg","background",x,RooArgList(co1));
-   RooRealVar signal("signal"," ",3.1,3.0,3.8);
-   RooRealVar background("background"," ",0);
-   RooAddPdf sum("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+   RooRealVar signal("signal"," ",120,10,10000);//event number
+   RooRealVar background("background"," ",10,0,100);
+  // RooAddPdf sum("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
 
    double par1[6];// for e
    double parerr1[6];
@@ -106,17 +108,17 @@ bool gepep_fastpipill::Loop()
    ofpardetail.open("detail.txt",std::ios::app);
 
    TCanvas *c1=new TCanvas("","",800,600);
-   TH1D *h1   = new TH1D("h1","2 electron invariant mass",nBins,3,3.2);
-   TH1D *h1_1 = new TH1D("h1_1","2 electron invariant mass",nBins,3,3.2);
-   TH1D *h2   = new TH1D("h2","2 muon invariant mass",nBins,3,3.2);
-   TH1D *h2_1 = new TH1D("h2_1","2 muon invariant mass",nBins,3,3.2);
-   TH1D *h3   = new TH1D("h3","total invariant mass",nBins,3.6,3.8);
-   TH1D *h3_1 = new TH1D("h3_1","total invariant mass",nBins,3.6,3.8);
+   TH1D *h1   = new TH1D("h1","2 electron invariant mass",nBins,psilow,psiup);
+   TH1D *h1_1 = new TH1D("h1_1","2 electron invariant mass",nBins,psilow,psiup);
+   TH1D *h2   = new TH1D("h2","2 muon invariant mass",nBins,psilow,psiup);
+   TH1D *h2_1 = new TH1D("h2_1","2 muon invariant mass",nBins,psilow,psiup);
+   TH1D *h3   = new TH1D("h3","total invariant mass",nBins,psiplow,psipup);
+   TH1D *h3_1 = new TH1D("h3_1","total invariant mass",nBins,psiplow,psipup);
 
    // Roofit part
-   RooDataHist data_e("data_e","data_e",x,h1);
-   RooDataHist data_mu("data_mu","data_mu",x,h2);
-   //RooDataHist data_pi("data_pi","data_pi",x,h3);
+   RooDataHist *data_e;
+   RooDataHist *data_mu;
+   RooDataHist *data_pi;
    RooPlot *xframe=x.frame(Title("xxxxxxx"));
 
    //Long64_t nentries = fChain->GetEntriesFast();
@@ -148,15 +150,13 @@ bool gepep_fastpipill::Loop()
    double factor3,factor3err;// for pi
 
    // psi 3.097
-   //fit->SetParameters(1.08e-3*NBratio,3.097,0.04,-6.0e-2*NBratio-150,2.2e-2*NBratio+42.4);
-   //fit->SetParameters(1.08e-3*NBratio,3.097,0.04,0,0);
    fit->SetParLimits(1,3.0,3.2);
    const int pointNo=20;
-   double factor=0.99;
+   double factor=factorstart;
    double factorstep=(1.-factor)*2/pointNo;
    double peakvalue=3.09690;
    double deltapeak=0.002;
-   double fittimes=0;
+   int fittimes=0;
    //const int pointNo=100;
    double factors[pointNo];
    double factorserr[pointNo];
@@ -176,17 +176,24 @@ bool gepep_fastpipill::Loop()
    fiteps_start=fitepsname+"[";
    fiteps_stop =fitepsname+"]";
    c1->Print(fiteps_start.c_str());
-   //
+   // 
+   x.setRange(psilow,psiup);
+   mean.setRange(psilow,psiup);
+   mean.setVal(3.097);
+
    for (int i=0;i<pointNo;i++){
+	  //xframe->Clear();
+	  delete xframe;
+	  xframe = x.frame(Title("fit e"));
+
       h1->Reset();
-	  //h1->SetAxisRange(psilow+3.1*(factor-1.0),psiup+3.1*(factor-1.0));
       std::cout<<"factor is "<<factor<<std::endl;
       for (Long64_t jentry=0; jentry<nentries;jentry++) {
          Long64_t ientry = LoadTree(jentry);
          if (ientry < 0) break;
          nb = fChain->GetEntry(jentry);   nbytes += nb;
          
-		 //if(ngam>0) continue;
+		 if(ngam>0) continue;
 	     double mass;
 	     double totpx,totpy,totpz,tote;
 		 double lee[2];
@@ -217,7 +224,7 @@ bool gepep_fastpipill::Loop()
          // if (Cut(ientry) < 0) continue;
       }
 
-      /*  
+      /* 
       fit->SetParameters(2.0e-2*NBratio,3.097+3.1*(factor-1.0),0.04,0,0);
 	  h1->Fit(fit,"Q","",psilow,psiup);
       fit->GetParameters(par1);
@@ -251,22 +258,40 @@ bool gepep_fastpipill::Loop()
       legend->AddEntry(sig,"signal");
       legend->AddEntry(bck,"backgorund");
       legend->Draw();
-	  */
-      sum.fitTo(data_e,Range(psilow,psiup));
-	  data_e.plotOn(xframe);
-	  xframe->Draw();
+*/
+	 
+	  char tmpchr[100];
+	  sprintf(tmpchr,"data_e_%2d",fittimes);
+      data_e = new RooDataHist(tmpchr,"data_e",x,h1);
+      RooAddPdf sum("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+      mean.setVal(3.097+3.3*(factor-1.0));
+	  //sigma.setVal(0.035);
+	  signal.setVal(120);
+	  background.setVal(20);
+	  co1.setVal(0);
+      sum.fitTo(*data_e,Range(psilow,psiup));
+	  data_e->plotOn(xframe);
+	  //xframe->Draw();
 	  sum.plotOn(xframe);
 	  sum.plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
 	  sum.plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
-      c1->Print(fitepsname.c_str());
-	  xframe->Clear();
+      xframe->Draw();
+	  delete data_e;
+
+	  // save pars
+	  factors[i]=factor;
+	  factorserr[i]=0;
+	  deltapeaks[i] = mean.getValV() - peakvalue;
+	  deltapeakserr[i] = mean.getError();
+
+	  c1->Print(fitepsname.c_str());
 	  fittimes++;
 	  factor += factorstep;
    }
    std::cout<<"entry is "<<nentries<<std::endl;
    c1->Print(fiteps_stop.c_str());
    c1->Clear();
-   /* 
+   
    TGraphErrors *graph1 = new TGraphErrors(pointNo,factors,deltapeaks,factorserr,deltapeakserr);
    graph1->SetTitle("delta peak");
    graph1->Draw("AP");
@@ -279,12 +304,12 @@ bool gepep_fastpipill::Loop()
    factor1err=facfit->GetParError(0);
    ofpar<<factor1<<"\t"<<factor1err<<std::endl;
    std::cout<<"fit factor: "<<factor1<<", error is "<<factor1err<<std::endl;
-   std::string tmpstr=outputdir+"/factore.eps";
-   c1->Print(tmpstr.c_str());*/
+   tmpstr=outputdir+"/factore.eps";
+   c1->Print(tmpstr.c_str());
 //~~~~~~~~~~~~~electron part end~~~~~~~~~~
 
 //~~~~~~~~~~~~~muon part start~~~~~~~~~
-   factor = 0.99;
+   factor = factorstart;
    fittimes =0;
    deltapeak=0.002;
    // for saving the fit result
@@ -294,15 +319,17 @@ bool gepep_fastpipill::Loop()
    c1->Print(fiteps_start.c_str());
    //
    for (int i=0;i<pointNo;i++){
-      h2->Reset();
-      std::cout<<"factor is "<<factor<<std::endl;
+	  delete xframe;
+      xframe = x.frame(Title("fit mu"));
 
+	  h2->Reset();
+      std::cout<<"factor is "<<factor<<std::endl;
       for (Long64_t jentry=0; jentry<nentries;jentry++) {
          Long64_t ientry = LoadTree(jentry);
          if (ientry < 0) break;
          nb = fChain->GetEntry(jentry);   nbytes += nb;
          
-		 //if(ngam>0) continue;
+		 if(ngam>0) continue;
 	     double mass;
 	     double totpx,totpy,totpz,tote;
 		 double lee[2];
@@ -330,7 +357,8 @@ bool gepep_fastpipill::Loop()
 	     h2->Fill(mass);
          // if (Cut(ientry) < 0) continue;
       }
-      fit->SetParameters(2.0e-2*NBratio,3.097+3.1*(factor-1.0),0.04,0,0);
+      /*
+	  fit->SetParameters(2.0e-2*NBratio,3.097+3.1*(factor-1.0),0.04,0,0);
 	  h2->Fit(fit,"Q","",psilow,psiup);
       fit->GetParameters(par2);
 	  double *tmperr;
@@ -365,6 +393,34 @@ bool gepep_fastpipill::Loop()
       legend->AddEntry(bck,"backgorund");
       legend->Draw();
       c1->Print(fitepsname.c_str());
+*/
+	  char tmpchr[100];
+	  sprintf(tmpchr,"data_mu_%2d",fittimes);
+      data_mu = new RooDataHist(tmpchr,"data_mu",x,h2);
+      mean.setVal(3.097+3.1*(factor-1.0));
+	  //sigma.setVal(0.035);
+	  signal.setVal(120);
+	  background.setVal(10);
+	  co1.setVal(0);
+      RooAddPdf sum("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+      sum.fitTo(*data_mu,Range(psilow,psiup));
+	  data_mu->plotOn(xframe);
+	  //xframe->Draw();
+	  sum.plotOn(xframe);
+	  sum.plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+	  sum.plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
+      xframe->Draw();
+	  delete data_mu;
+
+	  // save pars
+	  factors[i]=factor;
+	  factorserr[i]=0;
+	  deltapeaks[i] = mean.getValV() - peakvalue;
+	  deltapeakserr[i] = mean.getError();
+
+	  c1->Print(fitepsname.c_str());
+	  fittimes++;
+	  factor += factorstep;
 
       //std::cout<<"factor is "<<factor-1<<std::endl;
    }
@@ -394,7 +450,7 @@ bool gepep_fastpipill::Loop()
    //fit->SetParameters(5.0e-3*NBratio,3.68+3.0*(factor-1),0.04,0,0);
    fit->SetParLimits(1,3.6,3.8);
    // psi(2S) 3.686
-   factor=0.99;
+   factor=factorstart;
    //factorstep=(1.0-factor)*2/pointNo;
    peakvalue=3.686109;
    //peakerror=0.0001;
@@ -407,16 +463,21 @@ bool gepep_fastpipill::Loop()
    fiteps_stop =fitepsname+"]";
    c1->Print(fiteps_start.c_str());
    //
+   //x.setVal(3.686);
+   x.setRange(psiplow,psipup);
+   mean.setRange(psiplow,psipup);
+   mean.setVal(3.686);
    for (int i=0;i<pointNo;i++){
+      delete xframe;
+	  xframe = x.frame(Title("fit pi"));
       h3->Reset();
 	  std::cout<<"factor is "<<factor<<std::endl;
-
       for (Long64_t jentry=0; jentry<nentries;jentry++) {
          Long64_t ientry = LoadTree(jentry);
          if (ientry < 0) break;
          nb = fChain->GetEntry(jentry);   nbytes += nb;
 
-         //if(ngam>0) continue;
+         if(ngam>0) continue;
 	     double mass;
 	     double totpx,totpy,totpz,tote;
 		 double lee[2],pie[2];
@@ -449,10 +510,12 @@ bool gepep_fastpipill::Loop()
 	     //tote=lee4[0]+lee4[1]+pie4[0]+pie4[1];
 	     tote=lee[0]+lee[1]+pie[0]+pie[1];
 	     mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-	     h3->Fill(mass);
+		 if (mass > psiplow && mass < psipup)
+	       h3->Fill(mass);
 
          // if (Cut(ientry) < 0) continue;
       } 
+     /*
       fit->SetParameters(2.0e-2*NBratio,3.68+0.4*(factor-1),0.04,0,0);
 	  h3->Fit(fit,"Q","",psiplow,psipup);
       fit->GetParameters(par3);
@@ -489,7 +552,40 @@ bool gepep_fastpipill::Loop()
       legend->AddEntry(bck,"backgorund");
       legend->Draw();
       c1->Print(fitepsname.c_str());
+     */
+	  
+	  char tmpchr[100];
+	  sprintf(tmpchr,"data_pi_%2d",fittimes);
+      RooDataHist data_pi(tmpchr,"data_pi",x,h3);
+      mean.setVal(3.686+0.45*(factor-1.0));
+	  //sigma.setVal(0.035);
+	  signal.setVal(60);
+	  background.setVal(10);
+	  co1.setVal(0);
+      RooAddPdf sum("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+      sum.fitTo(data_pi,Range(psiplow,psipup));
+	  data_pi.plotOn(xframe);
+	  sum.plotOn(xframe);
+	  sum.plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+	  sum.plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
+      xframe->Draw();
+	  //std::cout<<"IIIIIIIIInfo co1"<<co1.getVal()<<std::endl;
+      //legend->Clear();
+      //legend->AddEntry(xframe,"data");
+      //legend->AddEntry("sum","signal+backgorund");
+      //legend->AddEntry("gaus","signal");
+      //legend->AddEntry("bkg","backgorund");
+      //legend->Draw();
 
+	  // save pars
+	  factors[i]=factor;
+	  factorserr[i]=0;
+	  deltapeaks[i] = mean.getValV() - peakvalue;
+	  deltapeakserr[i] = mean.getError();
+
+	  c1->Print(fitepsname.c_str());
+	  fittimes++;
+	  factor += factorstep;
    }
    c1->Print(fiteps_stop.c_str());
 

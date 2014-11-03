@@ -3,6 +3,9 @@
 void pardrawscript()
 {
   cout<<"start"<<endl;
+  TH1D *h1=new TH1D("h1","factor e",30,0.95,1.05);
+  TH1D *h2=new TH1D("h2","factor mu",30,0.95,1.05);
+  TH1D *h3=new TH1D("h3","factor pi",30,0.95,1.05);
   ifstream in("par.txt");
   double factore;
   double factormu;
@@ -37,6 +40,9 @@ void pardrawscript()
 	  cout<<"factor is too large/small at energy:  "<<energy<<endl;
 	  continue;
 	}
+	h1->Fill(factore);
+	h2->Fill(factormu);
+	h3->Fill(factorpi);
 	//if(fabs(factorpierr)>1) continue;
 	x.push_back(energy);
 	xe.push_back(0.0);
@@ -47,6 +53,9 @@ void pardrawscript()
 	y3.push_back(factorpi);
 	y3e.push_back(factorpierr);
   }
+  h1->Fit("gaus");
+  h2->Fit("gaus");
+  h3->Fit("gaus");
 
   const double n=x.size()-1;
   //const double n=104;
@@ -65,28 +74,34 @@ void pardrawscript()
 	fpie[i]=y3e.at(i);
   }
   
+  gStyle->SetOptFit(1111);
   TF1 *f=new TF1("f","[0]",3800,4600);
   f->SetParameter(0,1.0);
   cout<<"create graph,n point "<<n<<endl;
   TGraphErrors *graph1=new TGraphErrors(n,ene,fe,enee,fee);
   graph1->SetMarkerStyle(5);
-  graph1->Fit(f);
-  //graph1->SetMinimum(0.95);
-  //graph1->SetMaximum(1.05);
+  //graph1->Fit(f);
+  graph1->SetMinimum(0.95);
+  graph1->SetMaximum(1.05);
   TGraphErrors *graph2=new TGraphErrors(n,ene,fmu,enee,fmue);
   graph2->SetMarkerStyle(5);
-  graph2->Fit(f);
-  //graph2->SetMinimum(0.95);
-  //graph2->SetMaximum(1.05);
+  //graph2->Fit(f);
+  graph2->SetMinimum(0.95);
+  graph2->SetMaximum(1.05);
   TGraphErrors *graph3=new TGraphErrors(n,ene,fpi,enee,fpie);
   graph3->SetMarkerStyle(5);
-  graph3->Fit(f);
+  graph3->SetMinimum(0.95);
+  graph3->SetMaximum(1.05);
+  //graph3->Fit(f);
   TCanvas *c1=new TCanvas();
-  c1->Divide(2,2);
-  c1->cd(1);
+  //c1->Divide(2,2);
+  //c1->cd(1);
   graph1->Draw("AP");
-  c1->cd(2);
+  c1->Print("factorse.eps");
+  //c1->cd(2);
   graph2->Draw("AP");
-  c1->cd(3);
+  c1->Print("factorsmu.eps");
+  //c1->cd(3);
   graph3->Draw("AP");
+  c1->Print("factorspi.eps");
 }
