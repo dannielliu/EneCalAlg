@@ -2,6 +2,9 @@
 #include "gepep_fastpipill.h"
 #include "gepep_fast4pi.h"
 #include "gepep_fast6pi.h"
+#include "gepep_kk.h"
+#include "gepep_kpi.h"
+#include "gepep_fkkpipi.h"
 //#include "TFile.h"
 #include <string>
 
@@ -26,27 +29,46 @@ int main(int argc,char **argv)
     filename = "data_Rvalue_fpipill_e3850.root";
   }
 
-  bool usepipill=false;
-  bool use4pi=false;
-  bool use6pi=false;
-  usepipill = ( filename.find("fpipill")    != std::string::npos
-             || filename.find("fastpipill") != std::string::npos);
-  use4pi    = ( filename.find("f4pi")    != std::string::npos
-             || filename.find("fast4pi") != std::string::npos);
-  use6pi    = ( filename.find("f6pi")    != std::string::npos
-             || filename.find("fast6pi") != std::string::npos);
+  bool usefpipill=false;
+  bool usef4pi=false;
+  bool usef6pi=false;
+  bool usekk=false;
+  bool usekpi=false;
+  bool usefkkpipi=false;
+  usefpipill = ( filename.find("fpipill")   != std::string::npos
+              || filename.find("fastpipill")!= std::string::npos);
+  usef4pi    = ( filename.find("f4pi")      != std::string::npos
+              || filename.find("fast4pi")   != std::string::npos);
+  usef6pi    = ( filename.find("f6pi")      != std::string::npos
+              || filename.find("fast6pi")   != std::string::npos);
+  usekk      = ( filename.find("_kk_")      != std::string::npos);
+  usekpi     = ( filename.find("_kpi_")     != std::string::npos);
+  usefkkpipi = ( filename.find("fkkpipi")   != std::string::npos
+              || filename.find("fastkkpipi")!= std::string::npos);
 
-  if( usepipill ){
+  if( usefpipill ){
     gepep_fastpipill *a;
 	analysis(a,filename, "gepep_fastpipill");
   }
-  else if( use4pi ){
+  else if( usef4pi ){
     gepep_fast4pi *a;
 	analysis(a,filename, "gepep_fast4pi");
   }
-  else if( use6pi){
+  else if( usef6pi){
     gepep_fast6pi *a;
 	analysis(a,filename, "gepep_fast6pi");
+  }
+  else if( usekk){
+    gepep_kk *a;
+	analysis(a,filename, "gepep_kk");
+  }
+  else if( usekpi){
+    gepep_kpi *a;
+	analysis(a,filename, "gepep_kpi");
+  }
+  else if( usefkkpipi){
+    gepep_fkkpipi *a;
+	analysis(a,filename, "gepep_fastkkpipi");
   }
   else{
     std::cout<<"Do not know how to deal with it!"<<std::endl;

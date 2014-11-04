@@ -63,8 +63,8 @@ bool gepep_fastpipill::Loop()
    double NBratio=((double)nentries)/nBins;
    double psilow=3.0;
    double psiup=3.2;
-   double psiplow=3.6;
-   double psipup=3.8;
+   double psiplow=3.61;
+   double psipup=3.75;
    double factorstart=0.99;
    //TF1 *brewig = new TF1("BreWig",BreitWigner,3.05,3.15,3);
    //######## for psi(2S)
@@ -138,7 +138,7 @@ bool gepep_fastpipill::Loop()
 	  h3_1->Fill(psipm4);
 	  // 2 pi invariant mass
       // if (Cut(ientry) < 0) continue;
-   }  
+   }
 
    // try to correct the spectrum
    // iniialize the fit function
@@ -261,7 +261,7 @@ bool gepep_fastpipill::Loop()
 */
 	 
 	  char tmpchr[100];
-	  sprintf(tmpchr,"data_e_%2d",fittimes);
+	  sprintf(tmpchr,"data_e_%d",fittimes);
       data_e = new RooDataHist(tmpchr,"data_e",x,h1);
       RooAddPdf sum("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
       mean.setVal(3.097+3.3*(factor-1.0));
