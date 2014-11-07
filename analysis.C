@@ -4,6 +4,7 @@
 #include "gepep_fast6pi.h"
 #include "gepep_kk.h"
 #include "gepep_kpi.h"
+#include "gepep_kpi2.h"
 #include "gepep_fkkpipi.h"
 //#include "TFile.h"
 #include <string>
@@ -34,6 +35,7 @@ int main(int argc,char **argv)
   bool usef6pi=false;
   bool usekk=false;
   bool usekpi=false;
+  bool usekpi2=false;
   bool usefkkpipi=false;
   usefpipill = ( filename.find("fpipill")   != std::string::npos
               || filename.find("fastpipill")!= std::string::npos);
@@ -43,6 +45,7 @@ int main(int argc,char **argv)
               || filename.find("fast6pi")   != std::string::npos);
   usekk      = ( filename.find("_kk_")      != std::string::npos);
   usekpi     = ( filename.find("_kpi_")     != std::string::npos);
+  usekpi2    = ( filename.find("_kpi2_")    != std::string::npos);
   usefkkpipi = ( filename.find("fkkpipi")   != std::string::npos
               || filename.find("fastkkpipi")!= std::string::npos);
 
@@ -64,6 +67,10 @@ int main(int argc,char **argv)
   }
   else if( usekpi){
     gepep_kpi *a;
+	analysis(a,filename, "gepep_kpi");
+  }
+  else if( usekpi2){
+    gepep_kpi2 *a;
 	analysis(a,filename, "gepep_kpi");
   }
   else if( usefkkpipi){

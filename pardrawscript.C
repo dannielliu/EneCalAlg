@@ -5,7 +5,8 @@ void pardrawscript()
   cout<<"start"<<endl;
   TH1D *h1=new TH1D("h1","factor e",30,0.95,1.05);
   TH1D *h2=new TH1D("h2","factor mu",30,0.95,1.05);
-  TH1D *h3=new TH1D("h3","factor pi",30,0.95,1.05);
+  TH1D *h3=new TH1D("h3","factor pi(ee)",30,0.95,1.05);
+  TH1D *h4=new TH1D("h4","factor pi(mumu)",30,0.95,1.05);
   ifstream in("par.txt");
   double factore;
   double factormu;
@@ -25,33 +26,38 @@ void pardrawscript()
   y2e.clear();
   y3e.clear();
   while(!in.eof()){
+    char tmpstr[1000];
     in>>energy;
-	in>>factore>>factoreerr;
-	in>>factormu>>factormuerr;
-	in>>factorpi>>factorpierr;
+    getline(in,tmpstr);
+    getline(in,tmpstr);
+    in>>factore>>factoreerr;
+    in>>factormu>>factormuerr;
+    in>>factorpi>>factorpierr;
+    getline(in,tmpstr);
+    getline(in,tmpstr);
     //if(fabs(factorpi-1)>0.05){
-	//  cout<<"May not fitted at energy: "<<energy<<endl;
-	//}
-	if(fabs(factoreerr)>1){ 
-	  cout<<"error is too large at energy:  "<<energy<<endl;
-	  continue;
-	}
-	if(fabs(factore )>5){
-	  cout<<"factor is too large/small at energy:  "<<energy<<endl;
-	  continue;
-	}
-	h1->Fill(factore);
-	h2->Fill(factormu);
-	h3->Fill(factorpi);
-	//if(fabs(factorpierr)>1) continue;
-	x.push_back(energy);
-	xe.push_back(0.0);
-	y1.push_back(factore);
-	y1e.push_back(factoreerr);
-	y2.push_back(factormu);
-	y2e.push_back(factormuerr);
-	y3.push_back(factorpi);
-	y3e.push_back(factorpierr);
+    //  cout<<"May not fitted at energy: "<<energy<<endl;
+    //}
+    if(fabs(factoreerr)>1){ 
+      cout<<"error is too large at energy:  "<<energy<<endl;
+      continue;
+    }
+    if(fabs(factore )>5){
+      cout<<"factor is too large/small at energy:  "<<energy<<endl;
+      continue;
+    }
+    h1->Fill(factore);
+    h2->Fill(factormu);
+    h3->Fill(factorpi);
+    //if(fabs(factorpierr)>1) continue;
+    x.push_back(energy);
+    xe.push_back(0.0);
+    y1.push_back(factore);
+    y1e.push_back(factoreerr);
+    y2.push_back(factormu);
+    y2e.push_back(factormuerr);
+    y3.push_back(factorpi);
+    y3e.push_back(factorpierr);
   }
   h1->Fit("gaus");
   h2->Fit("gaus");
@@ -104,4 +110,5 @@ void pardrawscript()
   //c1->cd(3);
   graph3->Draw("AP");
   c1->Print("factorspi.eps");
+  exit();
 }

@@ -7,6 +7,22 @@
 #include <TF1.h>
 #include "function.h"
 #include <fstream>
+#include "RooFit.h"
+#include "RooRealVar.h"
+#include "RooGaussian.h"
+#include "RooChebychev.h"
+#include "RooDataHist.h"
+#include "RooAddPdf.h"
+#include "RooArgList.h"
+#include "RooPlot.h"
+//#include <iostream>
+extern std::string outputdir;
+using RooFit::Title;
+using RooFit::Components;
+using RooFit::LineStyle;
+using RooFit::LineColor;
+using RooFit::Range;
+
 
 void gepep_fast6pi::Loop()
 {
@@ -35,11 +51,18 @@ void gepep_fast6pi::Loop()
 //by  b_branchname->GetEntry(ientry); //read only this branch
    if (fChain == 0) return;
    //TH1D *h = new TH1D("h","invariant mass",100,1.,4.);
-   TH1D *h = new TH1D("h","invariant mass",100,3.,4.);
+  
+  
+   Long64_t nentries = fChain->GetEntriesFast();
+
+   std::cout<<"Toral entry is "<<nentries<<std::endl;
+   int nBins=50;
+   double beamlow=3.7;
+   double beamup=4.0;
+   double peakvalue=3.85;// mbeam
+   TH1D *h = new TH1D("h","invariant mass",nBins,beamlow,beamup);
    double factore,factoreerr;
    double factorpi,factorpierr;
-   double me=0.000511;
-   double mmu=0.105658;
    double mpi=0.13957;
    
    ifstream f;
@@ -47,10 +70,22 @@ void gepep_fast6pi::Loop()
    f >> factore >> factoreerr;
    f >> factorpi>> factorpierr;
    f.close();
-   //factorpi =1.0;
+   factorpi =1.00219;
    std::cout<<"factor is "<<factorpi<<std::endl;
-   Long64_t nentries = fChain->GetEntriesFast();
-
+   
+   // try to use roofit
+   RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
+   RooRealVar mean("mean","mean of gaussian",peakvalue,beamlow,beamup);
+   RooRealVar sigma("sigma","width of gaussian",0.003,0.0001,0.02);
+   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
+   RooRealVar co1("co1","coefficient #1",0,-100.,100.);
+   //RooRealVar co4("co4","coefficient #4",0);
+   RooChebychev bkg("bkg","background",x,RooArgList(co1));
+   RooRealVar signal("signal"," ",1200,10,100000);//event number
+   RooRealVar background("background"," ",200,0,1000);
+   RooPlot *xframe;
+   RooDataHist *data_6pi;
+ 
    Long64_t nbytes = 0, nb = 0;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
@@ -80,16 +115,37 @@ void gepep_fast6pi::Loop()
   mass = TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
 	  h->Fill(mass);
    }
-
    TCanvas *c1=new TCanvas("","",800,600);
-   gStyle->SetOptStat(0);
-   gStyle->SetOptFit(1111);
-   TF1 *fit=new TF1("fit",GausLineBack,3.75,4.0,5);
-   fit->SetParameters(1,3.8,0.02,10,1);
-   h->Fit(fit,"","",3.75,4.0);
-   h->Draw();
+	 
+   char tmpchr[100];
+   sprintf(tmpchr,"data_6pi_%02d",0);
+   data_6pi = new RooDataHist(tmpchr,"data_6pi",x,h);
+   xframe = x.frame(Title("fit 6 pi"));
+   RooAddPdf sum("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+   mean.setVal(peakvalue);
+   //sigma.setVal(0.035);
+   signal.setVal(1200);
+   background.setVal(200);
+   co1.setVal(0);
+   sum.fitTo(*data_6pi,Range(beamlow,beamup));
+   data_6pi->plotOn(xframe);
+   sum.plotOn(xframe);
+   sum.plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   sum.plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
+   xframe->Draw();
+   c1->Print("fit6pi.eps");
+   delete data_6pi;
+   delete xframe;
+
+
+   //gStyle->SetOptStat(0);
+   //gStyle->SetOptFit(1111);
+   //TF1 *fit=new TF1("fit",GausLineBack,3.75,4.0,5);
+   //fit->SetParameters(1,3.8,0.02,10,1);
+   //h->Fit(fit,"","",3.75,4.0);
+   //h->Draw();
    //h->Fit("gaus","","",3.75,4.0);
-   c1->Print("f6pi.eps");
+   //c1->Print("f6pi.eps");
 }
 
 #ifdef gepep_fast6pi_cxx

@@ -6,6 +6,7 @@
 #include "function.h"
 #include "TF1.h"
 #include "TGraphErrors.h"
+#include <fstream>
 #include "RooFit.h"
 #include "RooRealVar.h"
 #include "RooGaussian.h"
@@ -70,16 +71,26 @@ void gepep_kk::Loop()
    // try to use roofit
    RooRealVar x("x","energy",1.020,philow,phiup,"GeV");
    RooRealVar mean("mean","mean of gaussian",1.020,philow,phiup);
-   RooRealVar sigma("sigma","width of gaussian",0.003,0.001,0.01);
+   RooRealVar sigma("sigma","width of gaussian",0.003,0.001,0.005);
+   RooRealVar sigma2("sigma2","width of gaussian",0.02,0.005,0.05);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
-   RooRealVar co1("co1","coefficient #1",0,-100.,100.);
+   RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
+   RooRealVar co1("co1","coefficient #1",0,-1000.,1000.);
    //RooRealVar co4("co4","coefficient #4",0);
    RooChebychev bkg("bkg","background",x,RooArgList(co1));
-   RooRealVar signal("signal"," ",1200,10,100000);//event number
-   RooRealVar background("background"," ",200,0,1000);
+   RooRealVar signal("signal"," ",1200,10,1000000);//event number
+   RooRealVar signal2("signal2"," ",1200,10,1000000);//event number
+   RooRealVar background("background"," ",200,0,100000);
    RooPlot *xframe;
    RooDataHist *data_k;
- 
+   RooAddPdf *sum;
+   
+   ofstream ofpar;
+   ofpar.open("parkk.txt",std::ios::app);
+   ofpar<<"kk algrithm: will give factors for kaon"<<std::endl;
+   ofstream ofpardetail;
+   ofpardetail.open("detail.txt",std::ios::app);
+
    TF1 *facfit = new TF1("facfit",line2,0.9,1.1,2);
    TH1D *h1   = new TH1D("h1","2 kaon invariant mass",nBins,philow,phiup);
    TCanvas *c1= new TCanvas("","",800,600);
@@ -124,21 +135,23 @@ void gepep_kk::Loop()
 	  char tmpchr[100];
 	  sprintf(tmpchr,"data_k_%02d",fittimes);
       data_k = new RooDataHist(tmpchr,"data_k",x,h1);
-      RooAddPdf sum("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+      sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,bkg),RooArgList(signal,signal2,background));
       mean.setVal(peakvalue+0.05*(factor-1.0));
 	  //sigma.setVal(0.035);
-	  signal.setVal(1200);
-	  background.setVal(200);
+	  signal.setVal(12000);
+	  background.setVal(2000);
 	  co1.setVal(0);
-      sum.fitTo(*data_k,Range(philow,phiup));
+      sum->fitTo(*data_k,Range(philow,phiup));
 	  data_k->plotOn(xframe);
-	  sum.plotOn(xframe);
-	  sum.plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-	  sum.plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
+	  sum->plotOn(xframe);
+	  sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+	  sum->plotOn(xframe,Components(gaus2),LineStyle(4),LineColor(4));
+	  sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
       xframe->Draw();
 	  c1->Print(fitepsname.c_str());
 	  delete data_k;
 	  delete xframe;
+	  delete sum;
 
 	  //sprintf(tmpchr,"data_k_%d.eps",fittimes);
 	  //h1->Draw();
@@ -167,10 +180,63 @@ void gepep_kk::Loop()
    graph1->Fit(facfit,"","",factors[0],factors[pointNo-1]);
    //factor1=facfit->GetParameter(0);
    //factor1err=facfit->GetParError(0);
-   //ofpar<<factor1<<"\t"<<factor1err<<std::endl;
+   ofpar<<facfit->GetParameter(0)<<"\t"<<facfit->GetParError(0)<<std::endl;
+   ofpar<<signal.getValV()<<"\t"<<signal.getError()<<std::endl;
    //std::cout<<"fit factor: "<<factor1<<", error is "<<factor1err<<std::endl;
    std::string tmpstr=outputdir+"/factork.eps";
    c1->Print(tmpstr.c_str());
+
+   // draw the best fitting
+	  xframe = x.frame(Title("fit kaon"));
+      h1->Reset();
+      std::cout<<"factor is "<<factor<<std::endl;
+      for (Long64_t jentry=0; jentry<nentries;jentry++) {
+         Long64_t ientry = LoadTree(jentry);
+         if (ientry < 0) break;
+         nb = fChain->GetEntry(jentry);   nbytes += nb;
+         
+		 //if(ngam>0) continue;
+	     double mass;
+	     double totpx,totpy,totpz,tote;
+		 double ke[2];
+	     // total invariant mass
+	     totpx=factor*(kappx+kampx);
+	     totpy=factor*(kappy+kampy);
+	     totpz=factor*(kappz+kampz);
+         ke[0]=TMath::Sqrt(mk*mk + 
+		       factor*factor*(kappx*kappx+kappy*kappy+kappz*kappz));
+		 ke[1]=TMath::Sqrt(mk*mk + 
+		       factor*factor*(kampx*kampx+kampy*kampy+kampz*kampz));
+	     tote=ke[0]+ke[1];
+	     mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+	     h1->Fill(mass);
+         // if (Cut(ientry) < 0) continue;
+      }
+
+	  char tmpchr[100];
+	  sprintf(tmpchr,"data_k_%02d",fittimes);
+      data_k = new RooDataHist(tmpchr,"data_k",x,h1);
+      sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,bkg),RooArgList(signal,signal2,background));
+      mean.setVal(peakvalue+0.05*(factor-1.0));
+	  //sigma.setVal(0.035);
+	  signal.setVal(12000);
+	  background.setVal(2000);
+	  co1.setVal(0);
+      sum->fitTo(*data_k,Range(philow,phiup));
+	  data_k->plotOn(xframe);
+	  sum->plotOn(xframe);
+	  sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+	  sum->plotOn(xframe,Components(gaus2),LineStyle(4),LineColor(4));
+	  sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
+      xframe->Draw();
+	  c1->Print("fitkk_best.eps");
+	  delete data_k;
+	  delete xframe;
+	  delete sum;
+
+  
+   ofpar.close();
+   ofpardetail.close();
 
 }
 

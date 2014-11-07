@@ -6,6 +6,7 @@
 #include "function.h"
 #include "TF1.h"
 #include "TGraphErrors.h"
+#include <fstream>
 #include "RooFit.h"
 #include "RooRealVar.h"
 #include "RooGaussian.h"
@@ -69,7 +70,13 @@ void gepep_fkkpipi::Loop()
    double factor=factorstart;
    double factorstep=(1.-factor)*2/pointNo;
    double factork=1;
-   
+    
+   ofstream ofpar;
+   ofpar.open("par.txt",std::ios::app);
+   ofpar<<"k- pi+ pi- algrithm: will give factors for pion"<<std::endl;
+   ofstream ofpardetail;
+   ofpardetail.open("detail.txt",std::ios::app);
+
    // try to use roofit
    RooRealVar x("x","energy",1.865,Dmlow,Dmup,"GeV");
    RooRealVar mean("mean","mean of gaussian",peakvalue,Dmlow,Dmup);
@@ -172,9 +179,14 @@ void gepep_fkkpipi::Loop()
    //factor1=facfit->GetParameter(0);
    //factor1err=facfit->GetParError(0);
    //ofpar<<factor1<<"\t"<<factor1err<<std::endl;
+   ofpar<<facfit->GetParameter(0)<<"\t"<<facfit->GetParError(0)<<std::endl;
+   ofpar<<signal.getValV()<<"\t"<<signal.getError()<<std::endl;
    //std::cout<<"fit factor: "<<factor1<<", error is "<<factor1err<<std::endl;
    std::string tmpstr=outputdir+"/factorkpipi.eps";
    c1->Print(tmpstr.c_str());
+
+   ofpar.close();
+   ofpardetail.close();
 
 }
 #ifdef gepep_fkkpipi_cxx
