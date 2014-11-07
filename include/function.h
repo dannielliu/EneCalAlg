@@ -14,4 +14,6 @@ double fitfun(double *x, double *par);
 
 double GausLineBack(double *x,double *par);
 
+double maxlikelihood(double *x,double *par);
+
 #endif

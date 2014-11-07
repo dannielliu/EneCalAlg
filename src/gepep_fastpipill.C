@@ -29,6 +29,10 @@ using RooFit::LineStyle;
 using RooFit::LineColor;
 using RooFit::Range;
 
+std::vector<double> px1,py1,pz1,px2,py2,pz2;
+double m0;
+double me;
+
 bool gepep_fastpipill::Loop()
 {
 //   In a ROOT session, you can do:
@@ -113,22 +117,54 @@ bool gepep_fastpipill::Loop()
 
    // for initial spectrum
    Long64_t nbytes = 0, nb = 0;
-   /*
+   m0 = 3.096916;
+   me=0.000511;
+   px1.clear();
+   px2.clear();
+   py1.clear();
+   py2.clear();
+   pz1.clear();
+   pz2.clear();
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       
-	  if(cos(angle4)>0.90) continue; // cut bhabha 
-	  if(decay_ee==1)
-	    h1_1->Fill(llm4);
-	  else
-	    h2_1->Fill(llm4);
-	  h3_1->Fill(psipm4);
-	  // 2 pi invariant mass
+      if(cos(angle4)>0.90) continue; // cut bhabha 
+      if(decay_ee==0){
+        double mass;
+        double totpx,totpy,totpz,tote;
+        double lee[2];
+        // total invariant mass
+        totpx=(lepx4[0]+lepx4[1]);
+        totpy=(lepy4[0]+lepy4[1]);
+        totpz=(lepz4[0]+lepz4[1]);
+        lee[0]=TMath::Sqrt(me*me + 
+               (lepx4[0]*lepx4[0]+lepy4[0]*lepy4[0]+lepz4[0]*lepz4[0]) );
+        lee[1]=TMath::Sqrt(me*me +
+               (lepx4[1]*lepx4[1]+lepy4[1]*lepy4[1]+lepz4[1]*lepz4[1]) );
+        tote=lee[0]+lee[1];
+        mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+	if(mass>3.0 && mass<3.2){
+	  px1.push_back(lepx4[0]);
+	  px2.push_back(lepx4[1]);
+	  py1.push_back(lepy4[0]);
+	  py2.push_back(lepy4[1]);
+	  pz1.push_back(lepz4[0]);
+	  pz2.push_back(lepz4[1]);
+	}
+      }
       // if (Cut(ientry) < 0) continue;
-   }*/
+   }
+   
+   std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
+   TF1 *likeli=new TF1("likeli",maxlikelihood,0.9,1.1);
+   TCanvas *c2=new TCanvas("c2","max likelihood",800,600);
+   likeli->Draw();
+   c2->Print("likeli.eps");
+   std::cout<<"best factor  "<<likeli->GetMinimumX(0.99,1.01)<<std::endl;
 
+/*
    // try to correct the spectrum
    // iniialize the fit function
    double me=0.000511;
@@ -158,7 +194,8 @@ bool gepep_fastpipill::Loop()
    TLegend *legend = new TLegend(0.1,0.7,0.3,0.9);
    gStyle->SetOptStat(0);
    gStyle->SetOptFit(1111);
-
+*/
+/*
 //~~~~~~~~~electron part~~~~~~~~~~
    // for saving the fit result
    fitepsname  =outputdir+"/fitee.eps";
@@ -883,14 +920,14 @@ bool gepep_fastpipill::Loop()
 
 
 //~~~~~~~~~~~pion part end~~~~~~~~
-
+*/
    ofpar.close();
    ofpardetail.close();
    delete h1;
    //delete h1_1;
    delete h2;
    //delete h2_1;
-   delete legend;
+   //delete legend;
    delete c1;
    return true;
 }
