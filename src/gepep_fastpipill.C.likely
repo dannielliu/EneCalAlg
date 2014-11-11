@@ -7,7 +7,6 @@
 #include <TMath.h>
 //#include <TStyle.h>
 #include <TF1.h>
-#include <TF2.h>
 #include "function.h"
 #include "bes3plotstyle.h"
 #include "TLegend.h"
@@ -20,7 +19,7 @@ extern std::vector<double> le1,le2;
 extern double m0;
 extern double mparticle,mparticle2,mparticle3,mparticle4;
 extern double factor2,factor3,factor4;
-extern double sigma,weight,width;
+extern double sigma;
  
 bool gepep_fastpipill::Loop()
 {
@@ -60,15 +59,12 @@ bool gepep_fastpipill::Loop()
    Long64_t nbytes = 0, nb = 0;
    double factor,factorlow,factorup;
    double minimum;
-   double minx,miny;
    std::string tmpstr;
 
    // ~~~~~~~~~electron part~~~~~~~~~~
    m0 = 3.096916;
    sigma=0.0169;
    mparticle=0.000511;
-   weight = 1.0;
-   width = 0.2;
    px1.clear();
    px2.clear();
    py1.clear();
@@ -95,7 +91,7 @@ bool gepep_fastpipill::Loop()
                (lepx4[1]*lepx4[1]+lepy4[1]*lepy4[1]+lepz4[1]*lepz4[1]) );
         tote=lee[0]+lee[1];
         mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-	if(mass>m0-width/2. && mass<m0+width/2.){
+	if(mass>3.0 && mass<3.2){
 	  px1.push_back(lepx4[0]);
 	  px2.push_back(lepx4[1]);
 	  py1.push_back(lepy4[0]);
@@ -107,35 +103,24 @@ bool gepep_fastpipill::Loop()
       // if (Cut(ientry) < 0) continue;
    }
    
-   //factor =0;
    std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
-   TF2 *likeli=new TF2("likeli",maxlikelihood1,0.95,1.05,0.1,0.99);
+   TF1 *likeli=new TF1("likeli",maxlikelihood,0.95,1.05);
    TCanvas *c2=new TCanvas("c2","likelihood",800,600);
-   likeli->Draw("surf1");
-   tmpstr=outputdir+"/likelie_2D.eps";
+   likeli->Draw();
+   tmpstr=outputdir+"/likelie.eps";
    c2->Print(tmpstr.c_str());
-   //factor=likeli->GetMinimumX(0.98,1.02);
-   likeli->GetMinimumXY(factor,miny);
-   weight = miny;
-   TF1 *likeli_1=new TF1("likeli_1",maxlikelihood1_1,0.95,1.05);
-   likeli_1->Draw();
-   tmpstr=outputdir+"/likelie_1D.eps";
-   c2->Print(tmpstr.c_str());
-   minimum = likeli_1->GetMinimum(0.98,1.02);
-   factorlow=likeli_1->GetX(minimum+1,0.98,factor);
-   factorup =likeli_1->GetX(minimum+1,factor,1.02);
+   minimum = likeli->GetMinimum(0.98,1.02);
+   factor=likeli->GetMinimumX(0.98,1.02);
+   factorlow=likeli->GetX(minimum+1,0.98,factor);
+   factorup =likeli->GetX(minimum+1,factor,1.02);
    ofpar<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
-   ofpar<<"weight is "<<miny<<", factor is "<<likeli_1->GetMinimumX(0.98,1.01)<<std::endl;
-   std::cout<<"best factor  "<<factor<<std::endl;
-
+   std::cout<<"best factor  "<<likeli->GetMinimumX(0.99,1.01)<<std::endl;
    // ~~~~~~~~~electron part end~~~~~~~~~~
 
    // ~~~~~~~~~muon part~~~~~~~~~~
    m0 = 3.096916;
    sigma=0.0166;
    mparticle=0.105658;
-   weight = 0.9;
-   width = 0.2;
    px1.clear();
    px2.clear();
    py1.clear();
@@ -175,30 +160,22 @@ bool gepep_fastpipill::Loop()
    }
    
    std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
-   TF2 *likeli2=new TF2("likeli2",maxlikelihood1,0.95,1.05,0.1,0.99);
-   likeli2->Draw("surf1");
-   tmpstr = outputdir+"/likelimu_2D.eps";
+   TF1 *likeli2=new TF1("likeli2",maxlikelihood,0.95,1.05);
+   //TCanvas *c2=new TCanvas("c2","likelihood",800,600);
+   likeli2->Draw();
+   tmpstr = outputdir+"/likelimu.eps";
    c2->Print(tmpstr.c_str());
    minimum = likeli2->GetMinimum(0.98,1.02);
-   //factor=likeli2->GetMinimumX(0.98,1.02);
-   likeli2->GetMinimumXY(factor,miny);
-   weight = miny;
-   TF1 *likeli2_1=new TF1("likeli2_1",maxlikelihood1_1,0.95,1.05);
-   likeli2_1->Draw();
-   tmpstr = outputdir+"/likelimu_1D.eps";
-   c2->Print(tmpstr.c_str());
-   factorlow=likeli2_1->GetX(minimum+1,0.98,factor);
-   //factorlow=likeli2->GetX(miny,0.98,factor);
-   factorup =likeli2_1->GetX(minimum+1,factor,1.02);
+   factor=likeli2->GetMinimumX(0.98,1.02);
+   factorlow=likeli2->GetX(minimum+1,0.98,factor);
+   factorup =likeli2->GetX(minimum+1,factor,1.02);
    ofpar<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
-   ofpar<<"weight is "<<miny<<", factor is "<<likeli2_1->GetMinimumX(0.98,1.02)<<std::endl;
    std::cout<<"best factor  "<<factor<<std::endl;
    // ~~~~~~~~~muon part end~~~~~~~~~~
 
    // ~~~~~~~~~pion part~~~~~~~~~~
    m0 = 3.686109;
    sigma =0.00258;
-   width = 0.03;
    mparticle =0.13957018;//pi
    mparticle2=0.000511;//electron
    mparticle3=0.105658;//muon
@@ -241,7 +218,7 @@ bool gepep_fastpipill::Loop()
       mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
       massjpsi=TMath::Sqrt(jpsie*jpsie-jpsipx*jpsipx-jpsipy*jpsipy-jpsipz*jpsipz);
       mass = mass-massjpsi+3.096916;
-      if (mass>m0-width/2. && mass<m0+width/2.){
+      if (mass>3.67 && mass<3.71){
           px1.push_back(pipx4[0]);
           px2.push_back(pipx4[1]);
           py1.push_back(pipy4[0]);
@@ -262,26 +239,18 @@ bool gepep_fastpipill::Loop()
    }
    
    std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
-   TF2 *likeli3=new TF2("likeli3",maxlikelihood4_0,0.95,1.05,0.1,0.99);
+   TF1 *likeli3=new TF1("likeli3",maxlikelihood4,0.95,1.05);
    //TCanvas *c2=new TCanvas("c2","likelihood",800,600);
-   likeli3->Draw("surf1");
-   tmpstr = outputdir +"/likelipi_2D.eps";
+   likeli3->Draw();
+   tmpstr = outputdir +"/likelipi.eps";
    c2->Print(tmpstr.c_str());
    minimum = likeli3->GetMinimum(0.98,1.02);
-   //factor=likeli3->GetMinimumX(0.98,1.02);
-   likeli3->GetMinimumXY(factor,miny);
-   weight = miny;
-   TF1 *likeli3_1=new TF1("likeli3_1",maxlikelihood4_1,0.95,1.05);
-   likeli3_1->Draw();
-   tmpstr = outputdir +"/likelipi_1D.ps";
-   c2->Print(tmpstr.c_str());
-   factorlow=likeli3_1->GetX(minimum+1,0.98,factor);
-   factorup =likeli3_1->GetX(minimum+1,factor,1.02);
+   factor=likeli3->GetMinimumX(0.98,1.02);
+   factorlow=likeli3->GetX(minimum+1,0.98,factor);
+   factorup =likeli3->GetX(minimum+1,factor,1.02);
    ofpar<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
-   ofpar<<"weight is "<<miny<<", factor is "<<likeli3_1->GetMinimumX(0.98,1.02)<<std::endl;
    std::cout<<"best factor  "<<factor<<std::endl;
-  
-     // ~~~~~~~~~pion part end~~~~~~~~~~
+   // ~~~~~~~~~pion part end~~~~~~~~~~
 
    ofpar.close();
    ofpardetail.close();
