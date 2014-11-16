@@ -185,6 +185,58 @@ void gepep_fkkpipi::Loop()
    std::string tmpstr=outputdir+"/factorkpipi.eps";
    c1->Print(tmpstr.c_str());
 
+   // draw best fit
+   xframe = x.frame(Title("fit k pi pi"));
+   factor = facfit->GetParameter(0);
+   h1->Reset();
+   std::cout<<"factor is "<<factor<<std::endl;
+   for (Long64_t jentry=0; jentry<nentries;jentry++) {
+     Long64_t ientry = LoadTree(jentry);
+     if (ientry < 0) break;
+     nb = fChain->GetEntry(jentry);   nbytes += nb;
+     
+     //if(ngam>0) continue;
+     //if(npip>1 ) continue;
+     double mass;
+     double totpx,totpy,totpz,tote;
+     double e[3];
+     // total invariant mass, Dm -> k- pi- pi+
+     totpx=factor*(pippx+pimpx)+factork*kampx;
+     totpy=factor*(pippy+pimpy)+factork*kampy;
+     totpz=factor*(pippz+pimpz)+factork*kampz;
+     e[0]=TMath::Sqrt(mpi*mpi +
+          factor*factor*(pippx*pippx+pippy*pippy+pippz*pippz));
+     e[1]=TMath::Sqrt(mpi*mpi +
+          factor*factor*(pimpx*pimpx+pimpy*pimpy+pimpz*pimpz));
+     e[2]=TMath::Sqrt(mk*mk + 
+          factork*factork*(kampx*kampx+kampy*kampy+kampz*kampz));
+     tote=e[0]+e[1]+e[2];
+     mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+     h1->Fill(mass);
+     // if (Cut(ientry) < 0) continue;
+   }
+
+    char tmpchr[100];
+    sprintf(tmpchr,"data_kpipi_%02d",fittimes);
+    data_kpipi = new RooDataHist(tmpchr,"data_kpipi",x,h1);
+    RooAddPdf sum("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+    mean.setVal(peakvalue+0.05*(factor-1.0));
+    //sigma.setVal(0.035);
+    signal.setVal(1200);
+    background.setVal(200);
+    co1.setVal(0);
+    sum.fitTo(*data_kpipi,Range(Dmlow,Dmup));
+    data_kpipi->plotOn(xframe);
+    sum.plotOn(xframe);
+    sum.plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+    sum.plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
+    xframe->Draw();
+    c1->Print(fitepsname.c_str());
+    delete data_kpipi;
+    delete xframe;
+
+
+
    ofpar.close();
    ofpardetail.close();
 

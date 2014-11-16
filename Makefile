@@ -5,6 +5,8 @@ VPATH = src
 CC = g++ $(ROOTINCLUDE) $(ROOTLIB) $(INCDIR)
 OBJS= function.o bes3plotstyle.o gepep_fastpipill.o gepep_fast4pi.o gepep_fast6pi.o gepep_kk.o gepep_kpi.o gepep_kpi2.o gepep_fkkpipi.o
 
+all: analysis CreateSample testsample
+
 analysis:analysis.C $(OBJS)
 	$(CC) -lRooFitCore -lRooFit $^ -o $@
 
@@ -34,6 +36,12 @@ src/gepep_kpi2.o : gepep_kpi2.C
 
 src/gepep_fkkpipi.o : gepep_fkkpipi.C
 	g++ $(ROOTINCLUDE) $(INCDIR) -c $^ -o $@
+
+CreateSample:CreateSample.C
+	$(CC) $^ -o $@
+
+testsample:testsample.C src/function.o
+	$(CC) -lRooFitCore -lRooFit $^ -o $@
 
 .PHONY:clean
 clean:

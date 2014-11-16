@@ -1,28 +1,24 @@
 #define gepep_kpi_cxx
 #include "gepep_kpi.h"
+#include <TH1.h>
 #include <TH2.h>
+#include "TGaxis.h"
+#include "TPad.h"
 #include <TStyle.h>
 #include <TCanvas.h>
 #include "function.h"
 #include "TF1.h"
-#include "TGraphErrors.h"
+#include "TF2.h"
 #include <fstream>
-#include "RooFit.h"
-#include "RooRealVar.h"
-#include "RooGaussian.h"
-#include "RooChebychev.h"
-#include "RooDataHist.h"
-#include "RooAddPdf.h"
-#include "RooArgList.h"
-#include "RooPlot.h"
+#include "Pars.h"
 //#include <iostream>
 extern std::string outputdir;
-using RooFit::Title;
-using RooFit::Components;
-using RooFit::LineStyle;
-using RooFit::LineColor;
-using RooFit::Range;
-
+extern std::vector<double> px1,py1,pz1,px2,py2,pz2;
+extern double m0;
+extern double mparticle,mparticle2,mparticle3,mparticle4;
+extern double sigma;
+extern double weight,width;
+extern double factor2;
 
 void gepep_kpi::Loop()
 {
@@ -54,215 +50,136 @@ void gepep_kpi::Loop()
    Long64_t nentries = fChain->GetEntriesFast();
 
    std::cout<<"Toral entry is "<<nentries<<std::endl;
-   int nBins=40;
-   double factorstart=0.99;
-   double D0low=1.82;
-   double D0up=1.90;
-   double mk=0.493677;
-   double mpi=0.13957018;
-   double peakvalue=1.86486;// mD0
-   int pointNo=20;
-   double factors[pointNo];
-   double factorserr[pointNo];
-   double deltapeaks[pointNo];
-   double deltapeakserr[pointNo];
-   double factor=factorstart;
-   double factorstep=(1.-factor)*2/pointNo;
-   double factork=0.998881;
-   
-   // try to use roofit
-   RooRealVar x("x","energy",1.865,D0low,D0up,"GeV");
-   RooRealVar mean("mean","mean of gaussian",1.865,D0low,D0up);
-   RooRealVar sigma("sigma","width of gaussian",0.0068,0.006,0.007);
-   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
-   RooRealVar co1("co1","coefficient #1",0,-100000.,100000.);
-   RooChebychev bkg("bkg","background",x,RooArgList(co1));
-   RooRealVar signal("signal"," ",12000,10,1000000);//event number
-   RooRealVar background("background"," ",2000,0,100000);
-   RooPlot *xframe;
-   RooDataHist *data_kpi;
-   RooAddPdf *sum;
- 
    ofstream ofpar;
-   ofpar.open("par.txt",std::ios::app);
-   ofpar<<"k- pi+ algrithm: will give factors for pion"<<std::endl;
-   ofstream ofpardetail;
-   ofpardetail.open("detail.txt",std::ios::app);
-
-   TF1 *facfit = new TF1("facfit",line2,D0low,D0up,2);
-   TH1D *h1   = new TH1D("h1","k- pi+ invariant mass",nBins,D0low,D0up);
-   TCanvas *c1= new TCanvas("","",800,600);
-
+   ofpar.open("parkpi.txt",std::ios::app);
+   ofstream detail;
+   detail.open("detailkpi.txt",std::ios::app);
+   detail<<"k- pi+ algrithm: will give factors for pion"<<std::endl;
    // for saving the fit result
-   std::string fitepsname  = outputdir+"/fitkpi.eps";
-   std::string fiteps_start=fitepsname+"[";
-   std::string fiteps_stop =fitepsname+"]";
-   c1->Print(fiteps_start.c_str());
- 
+
    Long64_t nbytes = 0, nb = 0;
+   double factor,factorlow,factorup;
+   double minimum;
+   double minx,miny;
+   std::string tmpstr;
+   ParMap kmap("parkk.txt");
+   TH1D *h1 = new TH1D("h1","momentum of kaon",100,0,3.0);
+   TH1D *h2 = new TH1D("h2","momentum of kaon",100,0,3.0);
+   h2->SetLineColor(2);
 
-   int fittimes = 0;
-   for (int i=0;i<pointNo;i++){
-	  xframe = x.frame(Title("fit k pi"));
+   // ~~~~~~~~~pion(use kaon factor) part~~~~~~~~~~
+   m0 = 1.86486;//mD0
+   sigma=0.00687;
+   mparticle =0.13957018;//mpion
+   mparticle2=0.493677;//mkaon
+   //factor2 = 0.99751;// factor for kaon
+   width = 20.*sigma;
+   px1.clear();
+   px2.clear();
+   py1.clear();
+   py2.clear();
+   pz1.clear();
+   pz2.clear();
+   nb = fChain->GetEntry(1);   nbytes += nb;
+   factor2 = kmap.GetPar(run);
+   //factor2 = 1.0;
+   detail<<"factor kaon was "<<factor2<<std::endl;
+ 
+   for (Long64_t  jentry=0; jentry<nentries;jentry++) {
+     Long64_t ientry = LoadTree(jentry);
+     if (ientry < 0) break;
+     nb = fChain->GetEntry(jentry);   nbytes += nb;
 
-      h1->Reset();
-      std::cout<<"factor is "<<factor<<std::endl;
-      for (Long64_t jentry=0; jentry<nentries;jentry++) {
-         Long64_t ientry = LoadTree(jentry);
-         if (ientry < 0) break;
-         nb = fChain->GetEntry(jentry);   nbytes += nb;
-         
-		 //if(ngam>0) continue;
-		 //if(npip>1 ) continue;
-	     double mass;
-	     double totpx,totpy,totpz,tote;
-		 double e[2];
-		 int besidx=0;
-		 double tmpdeltaold=100;
-		 double tmpmass;
-		 for(int i=0; i<npip;i++){
-	       totpx=pippx[i]+factork*kampx[0];
-	       totpy=pippy[i]+factork*kampy[0];
-	       totpz=pippz[i]+factork*kampz[0];
-           e[0]=TMath::Sqrt(mpi*mpi + 
-		       (pippx[i]*pippx[i]+pippy[i]*pippy[i]+pippz[i]*pippz[i]));
-		   e[1]=TMath::Sqrt(mk*mk + 
-		       factork*factork*(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]));
-	       tote=e[0]+e[1];
-	       tmpmass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-		   if(fabs(tmpmass-peakvalue)<tmpdeltaold){
-		     tmpdeltaold = fabs(tmpmass-peakvalue);
-			 besidx = i;
-		   }
-		 }
-		 //std::cout<<"best index is "<<besidx<<std::endl;
-	     // total invariant mass, D0 -> k- pi+
-	     totpx=factor*pippx[besidx]+factork*kampx[0];
-	     totpy=factor*pippy[besidx]+factork*kampy[0];
-	     totpz=factor*pippz[besidx]+factork*kampz[0];
-         e[0]=TMath::Sqrt(mpi*mpi + 
-		       factor*factor*(pippx[besidx]*pippx[besidx]+pippy[besidx]*pippy[besidx]+pippz[besidx]*pippz[besidx]));
-		 e[1]=TMath::Sqrt(mk*mk + 
-		       factork*factork*(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]));
-	     tote=e[0]+e[1];
-	     mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-	     h1->Fill(mass);
-         // if (Cut(ientry) < 0) continue;
-      }
-
-	  char tmpchr[100];
-	  sprintf(tmpchr,"data_kpi_%02d",fittimes);
-      data_kpi = new RooDataHist(tmpchr,"data_kpi",x,h1);
-      sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
-      mean.setVal(peakvalue+0.05*(factor-1.0));
-	  //sigma.setVal(0.035);
-	  signal.setVal(120000);
-	  background.setVal(5000);
-	  co1.setVal(0);
-      sum->fitTo(*data_kpi,Range(D0low,D0up));
-	  data_kpi->plotOn(xframe);
-	  sum->plotOn(xframe);
-	  sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-	  sum->plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
-      xframe->Draw();
-	  c1->Print(fitepsname.c_str());
-	  delete data_kpi;
-	  delete xframe;
-	  delete sum;
-
-	  // save pars
-	  factors[i]=factor;
-	  factorserr[i]=0;
-	  deltapeaks[i] = mean.getValV() - peakvalue;
-	  deltapeakserr[i] = mean.getError();
-
-	  fittimes++;
-	  factor += factorstep;
+     //if(ngam>0) continue;
+     //if(npip>1 ) continue;
+     double mass;
+     double totpx,totpy,totpz,tote;
+     double totp;
+     double e[2];
+     int besidx=0;
+     double tmpdeltaold=100;
+     double tmpmass;
+     // search for best pi+
+     for(int i=0; i<npip;i++){
+       double kamp = TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
+       //if (kamp<0.63) continue;
+       totpx=pippx[i]+kampx[0];
+       totpy=pippy[i]+kampy[0];
+       totpz=pippz[i]+kampz[0];
+       e[0]=TMath::Sqrt(mparticle*mparticle + 
+    	  (pippx[i]*pippx[i]+pippy[i]*pippy[i]+pippz[i]*pippz[i]));
+       e[1]=TMath::Sqrt(mparticle2*mparticle2 + 
+    	  (kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]));
+       tote=e[0]+e[1];
+       tmpmass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+       if(fabs(tmpmass-m0)<tmpdeltaold){
+         tmpdeltaold = fabs(tmpmass-m0);
+         besidx = i;
+       }
+     }
+     // total invariant mass, D0 -> k- pi+
+     totpx=pippx[besidx]+kampx[0];
+     totpy=pippy[besidx]+kampy[0];
+     totpz=pippz[besidx]+kampz[0];
+     e[0]=TMath::Sqrt(mparticle*mparticle + 
+    	  (pippx[besidx]*pippx[besidx]+pippy[besidx]*pippy[besidx]+pippz[besidx]*pippz[besidx]));
+     e[1]=TMath::Sqrt(mparticle2*mparticle2 + 
+          (kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]));
+     tote=e[0]+e[1];
+     totp=TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
+     //if(totp>1.0) continue;
+     h1->Fill(totp);
+     mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+     if (mass>m0-width/2. && m0<m0+width/2.){
+       h2->Fill(totp);
+       px1.push_back(pippx[besidx]);
+       px2.push_back(kampx[0]);
+       py1.push_back(pippy[besidx]);
+       py2.push_back(kampy[0]);
+       pz1.push_back(pippz[besidx]);
+       pz2.push_back(kampz[0]);
+     }
    }
-   std::cout<<"entry is "<<nentries<<std::endl;
-   c1->Print(fiteps_stop.c_str());
-   c1->Clear();
-   
-   TGraphErrors *graph1 = new TGraphErrors(pointNo,factors,deltapeaks,factorserr,deltapeakserr);
-   graph1->SetTitle("delta peak");
-   graph1->SetMarkerStyle(5);
-   graph1->Draw("AP");
-   gStyle->SetOptFit(1111);
-   facfit->SetParameters(1,0.3);
-   facfit->SetParNames("factor","slope");
-   graph1->Fit(facfit,"","",factors[0],factors[pointNo-1]);
-   //factor1=facfit->GetParameter(0);
-   //factor1err=facfit->GetParError(0);
-   ofpar<<facfit->GetParameter(0)<<"\t"<<facfit->GetParError(0)<<std::endl;
-   ofpar<<signal.getValV()<<"\t"<<signal.getError()<<std::endl;
-   //std::cout<<"fit factor: "<<factor1<<", error is "<<factor1err<<std::endl;
-   std::string tmpstr=outputdir+"/factorkpi.eps";
-   c1->Print(tmpstr.c_str());
+   TCanvas *c2=new TCanvas("c2","likelihood",800,600);
+   h1->Draw();
+   c2->Update();
+   double rightmax = 1.1*h2->GetMaximum();
+   h2->Scale(gPad->GetUymax()/rightmax);
+   h2->Draw("same");
+   TGaxis *axis = new TGaxis(gPad->GetUxmax(),gPad->GetUymin(),
+                            gPad->GetUxmax(),gPad->GetUymax(),
+			    0,rightmax,510,"+L");
+   axis->SetLineColor(kRed);
+   axis->SetLabelColor(kRed);
+   axis->Draw();
+   c2->Print("momentumk.eps");
+ 
+   std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
+   TF2 *likeli=new TF2("likeli",maxlikelihood2_0,0.95,1.05,0.01,0.99);
+   //likeli->SetNpy(100);
+   likeli->Draw("surf1");
+   tmpstr=outputdir+"/likelikpi_2D.eps";
+   c2->Print(tmpstr.c_str());
+   //minimum = likeli->GetMinimum(0.98,1.02);
+   //factor=likeli->GetMinimumX(0.98,1.02);
+   likeli->GetMinimumXY(factor,miny);
+   weight = miny;
+   TF1 *likeli_1=new TF1("likeli_1",maxlikelihood2_1,0.95,1.05);
+   likeli_1->Draw();
+   tmpstr=outputdir+"/likelikpi_1D.eps";
+   c2->Print(tmpstr.c_str());
+   minimum = likeli_1->GetMinimum(0.98,1.02);
+   factorlow=likeli_1->GetX(minimum+1,0.98,factor);
+   factorup =likeli_1->GetX(minimum+1,factor,1.02);
+   ofpar<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
+   detail<<"weight is "<<miny<<", factor is "<<likeli_1->GetMinimumX(0.98,1.01)<<std::endl;
+   detail<<"minimum 2D  "<<likeli->GetMinimum()<<", minimum 1D "<<likeli_1->GetMinimum()<<std::endl;
+   detail<<"best factor  "<<likeli_1->GetMinimumX(0.99,1.01)<<std::endl;
 
-   // draw the best fit
-   xframe = x.frame(Title("fit k pi"));
-   factor =facfit->GetParameter(0);
-    h1->Reset();
-    std::cout<<"factor is "<<factor<<std::endl;
-    for (Long64_t jentry=0; jentry<nentries;jentry++) {
-       Long64_t ientry = LoadTree(jentry);
-       if (ientry < 0) break;
-       nb = fChain->GetEntry(jentry);   nbytes += nb;
-	   double mass;
-	   double totpx,totpy,totpz,tote;
-	   double e[2];
-	   int besidx=0;
-	   double tmpdeltaold=100;
-	   double tmpmass;
-	   for(int i=0; i<npip;i++){
-	     totpx=pippx[i]+factork*kampx[0];
-	     totpy=pippy[i]+factork*kampy[0];
-	     totpz=pippz[i]+factork*kampz[0];
-         e[0]=TMath::Sqrt(mpi*mpi + 
-	         (pippx[i]*pippx[i]+pippy[i]*pippy[i]+pippz[i]*pippz[i]));
-	     e[1]=TMath::Sqrt(mk*mk + 
-	         factork*factork*(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]));
-	     tote=e[0]+e[1];
-	     tmpmass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-	     if(fabs(tmpmass-peakvalue)<tmpdeltaold){
-	       tmpdeltaold = fabs(tmpmass-peakvalue);
-	  	 besidx = i;
-	     }
-	   }
-	   // total invariant mass, D0 -> k- pi+
-	   totpx=factor*pippx[besidx]+factork*kampx[0];
-	   totpy=factor*pippy[besidx]+factork*kampy[0];
-	   totpz=factor*pippz[besidx]+factork*kampz[0];
-       e[0]=TMath::Sqrt(mpi*mpi + 
-	         factor*factor*(pippx[besidx]*pippx[besidx]+pippy[besidx]*pippy[besidx]+pippz[besidx]*pippz[besidx]));
-	   e[1]=TMath::Sqrt(mk*mk + 
-	         factork*factork*(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]));
-	   tote=e[0]+e[1];
-	   mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-	   h1->Fill(mass);
-    }
-	char tmpchr[100];
-	sprintf(tmpchr,"data_kpi_%02d",fittimes);
-    data_kpi = new RooDataHist(tmpchr,"data_kpi",x,h1);
-    sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
-    mean.setVal(peakvalue+0.05*(factor-1.0));
-	//sigma.setVal(0.035);
-	signal.setVal(1200);
-	background.setVal(200);
-	co1.setVal(0);
-    sum->fitTo(*data_kpi,Range(D0low,D0up));
-	data_kpi->plotOn(xframe);
-	sum->plotOn(xframe);
-	sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-	sum->plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
-    xframe->Draw();
-	c1->Print("fitkpi_best.eps");
-	delete data_kpi;
-	delete xframe;
-	delete sum;
-
+   // ~~~~~~~~~pion part end~~~~~~~~~~
+  
    ofpar.close();
-   ofpardetail.close();
+   detail.close();
 
 }
 

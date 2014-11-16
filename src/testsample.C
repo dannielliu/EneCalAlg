@@ -1,5 +1,6 @@
-#define gepep_kk_cxx
-#include "gepep_kk.h"
+#include <iostream>
+#include <fstream>
+#include <string>
 #include <TH1.h>
 #include <TH2.h>
 #include <TStyle.h>
@@ -10,7 +11,6 @@
 #include "TF3.h"
 #include "TGaxis.h"
 #include "TPad.h"
-#include <fstream>
 #include "RooFit.h"
 #include "RooRealVar.h"
 #include "RooGaussian.h"
@@ -19,7 +19,6 @@
 #include "RooAddPdf.h"
 #include "RooArgList.h"
 #include "RooPlot.h"
-extern std::string outputdir;
 using RooFit::Title;
 using RooFit::Components;
 using RooFit::LineStyle;
@@ -34,42 +33,18 @@ extern double width;
 extern double weight;
 extern double slope;
 
-void gepep_kk::Loop()
+int main(int argc,char** argv)
 {
-//   In a ROOT session, you can do:
-//      Root > .L gepep_kk.C
-//      Root > gepep_kk t
-//      Root > t.GetEntry(12); // Fill t data members with entry number 12
-//      Root > t.Show();       // Show values of entry 12
-//      Root > t.Show(16);     // Read and show values of entry 16
-//      Root > t.Loop();       // Loop on all entries
-//
+   std::string outputdir=".";
 
-//     This is the loop skeleton where:
-//    jentry is the global entry number in the chain
-//    ientry is the entry number in the current Tree
-//  Note that the argument to GetEntry must be:
-//    jentry for TChain::GetEntry
-//    ientry for TTree::GetEntry and TBranch::GetEntry
-//
-//       To read only selected branches, Insert statements like:
-// METHOD1:
-//    fChain->SetBranchStatus("*",0);  // disable all branches
-//    fChain->SetBranchStatus("branchname",1);  // activate branchname
-// METHOD2: replace line
-//    fChain->GetEntry(jentry);       //read all branches
-//by  b_branchname->GetEntry(ientry); //read only this branch
-   if (fChain == 0) return;
-
-   Long64_t nentries = fChain->GetEntriesFast();
-
-   std::cout<<"Toral entry is "<<nentries<<std::endl; 
+   ifstream sample("sample.txt");
    ofstream ofpar;
    ofpar.open("parkk.txt",std::ios::app);
    ofstream detail;
    detail.open("detailkk.txt",std::ios::app);
    detail<<"kk algrithm: will give factors for kaon"<<std::endl;
    
+   double pxa,pya,pza,pxb,pyb,pzb;
    double philow=1.0;
    double phiup=1.05;
    // try to use roofit
@@ -82,15 +57,14 @@ void gepep_kk::Loop()
    RooRealVar co1("co1","coefficient #1",0,-1000.,1000.);
    //RooRealVar co4("co4","coefficient #4",0);
    RooChebychev bkg("bkg","background",x,RooArgList(co1));
-   RooRealVar signal("signal"," ",1200,10,1000000);//event number
+   RooRealVar signal("signal"," ",300,10,1000000);//event number
    //RooRealVar signal2("signal2"," ",1200,10,1000000);//event number
    RooRealVar background("background"," ",200,0,100000);
    RooPlot *xframe;
    RooDataHist *data_k;
    RooAddPdf *sum;
  
-   Long64_t nbytes = 0, nb = 0;
-   int NP=10;
+   int NP=1;
    // split momentum from 0.13 to 1.13 GeV
    double Ps[NP+1];
    for(int i=0;i<=NP;i++){
@@ -120,31 +94,31 @@ void gepep_kk::Loop()
    m0 = 1.019455;
    //sigma=0.0024;
    sigma=sigma1.getVal();
-   width = 10.*sigma;
+   width = 20.*sigma;
    mparticle=0.493677;
    for(int part=0;part<NP;part++){
      ofpar<<Ps[part]<<"\t"<<Ps[part+1]<<std::endl;
      // pre fit
      hmass[part]->Reset();
-     for (Long64_t jentry=0; jentry<nentries;jentry++) {
-       Long64_t ientry = LoadTree(jentry);
-       if (ientry < 0) break;
-       nb = fChain->GetEntry(jentry);   nbytes += nb;
+     while(!sample.eof()){
+       sample>>pxa>>pya>>pza>>pxb>>pyb>>pzb;
+       std::string name;
+       getline(sample,name);
        //if(ngam>0) continue;
        double mass;
        double totpx,totpy,totpz,tote;
        double ke[2];
        double kapp,kamp;
        // total invariant mass
-       totpx=(kappx+kampx);
-       totpy=(kappy+kampy);
-       totpz=(kappz+kampz);
+       totpx=(pxa+pxb);
+       totpy=(pya+pyb);
+       totpz=(pza+pzb);
        ke[0]=TMath::Sqrt(mparticle*mparticle + 
-             (kappx*kappx+kappy*kappy+kappz*kappz));
+             (pxa*pxa+pya*pya+pza*pza));
        ke[1]=TMath::Sqrt(mparticle*mparticle + 
-             (kampx*kampx+kampy*kampy+kampz*kampz));
-       kapp=TMath::Sqrt(kappx*kappx+kappy*kappy+kappz*kappz);
-       kamp=TMath::Sqrt(kampx*kampx+kampy*kampy+kampz*kampz);
+             (pxb*pxb+pyb*pyb+pzb*pzb));
+       kapp=TMath::Sqrt(pxa*pxa+pya*pya+pza*pza);
+       kamp=TMath::Sqrt(pxb*pxb+pyb*pyb+pzb*pzb);
        if(!(kapp>Ps[part] && kapp<Ps[part+1] && kamp>Ps[part] && kamp<Ps[part+1])) continue;
        tote=ke[0]+ke[1];
        mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
@@ -160,21 +134,21 @@ void gepep_kk::Loop()
      sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
      mean.setVal(m0);
      //sigma.setVal(0.035);
-     signal.setVal(12000);
-     background.setVal(2000);
+     signal.setVal(300);
+     background.setVal(200);
      co1.setVal(0);
      sum->fitTo(*data_k,Range(philow,phiup));
      mpeak = mean.getVal();
      sigma=sigma1.getVal();;
-     //xframe = x.frame(Title("fit kaon"));
-     //data_k->plotOn(xframe);
-     //sum->plotOn(xframe);
-     //sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+     xframe = x.frame(Title("fit kaon"));
+     data_k->plotOn(xframe);
+     sum->plotOn(xframe);
+     sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
      //sum->plotOn(xframe,Components(gaus2),LineStyle(4),LineColor(4));
-     //sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
-     //xframe->Draw();
-     //sprintf(name,"%s/mass_%1.2f_%1.2f.eps",outputdir.c_str(),Ps[part],Ps[part+1]);
-     //c2->Print(name);
+     sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
+     xframe->Draw();
+     sprintf(name,"%s/mass_%1.2f_%1.2f_pre.eps",outputdir.c_str(),Ps[part],Ps[part+1]);
+     c2->Print(name);
      ofpar<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
      ofpar<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError();
      ofpar<<"\t"<<signal.getVal()/(signal.getVal()+background.getVal())<<std::endl;
@@ -188,34 +162,37 @@ void gepep_kk::Loop()
      py2.clear();
      pz1.clear();
      pz2.clear();
-     for (Long64_t jentry=0; jentry<nentries;jentry++) {
-       Long64_t ientry = LoadTree(jentry);
-       if (ientry < 0) break;
-       nb = fChain->GetEntry(jentry);   nbytes += nb;
-    
-       //if(ngam>0) continue;
+     sample.clear();
+     sample.seekg(0,std::ios::beg);
+     while(!sample.eof()){
+       sample>>pxa>>pya>>pza>>pxb>>pyb>>pzb;
+       std::string tmpcha;
+       getline(sample,tmpcha);
+        //if(ngam>0) continue;
        double mass;
        double totpx,totpy,totpz,tote;
-       double kapp,kamp;
+       double kapp,kamp,kape,kame;
        // total invariant mass
-       totpx=(kappx+kampx);
-       totpy=(kappy+kampy);
-       totpz=(kappz+kampz);
+       totpx=(pxa+pxb);
+       totpy=(pya+pyb);
+       totpz=(pza+pzb);
+       kapp=TMath::Sqrt(pxa*pxa+pya*pya+pza*pza);
+       kamp=TMath::Sqrt(pxb*pxb+pyb*pyb+pzb*pzb);
+       kape=TMath::Sqrt(mparticle*mparticle+kapp*kapp);
+       kame=TMath::Sqrt(mparticle*mparticle+kamp*kamp);
        tote=kape+kame;
-       kapp=TMath::Sqrt(kappx*kappx+kappy*kappy+kappz*kappz);
-       kamp=TMath::Sqrt(kampx*kampx+kampy*kampy+kampz*kampz);
        if(!(kapp>Ps[part] && kapp<Ps[part+1] && kamp>Ps[part] && kamp<Ps[part+1])) continue;
        //h1->Fill(kapp);
        mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
        if(mass>mpeak-width/2. && mass<mpeak+width/2.){
          hp[part]->Fill(kapp);
 	 //hmass[part]->Fill(mass);
-         px1.push_back(kappx);
-         px2.push_back(kampx);
-         py1.push_back(kappy);
-         py2.push_back(kampy);
-         pz1.push_back(kappz);
-         pz2.push_back(kampz);
+         px1.push_back(pxa);
+         px2.push_back(pxb);
+         py1.push_back(pya);
+         py2.push_back(pyb);
+         pz1.push_back(pza);
+         pz2.push_back(pzb);
        }
      }
   
@@ -241,31 +218,34 @@ void gepep_kk::Loop()
      minimum = likeli_1->GetMinimum(0.98,1.02);
      factorlow=likeli_1->GetX(minimum+1,0.98,factor);
      factorup =likeli_1->GetX(minimum+1,factor,1.02);
-     ofpar<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<"\t\t"<<weight<<"\t"<<slope<<std::endl;
-     detail<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
+     ofpar<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<"\t\t"<<weight<<"\t"<<slope<<std::endl;
+     detail<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
      detail<<"signal weight is "<<weight<<" best factor  "<<likeli_1->GetMinimumX(0.99,1.01)<<std::endl;
 
      // using the factor to fit
      hmass[part]->Reset();
-     for (Long64_t jentry=0; jentry<nentries;jentry++) {
-       Long64_t ientry = LoadTree(jentry);
-       if (ientry < 0) break;
-       nb = fChain->GetEntry(jentry);   nbytes += nb;
+     sample.clear();
+     sample.seekg(0,std::ios::beg);
+     while(!sample.eof()){
+       sample>>pxa>>pya>>pza>>pxb>>pyb>>pzb;
+       std::string tmpcha;
+       getline(sample,tmpcha);
+      
        //if(ngam>0) continue;
        double mass;
        double totpx,totpy,totpz,tote;
        double ke[2];
        double kapp,kamp;
        // total invariant mass
-       totpx=factor*(kappx+kampx);
-       totpy=factor*(kappy+kampy);
-       totpz=factor*(kappz+kampz);
+       totpx=factor*(pxa+pxb);
+       totpy=factor*(pya+pyb);
+       totpz=factor*(pza+pzb);
        ke[0]=TMath::Sqrt(mparticle*mparticle + 
-             factor*factor*(kappx*kappx+kappy*kappy+kappz*kappz));
+             factor*factor*(pxa*pxa+pya*pya+pza*pza));
        ke[1]=TMath::Sqrt(mparticle*mparticle + 
-             factor*factor*(kampx*kampx+kampy*kampy+kampz*kampz));
-       kapp=TMath::Sqrt(kappx*kappx+kappy*kappy+kappz*kappz);
-       kamp=TMath::Sqrt(kampx*kampx+kampy*kampy+kampz*kampz);
+             factor*factor*(pxb*pxb+pyb*pyb+pzb*pzb));
+       kapp=TMath::Sqrt(pxa*pxa+pya*pya+pza*pza);
+       kamp=TMath::Sqrt(pxb*pxb+pyb*pyb+pzb*pzb);
        if(!(kapp>Ps[part] && kapp<Ps[part+1] && kamp>Ps[part] && kamp<Ps[part+1])) continue;
        tote=ke[0]+ke[1];
        mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
@@ -278,8 +258,8 @@ void gepep_kk::Loop()
      sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
      mean.setVal(m0);
      //sigma.setVal(0.035);
-     signal.setVal(12000);
-     background.setVal(2000);
+     signal.setVal(300);
+     background.setVal(200);
      co1.setVal(0);
      sum->fitTo(*data_k,Range(philow,phiup));
      xframe = x.frame(Title("fit kaon"));
@@ -298,7 +278,6 @@ void gepep_kk::Loop()
      delete xframe;
      delete sum;
      delete c2;
-
    }
    // ~~~~~~~~~kaon part end~~~~~~~~~~
 
@@ -306,109 +285,3 @@ void gepep_kk::Loop()
    detail.close();
 
 }
-
-#ifdef gepep_kk_cxx
-gepep_kk::gepep_kk(TTree *tree) : fChain(0) 
-{
-// if parameter tree is not specified (or zero), connect the file
-// used to generate this class and read the Tree.
-   if (tree == 0) {
-      TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("data/RValue_kk_3850.root");
-      if (!f || !f->IsOpen()) {
-         f = new TFile("data/RValue_kk_3850.root");
-      }
-      f->GetObject("gepep_kk",tree);
-
-   }
-   Init(tree);
-}
-
-gepep_kk::~gepep_kk()
-{
-   if (!fChain) return;
-   delete fChain->GetCurrentFile();
-}
-
-Int_t gepep_kk::GetEntry(Long64_t entry)
-{
-// Read contents of entry.
-   if (!fChain) return 0;
-   return fChain->GetEntry(entry);
-}
-Long64_t gepep_kk::LoadTree(Long64_t entry)
-{
-// Set the environment to read one entry
-   if (!fChain) return -5;
-   Long64_t centry = fChain->LoadTree(entry);
-   if (centry < 0) return centry;
-   if (fChain->GetTreeNumber() != fCurrent) {
-      fCurrent = fChain->GetTreeNumber();
-      Notify();
-   }
-   return centry;
-}
-
-void gepep_kk::Init(TTree *tree)
-{
-   // The Init() function is called when the selector needs to initialize
-   // a new tree or chain. Typically here the branch addresses and branch
-   // pointers of the tree will be set.
-   // It is normally not necessary to make changes to the generated
-   // code, but the routine can be extended by the user if needed.
-   // Init() will be called many times when running on PROOF
-   // (once per file to be processed).
-
-   // Set branch addresses and branch pointers
-   if (!tree) return;
-   fChain = tree;
-   fCurrent = -1;
-   fChain->SetMakeClass(1);
-
-   fChain->SetBranchAddress("run", &run, &b_run);
-   fChain->SetBranchAddress("rec", &rec, &b_rec);
-   fChain->SetBranchAddress("evttag", &evttag, &b_evttag);
-   fChain->SetBranchAddress("indexmc", &indexmc, &b_indexmc);
-   fChain->SetBranchAddress("pdgid", pdgid, &b_pdgid);
-   fChain->SetBranchAddress("motheridx", motheridx, &b_motheridx);
-   fChain->SetBranchAddress("ngch", &ngch, &b_ngch);
-   fChain->SetBranchAddress("ncharg", &ncharg, &b_ncharg);
-   fChain->SetBranchAddress("nneu", &nneu, &b_nneu);
-   fChain->SetBranchAddress("kappx", &kappx, &b_kappx);
-   fChain->SetBranchAddress("kappy", &kappy, &b_kappy);
-   fChain->SetBranchAddress("kappz", &kappz, &b_kappz);
-   fChain->SetBranchAddress("kape", &kape, &b_kape);
-   fChain->SetBranchAddress("kampx", &kampx, &b_kampx);
-   fChain->SetBranchAddress("kampy", &kampy, &b_kampy);
-   fChain->SetBranchAddress("kampz", &kampz, &b_kampz);
-   fChain->SetBranchAddress("kame", &kame, &b_kame);
-   fChain->SetBranchAddress("mphi", &mphi, &b_mphi);
-   fChain->SetBranchAddress("kkm4", &kkm4, &b_kkm4);
-   Notify();
-}
-
-Bool_t gepep_kk::Notify()
-{
-   // The Notify() function is called when a new file is opened. This
-   // can be either for a new TTree in a TChain or when when a new TTree
-   // is started when using PROOF. It is normally not necessary to make changes
-   // to the generated code, but the routine can be extended by the
-   // user if needed. The return value is currently not used.
-
-   return kTRUE;
-}
-
-void gepep_kk::Show(Long64_t entry)
-{
-// Print contents of entry.
-// If entry is not specified, print current entry
-   if (!fChain) return;
-   fChain->Show(entry);
-}
-Int_t gepep_kk::Cut(Long64_t entry)
-{
-// This function may be called from Loop.
-// returns  1 if entry is accepted.
-// returns -1 otherwise.
-   return 1;
-}
-#endif // #ifdef gepep_kk_cxx

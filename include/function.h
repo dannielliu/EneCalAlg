@@ -20,6 +20,7 @@ double maxlikelihood(double *x,double *par);
 // function with background
 double maxlikelihood1(double *x,double *par);
 double maxlikelihood1_1(double *x,double *par);
+double maxlikelihood1_3(double *x,double *par);
 
 // for two diffrent particles end
 double maxlikelihood2(double *x,double *par);//pure gaussian

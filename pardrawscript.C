@@ -28,11 +28,11 @@ void pardrawscript()
   //y3e.clear();
   while(!in.eof()){
     char tmpstr[1000];
-    //in>>energy;
-    energy+=1;
-    getline(in,tmpstr);
+    in>>energy;
+    //energy+=1;
     //getline(in,tmpstr);
-    in>>factore>>factorelow>>factoreup;
+    //getline(in,tmpstr);
+    in>>run>>factore>>factorelow>>factoreup;
     //in>>factormu>>factormuerr;
     //in>>factorpi>>factorpierr;
     //getline(in,tmpstr);

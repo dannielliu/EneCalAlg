@@ -114,6 +114,8 @@ void gepep_kpi::Loop()
          
 		 //if(ngam>0) continue;
 		 //if(npip>1 ) continue;
+      double kamp = TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
+      if (kamp<0.63) continue;
 	     double mass;
 	     double totpx,totpy,totpz,tote;
 		 double e[2];
@@ -205,10 +207,12 @@ void gepep_kpi::Loop()
     h1->Reset();
     std::cout<<"factor is "<<factor<<std::endl;
     for (Long64_t jentry=0; jentry<nentries;jentry++) {
-       Long64_t ientry = LoadTree(jentry);
-       if (ientry < 0) break;
-       nb = fChain->GetEntry(jentry);   nbytes += nb;
-	   double mass;
+      Long64_t ientry = LoadTree(jentry);
+      if (ientry < 0) break;
+      nb = fChain->GetEntry(jentry);   nbytes += nb;
+      double kamp = TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
+      if (kamp<0.63) continue;
+           double mass;
 	   double totpx,totpy,totpz,tote;
 	   double e[2];
 	   int besidx=0;

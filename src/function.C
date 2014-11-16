@@ -30,7 +30,7 @@ double maxlikelihood(double *x,double *par)
   return logl;
 } 
 
-double weight,width;
+double weight,width,slope=0.;
 double maxlikelihood1(double *x,double *par)
 {
   double logl=0;
@@ -49,7 +49,7 @@ double maxlikelihood1(double *x,double *par)
     pz=pz1.at(i)+pz2.at(i);
     minv = TMath::Sqrt((e1+e2)*(e1+e2)-x[0]*x[0]*(px*px+py*py+pz*pz));
     logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
-            /(TMath::Sqrt(2*TMath::Pi()))/sigma*x[1] +(1.-x[1])/width);//here sigma is just a const
+            /(TMath::Sqrt(2*TMath::Pi()))/sigma*x[1] +(1.-x[1])*(slope*(minv-m0)+1./width));//here sigma is just a const
   }
   return logl;
 }
@@ -71,7 +71,30 @@ double maxlikelihood1_1(double *x,double *par)
     pz=pz1.at(i)+pz2.at(i);
     minv = TMath::Sqrt((e1+e2)*(e1+e2)-x[0]*x[0]*(px*px+py*py+pz*pz));
     logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
-            /(TMath::Sqrt(2*TMath::Pi()))/sigma*weight +(1.-weight)/width);//here sigma is just a const
+            /(TMath::Sqrt(2*TMath::Pi()))/sigma*weight +(1.-weight)*(slope*(minv-m0)+1./width));
+  }
+  return logl;
+}
+double maxlikelihood1_3(double *x,double *par)
+{
+  double logl=0;
+  double p1,p2,px,py,pz;
+  double e1,e2;
+  double minv;
+  //double sigma=0.023;// from large statistic, and fit it get sigma
+  //std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
+  for(int i=0; i<px1.size(); i++){
+    p1=TMath::Sqrt(px1.at(i)*px1.at(i)+py1.at(i)*py1.at(i)+pz1.at(i)*pz1.at(i));
+    p2=TMath::Sqrt(px2.at(i)*px2.at(i)+py2.at(i)*py2.at(i)+pz2.at(i)*pz2.at(i));
+    e1=TMath::Sqrt(mparticle*mparticle+x[0]*x[0]*p1*p1);
+    e2=TMath::Sqrt(mparticle*mparticle+x[0]*x[0]*p2*p2);
+    px=px1.at(i)+px2.at(i);
+    py=py1.at(i)+py2.at(i);
+    pz=pz1.at(i)+pz2.at(i);
+    minv = TMath::Sqrt((e1+e2)*(e1+e2)-x[0]*x[0]*(px*px+py*py+pz*pz));
+    logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
+            /(TMath::Sqrt(2*TMath::Pi())*sigma)*x[1] +(1.-x[1])*(x[2]*(minv-m0)+1./width));
+    //x[0] is the factor, x[1] is signal weight, x[2] is background slope.
   }
   return logl;
 }

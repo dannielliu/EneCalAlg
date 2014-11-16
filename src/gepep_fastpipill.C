@@ -12,8 +12,21 @@
 #include "bes3plotstyle.h"
 #include "TLegend.h"
 #include <fstream>
+#include "RooFit.h"
+#include "RooRealVar.h"
+#include "RooGaussian.h"
+#include "RooChebychev.h"
+#include "RooDataHist.h"
+#include "RooAddPdf.h"
+#include "RooArgList.h"
+#include "RooPlot.h"
 extern std::string outputdir;
-
+using RooFit::Title;
+using RooFit::Components;
+using RooFit::LineStyle;
+using RooFit::LineColor;
+using RooFit::Range;
+extern std::string outputdir;
 extern std::vector<double> px1,py1,pz1,px2,py2,pz2;
 extern std::vector<double> px3,py3,pz3,px4,py4,pz4;
 extern std::vector<double> le1,le2;
@@ -51,16 +64,44 @@ bool gepep_fastpipill::Loop()
    Long64_t nentries = fChain->GetEntriesFast();
 
    std::cout<<"Toral entry is "<<nentries<<std::endl;
-   ofstream ofpar;
-   ofpar.open("parpipill.txt",std::ios::app);
-   ofpar<<"fastpipi algrithm: will give factors for e,mu,pi"<<std::endl;
-   ofstream ofpardetail;
-   ofpardetail.open("detail.txt",std::ios::app);
+   ofstream ofpare;
+   ofpare.open("parpipille.txt",std::ios::app);
+   ofstream ofparmu;
+   ofparmu.open("parpipillmu.txt",std::ios::app);
+   ofstream ofparpi;
+   ofparpi.open("parpipillpi.txt",std::ios::app);
+   ofstream detail;
+   detail.open("detail.txt",std::ios::app);
+   detail<<"fastpipi algrithm: will give factors for e,mu,pi"<<std::endl;
+    
+   double jlow=3.0;
+   double jup=3.2;
+   double psilow=3.65;
+   double psiup=3.73;
+   // try to use roofit
+   RooRealVar x("x","energy",3.097,jlow,jup,"GeV");
+   RooRealVar mean("mean","mean of gaussian",3.097,jlow,jup);
+   RooRealVar sigma1("sigma1","width of gaussian",0.003,0.0001,0.05);
+   //RooRealVar sigma2("sigma2","width of gaussian",0.02,0.005,0.05);
+   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma1);
+   //RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
+   RooRealVar co1("co1","coefficient #1",0,-1000.,1000.);
+   //RooRealVar co4("co4","coefficient #4",0);
+   RooChebychev bkg("bkg","background",x,RooArgList(co1));
+   RooRealVar signal("signal"," ",1200,10,1000000);//event number
+   //RooRealVar signal2("signal2"," ",1200,10,1000000);//event number
+   RooRealVar background("background"," ",200,0,100000);
+   RooPlot *xframe;
+   RooDataHist *data;
+   RooAddPdf *sum;
    
    Long64_t nbytes = 0, nb = 0;
    double factor,factorlow,factorup;
    double minimum;
    double minx,miny;
+   TH1D *hmass1 = new TH1D("hmassje","mass j",40,jlow,jup);
+   TH1D *hmass2 = new TH1D("hmassjmu","mass j",40,jlow,jup);
+   TH1D *hmass3 = new TH1D("hmasspsi","mass psi",40,psilow,psiup);
    std::string tmpstr;
 
    // ~~~~~~~~~electron part~~~~~~~~~~
@@ -68,7 +109,7 @@ bool gepep_fastpipill::Loop()
    sigma=0.0169;
    mparticle=0.000511;
    weight = 1.0;
-   width = 0.2;
+   width = 10.*sigma;
    px1.clear();
    px2.clear();
    py1.clear();
@@ -108,25 +149,85 @@ bool gepep_fastpipill::Loop()
    }
    
    //factor =0;
-   std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
+   detail<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
    TF2 *likeli=new TF2("likeli",maxlikelihood1,0.95,1.05,0.1,0.99);
    TCanvas *c2=new TCanvas("c2","likelihood",800,600);
    likeli->Draw("surf1");
-   tmpstr=outputdir+"/likelie_2D.eps";
-   c2->Print(tmpstr.c_str());
+   //tmpstr=outputdir+"/likelie_2D.eps";
+   char name[100];
+   sprintf(name,"%s/likelie_2D.eps",outputdir.c_str());
+   c2->Print(name);
    //factor=likeli->GetMinimumX(0.98,1.02);
    likeli->GetMinimumXY(factor,miny);
    weight = miny;
    TF1 *likeli_1=new TF1("likeli_1",maxlikelihood1_1,0.95,1.05);
    likeli_1->Draw();
-   tmpstr=outputdir+"/likelie_1D.eps";
-   c2->Print(tmpstr.c_str());
+   //tmpstr=outputdir+"/likelie_1D.eps";
+   sprintf(name,"%s/likelie_1D.eps",outputdir.c_str());
+   c2->Print(name);
    minimum = likeli_1->GetMinimum(0.98,1.02);
    factorlow=likeli_1->GetX(minimum+1,0.98,factor);
    factorup =likeli_1->GetX(minimum+1,factor,1.02);
-   ofpar<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
-   ofpar<<"weight is "<<miny<<", factor is "<<likeli_1->GetMinimumX(0.98,1.01)<<std::endl;
-   std::cout<<"best factor  "<<factor<<std::endl;
+   ofpare<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
+   detail<<"weight is "<<miny<<", factor is "<<likeli_1->GetMinimumX(0.98,1.01)<<std::endl;
+   detail<<"best factor  "<<factor<<std::endl;
+
+   // using the factor to fit
+   for (Long64_t jentry=0; jentry<nentries;jentry++) {
+     Long64_t ientry = LoadTree(jentry);
+     if (ientry < 0) break;
+     nb = fChain->GetEntry(jentry);   nbytes += nb;
+    
+      if(cos(angle4)>0.90) continue; // cut bhabha 
+      if(decay_ee==1){
+        double mass;
+        double totpx,totpy,totpz,tote;
+        double lee[2];
+        double le1p,le2p;
+        // total invariant mass
+        totpx=factor*(lepx4[0]+lepx4[1]);
+        totpy=factor*(lepy4[0]+lepy4[1]);
+        totpz=factor*(lepz4[0]+lepz4[1]);
+        lee[0]=TMath::Sqrt(mparticle*mparticle + 
+               factor*factor*(lepx4[0]*lepx4[0]+lepy4[0]*lepy4[0]+lepz4[0]*lepz4[0]) );
+        lee[1]=TMath::Sqrt(mparticle*mparticle +
+               factor*factor*(lepx4[1]*lepx4[1]+lepy4[1]*lepy4[1]+lepz4[1]*lepz4[1]) );
+        le1p=TMath::Sqrt(lepx4[0]*lepx4[0]+lepy4[0]*lepy4[0]+lepz4[0]*lepz4[0]);
+        le2p=TMath::Sqrt(lepx4[1]*lepx4[1]+lepy4[1]*lepy4[1]+lepz4[1]*lepz4[1]);
+        tote=lee[0]+lee[1];
+        mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+	if(mass>m0-width/2. && mass<m0+width/2.){
+	  hmass1->Fill(mass);
+	}
+      }
+     // total invariant mass
+     // if (Cut(ientry) < 0) continue;
+    }
+
+    sprintf(name,"mass_jpsi_e");
+    data = new RooDataHist(name,"data_e",x,hmass1);
+    mean.setVal(m0);
+    sigma1.setVal(sigma);
+    signal.setVal(120);
+    background.setVal(10);
+    co1.setVal(0);
+    sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+    sum->fitTo(*data,Range(jlow,jup));
+    xframe = x.frame(Title("fit e"));
+    data->plotOn(xframe);
+    sum->plotOn(xframe);
+    sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+    //sum->plotOn(xframe,Components(gaus2),LineStyle(4),LineColor(4));
+    sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
+    xframe->Draw();
+    sprintf(name,"%s/mass_jpsi_e.eps",outputdir.c_str());
+    c2->Print(name);
+    ofpare<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+    ofpare<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError()<<std::endl;
+    delete data;
+    delete xframe;
+    delete sum;
+    //delete c2;
 
    // ~~~~~~~~~electron part end~~~~~~~~~~
 
@@ -135,7 +236,7 @@ bool gepep_fastpipill::Loop()
    sigma=0.0166;
    mparticle=0.105658;
    weight = 0.9;
-   width = 0.2;
+   width = 10.*sigma;
    px1.clear();
    px2.clear();
    py1.clear();
@@ -174,31 +275,91 @@ bool gepep_fastpipill::Loop()
       // if (Cut(ientry) < 0) continue;
    }
    
-   std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
+   detail<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
    TF2 *likeli2=new TF2("likeli2",maxlikelihood1,0.95,1.05,0.1,0.99);
    likeli2->Draw("surf1");
-   tmpstr = outputdir+"/likelimu_2D.eps";
-   c2->Print(tmpstr.c_str());
+   //tmpstr = outputdir+"/likelimu_2D.eps";
+   sprintf(name,"%s/likelimu_2D.eps",outputdir.c_str());
+   c2->Print(name);
    minimum = likeli2->GetMinimum(0.98,1.02);
    //factor=likeli2->GetMinimumX(0.98,1.02);
    likeli2->GetMinimumXY(factor,miny);
    weight = miny;
    TF1 *likeli2_1=new TF1("likeli2_1",maxlikelihood1_1,0.95,1.05);
    likeli2_1->Draw();
-   tmpstr = outputdir+"/likelimu_1D.eps";
-   c2->Print(tmpstr.c_str());
+   //tmpstr = outputdir+"/likelimu_1D.eps";
+   sprintf(name,"%s/likelimu_1D.eps",outputdir.c_str());
+   c2->Print(name);
    factorlow=likeli2_1->GetX(minimum+1,0.98,factor);
    //factorlow=likeli2->GetX(miny,0.98,factor);
    factorup =likeli2_1->GetX(minimum+1,factor,1.02);
-   ofpar<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
-   ofpar<<"weight is "<<miny<<", factor is "<<likeli2_1->GetMinimumX(0.98,1.02)<<std::endl;
-   std::cout<<"best factor  "<<factor<<std::endl;
-   // ~~~~~~~~~muon part end~~~~~~~~~~
+   ofparmu<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
+   detail<<"weight is "<<miny<<", factor is "<<likeli2_1->GetMinimumX(0.98,1.02)<<std::endl;
+   detail<<"best factor  "<<factor<<std::endl;
+ 
+   // using the factor to fit
+   for (Long64_t jentry=0; jentry<nentries;jentry++) {
+     Long64_t ientry = LoadTree(jentry);
+     if (ientry < 0) break;
+     nb = fChain->GetEntry(jentry);   nbytes += nb;
+    
+      if(cos(angle4)>0.90) continue; // cut bhabha 
+      if(decay_ee==0){
+        double mass;
+        double totpx,totpy,totpz,tote;
+        double lee[2];
+        double le1p,le2p;
+        // total invariant mass
+        totpx=factor*(lepx4[0]+lepx4[1]);
+        totpy=factor*(lepy4[0]+lepy4[1]);
+        totpz=factor*(lepz4[0]+lepz4[1]);
+        lee[0]=TMath::Sqrt(mparticle*mparticle + 
+               factor*factor*(lepx4[0]*lepx4[0]+lepy4[0]*lepy4[0]+lepz4[0]*lepz4[0]) );
+        lee[1]=TMath::Sqrt(mparticle*mparticle +
+               factor*factor*(lepx4[1]*lepx4[1]+lepy4[1]*lepy4[1]+lepz4[1]*lepz4[1]) );
+        le1p=TMath::Sqrt(lepx4[0]*lepx4[0]+lepy4[0]*lepy4[0]+lepz4[0]*lepz4[0]);
+        le2p=TMath::Sqrt(lepx4[1]*lepx4[1]+lepy4[1]*lepy4[1]+lepz4[1]*lepz4[1]);
+        tote=lee[0]+lee[1];
+        mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+	if(mass>m0-width/2. && mass<m0+width/2.){
+	  hmass2->Fill(mass);
+	}
+      }
+     // total invariant mass
+     // if (Cut(ientry) < 0) continue;
+    }
+
+    sprintf(name,"mass_jpsi_e");
+    data = new RooDataHist(name,"data_e",x,hmass2);
+    mean.setVal(m0);
+    sigma1.setVal(sigma);
+    signal.setVal(120);
+    background.setVal(20);
+    co1.setVal(0);
+    sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+    sum->fitTo(*data,Range(jlow,jup));
+    xframe = x.frame(Title("fit mu"));
+    data->plotOn(xframe);
+    sum->plotOn(xframe);
+    sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+    //sum->plotOn(xframe,Components(gaus2),LineStyle(4),LineColor(4));
+    sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
+    xframe->Draw();
+    sprintf(name,"%s/mass_jpsi_mu.eps",outputdir.c_str());
+    c2->Print(name);
+    ofparmu<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+    ofparmu<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError()<<std::endl;
+    delete data;
+    delete xframe;
+    delete sum;
+    //delete c2;
+
+  // ~~~~~~~~~muon part end~~~~~~~~~~
 
    // ~~~~~~~~~pion part~~~~~~~~~~
    m0 = 3.686109;
    sigma =0.00258;
-   width = 0.03;
+   width = 10*sigma;
    mparticle =0.13957018;//pi
    mparticle2=0.000511;//electron
    mparticle3=0.105658;//muon
@@ -261,7 +422,7 @@ bool gepep_fastpipill::Loop()
       // if (Cut(ientry) < 0) continue;
    }
    
-   std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
+   detail<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
    TF2 *likeli3=new TF2("likeli3",maxlikelihood4_0,0.95,1.05,0.1,0.99);
    //TCanvas *c2=new TCanvas("c2","likelihood",800,600);
    likeli3->Draw("surf1");
@@ -277,14 +438,80 @@ bool gepep_fastpipill::Loop()
    c2->Print(tmpstr.c_str());
    factorlow=likeli3_1->GetX(minimum+1,0.98,factor);
    factorup =likeli3_1->GetX(minimum+1,factor,1.02);
-   ofpar<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
-   ofpar<<"weight is "<<miny<<", factor is "<<likeli3_1->GetMinimumX(0.98,1.02)<<std::endl;
-   std::cout<<"best factor  "<<factor<<std::endl;
-  
+   ofparpi<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
+   detail<<"weight is "<<miny<<", factor is "<<likeli3_1->GetMinimumX(0.98,1.02)<<std::endl;
+   detail<<"best factor  "<<factor<<std::endl;
+   
+   // using the factor to fit
+   for (Long64_t jentry=0; jentry<nentries;jentry++) {
+     Long64_t ientry = LoadTree(jentry);
+     if (ientry < 0) break;
+     nb = fChain->GetEntry(jentry);   nbytes += nb;
+     
+     if(cos(angle4)>0.90) continue; // cut bhabha 
+     double mass,massjpsi;
+     double totpx,totpy,totpz,tote;
+     double jpsipx,jpsipy,jpsipz,jpsie;
+     double lee[2],pie[2];
+     // total invariant mass
+     if(cos(angle4)>0.90) continue; // cut bhabha 
+     totpx=(lepx4[0]+lepx4[1])+factor*(pipx4[0]+pipx4[1]);
+     totpy=(lepy4[0]+lepy4[1])+factor*(pipy4[0]+pipy4[1]);
+     totpz=(lepz4[0]+lepz4[1])+factor*(pipz4[0]+pipz4[1]);
+     jpsipx=(lepx4[0]+lepx4[1]);
+     jpsipy=(lepy4[0]+lepy4[1]);
+     jpsipz=(lepz4[0]+lepz4[1]);
+     pie[0]=TMath::Sqrt(mparticle*mparticle + 
+            factor*factor*(pipx4[0]*pipx4[0]+pipy4[0]*pipy4[0]+pipz4[0]*pipz4[0]) );
+     pie[1]=TMath::Sqrt(mparticle*mparticle +
+            factor*factor*(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]+pipz4[1]*pipz4[1]) );
+     tote=lee4[0]+lee4[1]+pie[0]+pie[1];
+     jpsie=lee4[0]+lee4[1];
+     mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+     massjpsi=TMath::Sqrt(jpsie*jpsie-jpsipx*jpsipx-jpsipy*jpsipy-jpsipz*jpsipz);
+     mass = mass-massjpsi+3.096916;
+     if(mass>m0-width/2. && mass<m0+width/2.){
+       hmass3->Fill(mass);
+     }
+   }
+   // total invariant mass
+   // if (Cut(ientry) < 0) continue;
+
+   sprintf(name,"mass_psi_pi");
+   x.setRange(psilow,psiup);
+   x.setVal(m0);
+   data = new RooDataHist(name,"data_e",x,hmass3);
+   mean.setRange(psilow,psiup);
+   mean.setVal(m0);
+   sigma1.setVal(sigma);
+   sigma1.setRange(0.9*sigma,1.1*sigma);
+   signal.setVal(120);
+   background.setVal(0);
+   co1.setVal(0);
+   sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+   sum->fitTo(*data,Range(psilow,psiup));
+   xframe = x.frame(Title("fit pi"));
+   data->plotOn(xframe);
+   sum->plotOn(xframe);
+   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
+   xframe->Draw();
+   sprintf(name,"%s/mass_psi_pi.eps",outputdir.c_str());
+   c2->Print(name);
+   ofparpi<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+   ofparpi<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError()<<std::endl;
+   delete data;
+   delete xframe;
+   delete sum;
+   delete c2;
+
+
      // ~~~~~~~~~pion part end~~~~~~~~~~
 
-   ofpar.close();
-   ofpardetail.close();
+   ofpare.close();
+   ofparmu.close();
+   ofparpi.close();
+   detail.close();
    return true;
 }
 
