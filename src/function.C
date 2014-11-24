@@ -32,29 +32,7 @@ double maxlikelihood(double *x,double *par)
 
 double weight,width,slope=0.;
 double maxlikelihood1(double *x,double *par)
-{
-  double logl=0;
-  double p1,p2,px,py,pz;
-  double e1,e2;
-  double minv;
-  //double sigma=0.023;// from large statistic, and fit it get sigma
-  //std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
-   for(int i=0; i<px1.size(); i++){
-    p1=TMath::Sqrt(px1.at(i)*px1.at(i)+py1.at(i)*py1.at(i)+pz1.at(i)*pz1.at(i));
-    p2=TMath::Sqrt(px2.at(i)*px2.at(i)+py2.at(i)*py2.at(i)+pz2.at(i)*pz2.at(i));
-    e1=TMath::Sqrt(mparticle*mparticle+x[0]*x[0]*p1*p1);
-    e2=TMath::Sqrt(mparticle*mparticle+x[0]*x[0]*p2*p2);
-    px=px1.at(i)+px2.at(i);
-    py=py1.at(i)+py2.at(i);
-    pz=pz1.at(i)+pz2.at(i);
-    minv = TMath::Sqrt((e1+e2)*(e1+e2)-x[0]*x[0]*(px*px+py*py+pz*pz));
-    logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
-            /(TMath::Sqrt(2*TMath::Pi()))/sigma*x[1] +(1.-x[1])*(slope*(minv-m0)+1./width));//here sigma is just a const
-  }
-  return logl;
-}
-double maxlikelihood1_1(double *x,double *par)
-{
+{ 
   double logl=0;
   double p1,p2,px,py,pz;
   double e1,e2;
@@ -70,8 +48,33 @@ double maxlikelihood1_1(double *x,double *par)
     py=py1.at(i)+py2.at(i);
     pz=pz1.at(i)+pz2.at(i);
     minv = TMath::Sqrt((e1+e2)*(e1+e2)-x[0]*x[0]*(px*px+py*py+pz*pz));
-    logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
-            /(TMath::Sqrt(2*TMath::Pi()))/sigma*weight +(1.-weight)*(slope*(minv-m0)+1./width));
+    logl += -2*TMath::Log(TMath::Gaus(minv,m0,sigma,true)*x[1] +(1.-x[1])*(slope*(minv-m0)+1./width));//here sigma is just a const
+    //logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
+    //        /(TMath::Sqrt(2*TMath::Pi()))/sigma*x[1] +(1.-x[1])*(slope*(minv-m0)+1./width));//here sigma is just a const
+  }
+  return logl;
+}
+double maxlikelihood1_1(double *x,double *par)
+{
+  double logl=0;
+  double p1,p2,px,py,pz;
+  double e1,e2;
+  double minv;
+  //double sigma=0.023;// from large statistic, and fit it get sigma
+  //std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
+  for(int i=0; i<px1.size()-1; i++){
+    p1=TMath::Sqrt(px1.at(i)*px1.at(i)+py1.at(i)*py1.at(i)+pz1.at(i)*pz1.at(i));
+    p2=TMath::Sqrt(px2.at(i)*px2.at(i)+py2.at(i)*py2.at(i)+pz2.at(i)*pz2.at(i));
+    e1=TMath::Sqrt(mparticle*mparticle+x[0]*x[0]*p1*p1);
+    e2=TMath::Sqrt(mparticle*mparticle+x[0]*x[0]*p2*p2);
+    px=px1.at(i)+px2.at(i);
+    py=py1.at(i)+py2.at(i);
+    pz=pz1.at(i)+pz2.at(i);
+    minv = TMath::Sqrt((e1+e2)*(e1+e2)-x[0]*x[0]*(px*px+py*py+pz*pz));
+    //logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
+    //        /(TMath::Sqrt(2*TMath::Pi()))/sigma*weight +(1.-weight)*(slope*(minv-m0)+1./width));
+    logl += -2*TMath::Log(TMath::Gaus(minv,m0,sigma,true)*weight +(1.-weight)*(slope*(minv-m0)+1./width));
+    //std::cout<<"factor: "<<x[0]<<"\tminv: "<<minv<<"\tsigma:"<<sigma<<"\tlogl:"<<logl<<std::endl;
   }
   return logl;
 }
@@ -132,14 +135,15 @@ double maxlikelihood2_0(double *x,double *par)//two dimension
     p1=TMath::Sqrt(px1.at(i)*px1.at(i)+py1.at(i)*py1.at(i)+pz1.at(i)*pz1.at(i));
     p2=TMath::Sqrt(px2.at(i)*px2.at(i)+py2.at(i)*py2.at(i)+pz2.at(i)*pz2.at(i));
     e1=TMath::Sqrt(mparticle*mparticle+x[0]*x[0]*p1*p1);
-    e2=TMath::Sqrt(mparticle2*mparticle2+factor2*factor2*p2*p2);
-    px=x[0]*px1.at(i)+factor2*px2.at(i);
-    py=x[0]*py1.at(i)+factor2*py2.at(i);
-    pz=x[0]*pz1.at(i)+factor2*pz2.at(i);
+    e2=TMath::Sqrt(mparticle2*mparticle2+x[0]*x[0]*p2*p2);
+    px=x[0]*px1.at(i)+x[0]*px2.at(i);
+    py=x[0]*py1.at(i)+x[0]*py2.at(i);
+    pz=x[0]*pz1.at(i)+x[0]*pz2.at(i);
     minv = TMath::Sqrt((e1+e2)*(e1+e2)-(px*px+py*py+pz*pz));
     //logl += (minv-m0)*(minv-m0)/(sigma*sigma)+2*TMath::Log(2*TMath::Pi());//here sigma is just a const
-    logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
-            /(TMath::Sqrt(2*TMath::Pi())*sigma)*x[1] +(1.-x[1])/width);//here sigma is just a const
+    //logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
+    //        /(TMath::Sqrt(2*TMath::Pi())*sigma)*x[1] +(1.-x[1])/width);//here sigma is just a const
+    logl += -2*TMath::Log(TMath::Gaus(minv,m0,sigma,true)*x[1] +(1.-x[1])/width);//here sigma is just a const
   }
   return logl;
 }
@@ -155,14 +159,15 @@ double maxlikelihood2_1(double *x,double *par)//one dimension
     p1=TMath::Sqrt(px1.at(i)*px1.at(i)+py1.at(i)*py1.at(i)+pz1.at(i)*pz1.at(i));
     p2=TMath::Sqrt(px2.at(i)*px2.at(i)+py2.at(i)*py2.at(i)+pz2.at(i)*pz2.at(i));
     e1=TMath::Sqrt(mparticle*mparticle+x[0]*x[0]*p1*p1);
-    e2=TMath::Sqrt(mparticle2*mparticle2+factor2*factor2*p2*p2);
-    px=x[0]*px1.at(i)+factor2*px2.at(i);
-    py=x[0]*py1.at(i)+factor2*py2.at(i);
-    pz=x[0]*pz1.at(i)+factor2*pz2.at(i);
+    e2=TMath::Sqrt(mparticle2*mparticle2+x[0]*x[0]*p2*p2);
+    px=x[0]*px1.at(i)+x[0]*px2.at(i);
+    py=x[0]*py1.at(i)+x[0]*py2.at(i);
+    pz=x[0]*pz1.at(i)+x[0]*pz2.at(i);
     minv = TMath::Sqrt((e1+e2)*(e1+e2)-(px*px+py*py+pz*pz));
     //logl += (minv-m0)*(minv-m0)/(sigma*sigma)+2*TMath::Log(2*TMath::Pi());//here sigma is just a const
-    logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
-            /(TMath::Sqrt(2*TMath::Pi())*sigma)*weight +(1.-weight)/width);//here sigma is just a const
+    //logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
+    //        /(TMath::Sqrt(2*TMath::Pi())*sigma)*weight +(1.-weight)/width);//here sigma is just a const
+    logl += -2*TMath::Log(TMath::Gaus(minv,m0,sigma,true)*weight +(1.-weight)/width);//here sigma is just a const
   }
   return logl;
 }
@@ -225,8 +230,9 @@ double maxlikelihood4_0(double *x,double *par)//2D function
 	  -(pz3.at(i)+pz4.at(i))*(pz3.at(i)+pz4.at(i)));
     minv =TMath::Sqrt((e1+e2+e3+e4)*(e1+e2+e3+e4)-(px*px+py*py+pz*pz))
           -mjpsi+3.096916;
-    logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
-            /(TMath::Sqrt(2*TMath::Pi()))/sigma*x[1] +(1.-x[1])/width);
+    //logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
+    //        /(TMath::Sqrt(2*TMath::Pi()))/sigma*x[1] +(1.-x[1])/width);
+    logl += -2*TMath::Log(TMath::Gaus(minv,m0,sigma,true)*x[1] +(1.-x[1])/width);
   }
   return logl;
 }
@@ -252,14 +258,85 @@ double maxlikelihood4_1(double *x,double *par)//fix signal weight, 1D function
     pz=x[0]*(pz1.at(i)+pz2.at(i))+pz3.at(i)+pz4.at(i);
     mjpsi=TMath::Sqrt((e3+e4)*(e3+e4)
           -(px3.at(i)+px4.at(i))*(px3.at(i)+px4.at(i))
-	  -(py3.at(i)+py4.at(i))*(py3.at(i)+py4.at(i))
-	  -(pz3.at(i)+pz4.at(i))*(pz3.at(i)+pz4.at(i)));
+          -(py3.at(i)+py4.at(i))*(py3.at(i)+py4.at(i))
+          -(pz3.at(i)+pz4.at(i))*(pz3.at(i)+pz4.at(i)));
     minv =TMath::Sqrt((e1+e2+e3+e4)*(e1+e2+e3+e4)-(px*px+py*py+pz*pz))
           -mjpsi+3.096916;
     //logl += (minv-m0)*(minv-m0)/(sigma*sigma)+TMath::Log(2*TMath::Pi())+2*TMath::Log(sigma);
-    logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
-            /(TMath::Sqrt(2*TMath::Pi()))/sigma*weight +(1.-weight)/width);
+    //logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
+     //       /(TMath::Sqrt(2*TMath::Pi()))/sigma*weight +(1.-weight)/width);
+    logl += -2*TMath::Log(TMath::Gaus(minv,m0,sigma,true)*weight +(1.-weight)/width);
   //std::cout<<mjpsi<<"\t"<<minv<<"\t"<< -(minv-m0)*(minv-m0)/(2.*sigma*sigma)<<"\t"<<logl<<std::endl;
+  }
+  return logl;
+}
+
+double maxlikelihood3(double *x,double *par)
+{
+  double logl=0;
+  double p1,p2,p3,px,py,pz;
+  double e1,e2,e3;
+  double minv;
+  //double sigma=0.0068;// from large statistic, and fit it get sigma
+  //std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
+  for(int i=0; i<px1.size(); i++){
+    p1=TMath::Sqrt(px1.at(i)*px1.at(i)+py1.at(i)*py1.at(i)+pz1.at(i)*pz1.at(i));
+    p2=TMath::Sqrt(px2.at(i)*px2.at(i)+py2.at(i)*py2.at(i)+pz2.at(i)*pz2.at(i));
+    p3=TMath::Sqrt(px3.at(i)*px3.at(i)+py3.at(i)*py3.at(i)+pz3.at(i)*pz3.at(i));
+    e1=TMath::Sqrt(mparticle*mparticle+x[0]*x[0]*p1*p1);
+    e2=TMath::Sqrt(mparticle*mparticle+x[0]*x[0]*p2*p2);
+    e3=TMath::Sqrt(mparticle2*mparticle2+x[0]*x[0]*p3*p3);
+    px=x[0]*px1.at(i)+x[0]*px2.at(i)+x[0]*px3.at(i);
+    py=x[0]*py1.at(i)+x[0]*py2.at(i)+x[0]*py3.at(i);
+    pz=x[0]*pz1.at(i)+x[0]*pz2.at(i)+x[0]*pz3.at(i);
+    minv = TMath::Sqrt((e1+e2+e3)*(e1+e2+e3)-(px*px+py*py+pz*pz));
+    logl += (minv-m0)*(minv-m0)/(sigma*sigma)+2*TMath::Log(2*TMath::Pi());//here sigma is just a const
+  }
+  return logl;
+}
+double maxlikelihood3_0(double *x,double *par)//two dimension
+{
+  double logl=0;
+  double p1,p2,p3,px,py,pz;
+  double e1,e2,e3;
+  double minv;
+  //double sigma=0.0068;// from large statistic, and fit it get sigma
+  //std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
+  for(int i=0; i<px1.size(); i++){
+    p1=TMath::Sqrt(px1.at(i)*px1.at(i)+py1.at(i)*py1.at(i)+pz1.at(i)*pz1.at(i));
+    p2=TMath::Sqrt(px2.at(i)*px2.at(i)+py2.at(i)*py2.at(i)+pz2.at(i)*pz2.at(i));
+    p3=TMath::Sqrt(px3.at(i)*px3.at(i)+py3.at(i)*py3.at(i)+pz3.at(i)*pz3.at(i));
+    e1=TMath::Sqrt(mparticle*mparticle+x[0]*x[0]*p1*p1);
+    e2=TMath::Sqrt(mparticle*mparticle+x[0]*x[0]*p2*p2);
+    e3=TMath::Sqrt(mparticle2*mparticle2+x[0]*x[0]*p3*p3);
+    px=x[0]*px1.at(i)+x[0]*px2.at(i)+x[0]*px3.at(i);
+    py=x[0]*py1.at(i)+x[0]*py2.at(i)+x[0]*py3.at(i);
+    pz=x[0]*pz1.at(i)+x[0]*pz2.at(i)+x[0]*pz3.at(i);
+    minv = TMath::Sqrt((e1+e2+e3)*(e1+e2+e3)-(px*px+py*py+pz*pz));
+    logl += -2*TMath::Log(TMath::Gaus(minv,m0,sigma,true)*x[1] +(1.-x[1])/width);//here sigma is just a const
+  }
+  return logl;
+}
+double maxlikelihood3_1(double *x,double *par)//one dimension
+{ 
+  double logl=0;
+  double p1,p2,p3,px,py,pz;
+  double e1,e2,e3;
+  double minv;
+  //double sigma=0.0068;// from large statistic, and fit it get sigma
+  //std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
+  for(int i=0; i<px1.size(); i++){
+    p1=TMath::Sqrt(px1.at(i)*px1.at(i)+py1.at(i)*py1.at(i)+pz1.at(i)*pz1.at(i));
+    p2=TMath::Sqrt(px2.at(i)*px2.at(i)+py2.at(i)*py2.at(i)+pz2.at(i)*pz2.at(i));
+    p3=TMath::Sqrt(px3.at(i)*px3.at(i)+py3.at(i)*py3.at(i)+pz3.at(i)*pz3.at(i));
+    e1=TMath::Sqrt(mparticle*mparticle+x[0]*x[0]*p1*p1);
+    e2=TMath::Sqrt(mparticle*mparticle+x[0]*x[0]*p2*p2);
+    e3=TMath::Sqrt(mparticle2*mparticle2+x[0]*x[0]*p3*p3);
+    px=x[0]*px1.at(i)+x[0]*px2.at(i)+x[0]*px3.at(i);
+    py=x[0]*py1.at(i)+x[0]*py2.at(i)+x[0]*py3.at(i);
+    pz=x[0]*pz1.at(i)+x[0]*pz2.at(i)+x[0]*pz3.at(i);
+    minv = TMath::Sqrt((e1+e2+e3)*(e1+e2+e3)-(px*px+py*py+pz*pz));
+    logl += -2*TMath::Log(TMath::Gaus(minv,m0,sigma,true)*weight +(1.-weight)/width);//here sigma is just a const
   }
   return logl;
 }
@@ -290,6 +367,13 @@ double fitfun(double *x, double *par)
 }
 
 double GausLineBack(double *x,double *par)
+{
+  //TF1 f("gaus","gaus");
+  
+  return par[0]*TMath::Gaus(*x,par[1],par[2])+line(x,&par[3]);
+}
+
+double GausLineBack1(double *x,double *par)
 {
   //TF1 f("gaus","gaus");
   

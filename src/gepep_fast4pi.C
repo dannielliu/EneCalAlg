@@ -7,6 +7,21 @@
 #include <TF1.h>
 #include "function.h"
 #include <fstream>
+#include "RooFit.h"
+#include "RooRealVar.h"
+#include "RooGaussian.h"
+#include "RooChebychev.h"
+#include "RooDataHist.h"
+#include "RooAddPdf.h"
+#include "RooArgList.h"
+#include "RooPlot.h"
+//#include <iostream>
+extern std::string outputdir;
+using RooFit::Title;
+using RooFit::Components;
+using RooFit::LineStyle;
+using RooFit::LineColor;
+using RooFit::Range;
 
 void gepep_fast4pi::Loop()
 {
@@ -34,57 +49,181 @@ void gepep_fast4pi::Loop()
 //    fChain->GetEntry(jentry);       //read all branches
 //by  b_branchname->GetEntry(ientry); //read only this branch
    if (fChain == 0) return;
-   TH1D *h = new TH1D("h","invariant mass",100,3.,4.);
    double factore,factoreerr;
    double factorpi,factorpierr;
    double me=0.000511;
    double mmu=0.105658;
-   double mpi=0.13957;
-   
-   ifstream f;
-   f.open("par.txt");
-   f >> factore >> factoreerr;
-   f >> factorpi>> factorpierr;
-   f.close();
+   //double mpi=0.13957;
+    
+   ofstream ofpar;
+   ofpar.open("parf4pi.txt",std::ios::app);
+   ofpar<<"\n";
+   ofstream detail;
+   detail.open("detailf4pi.txt",std::ios::app);
+   detail<<"fast4pi will give fitting results for cms energy"<<std::endl;
+
+
+   //ifstream f;
+   //f.open("par.txt");
+   //f >> factore >> factoreerr;
+   //f >> factorpi>> factorpierr;
+   //f.close();
    //factorpi =1.0;
+   factorpi=1.00134;
    std::cout<<"factor is "<<factorpi<<std::endl;
    Long64_t nentries = fChain->GetEntriesFast();
-
+   std::cout<<"Toral entry is "<<nentries<<std::endl;
+   int nBins=40;
+   double mk=0.493677;
+   double mpi=0.13957018;
+   double peakvalue=3.85;// cms energy
+   double Dlow=peakvalue-0.3;
+   double Dup=peakvalue+0.2;
+   //double factor,factorlow,factorup;
+   //double minimum;
+   //double minx,miny;
+   
+   // try to use roofit
+   RooRealVar x("x","energy",peakvalue,Dlow,Dup,"GeV");
+   RooRealVar mean("mean","mean of gaussian",peakvalue,Dlow,Dup);
+   RooRealVar sigma1("sigma1","width of gaussian",0.0068,0.004,0.07);
+   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma1);
+   RooRealVar co1("co1","coefficient #1",0,-100000.,100000.);
+   RooChebychev bkg("bkg","background",x,RooArgList(co1));
+   RooRealVar signal("signal"," ",120,10,1000000);//event number
+   RooRealVar background("background"," ",20,0,100000);
+   RooPlot *xframe;
+   RooDataHist *data_f4pi;
+   RooAddPdf *sum;
+ 
+   TH1D *h = new TH1D("h","invariant mass",200,0.,4.);
+   TH1D *hene = new TH1D("hene","cms energy",80,Dlow,Dup);
+   
+   // no correction~~~~~~~~~~~~~~
    Long64_t nbytes = 0, nb = 0;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;
-	  
-	  double totpx,totpy,totpz,tote;
-	  double pie[4];
-	  double mass;
-	  totpx = factorpi*factorpi*(pippx[0]+pippx[1]+pimpx[0]+pimpx[1]);
-	  totpy = factorpi*factorpi*(pippy[0]+pippy[1]+pimpy[0]+pimpy[1]);
-	  totpz = factorpi*factorpi*(pippz[0]+pippz[1]+pimpz[0]+pimpz[1]);
-	  pie[0]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pippx[0]*pippx[0]+pippy[0]*pippy[0]+pippz[0]*pippz[0]) );
-	  pie[1]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pippx[1]*pippx[1]+pippy[1]*pippy[1]+pippz[1]*pippz[1]) );
-	  pie[2]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pimpx[0]*pimpx[0]+pimpy[0]*pimpy[0]+pimpz[0]*pimpz[0]) );
-	  pie[3]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pimpx[1]*pimpx[1]+pimpy[1]*pimpy[1]+pimpz[1]*pimpz[1]) );
-	  tote  = pie[0] +pie[1] +pie[2] +pie[3];
-	  mass = TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-	  h->Fill(mass);
+      
+      double totpx,totpy,totpz,tote;
+      double pie[4];
+      double mass;
+      totpx = (pippx[0]+pippx[1]+pimpx[0]+pimpx[1]);
+      totpy = (pippy[0]+pippy[1]+pimpy[0]+pimpy[1]);
+      totpz = (pippz[0]+pippz[1]+pimpz[0]+pimpz[1]);
+      pie[0]=TMath::Sqrt(mpi*mpi+
+             (pippx[0]*pippx[0]+pippy[0]*pippy[0]+pippz[0]*pippz[0]) );
+      pie[1]=TMath::Sqrt(mpi*mpi+
+             (pippx[1]*pippx[1]+pippy[1]*pippy[1]+pippz[1]*pippz[1]) );
+      pie[2]=TMath::Sqrt(mpi*mpi+
+             (pimpx[0]*pimpx[0]+pimpy[0]*pimpy[0]+pimpz[0]*pimpz[0]) );
+      pie[3]=TMath::Sqrt(mpi*mpi+
+             (pimpx[1]*pimpx[1]+pimpy[1]*pimpy[1]+pimpz[1]*pimpz[1]) );
+      tote  = pie[0] +pie[1] +pie[2] +pie[3];
+      mass = TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+      h->Fill(mass);
+      hene->Fill(mass);
    }
-
-   TCanvas *c1=new TCanvas("","",800,600);
-   gStyle->SetOptStat(0);
-   gStyle->SetOptFit(1111);
-   TF1 *fit=new TF1("fit",GausLineBack,3.75,4.0);
-   fit->SetParameters(1,3.8,0.02,10,1);
-   //h->Fit(fit,"","",3.75,4.0);
+   TCanvas *c1= new TCanvas("","",800,600);
    h->Draw();
-   h->Fit("gaus","","",3.75,4.0);
-   c1->Print("f4pi.eps");
+   char tmpchr[100];
+   sprintf(tmpchr,"%s/fit4pi_pre1.eps",outputdir.c_str());
+   c1->Print(tmpchr);
+
+   xframe = x.frame(Title("fit f4pi"));
+   sprintf(tmpchr,"data_4pi");
+   data_f4pi = new RooDataHist(tmpchr,"data_4pi",x,hene);
+   sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+   mean.setVal(peakvalue/factorpi);
+   //sigma.setVal(0.035);
+   signal.setVal(120);
+   background.setVal(50);
+   co1.setVal(0);
+   sum->fitTo(*data_f4pi,Range(Dlow,Dup));
+   data_f4pi->plotOn(xframe);
+   sum->plotOn(xframe);
+   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
+   xframe->Draw();
+   sprintf(tmpchr,"%s/fit4pi_pre2.eps",outputdir.c_str());
+   c1->Print(tmpchr);
+   ofpar<<run<<"\n";
+   ofpar<<"pre\t"<<mean.getVal()<<"\t"<<mean.getError()<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
+   ofpar<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError();
+   ofpar<<"\t"<<signal.getVal()/(signal.getVal()+background.getVal())<<std::endl;
+   delete data_f4pi;
+   delete xframe;
+   delete sum;
+   
+   // use the factor to refit
+   h->Reset();
+   hene->Reset();
+   nbytes = 0, nb = 0;
+   for (Long64_t jentry=0; jentry<nentries;jentry++) {
+      Long64_t ientry = LoadTree(jentry);
+      if (ientry < 0) break;
+      nb = fChain->GetEntry(jentry);   nbytes += nb;
+      // if (Cut(ientry) < 0) continue;
+      
+      double totpx,totpy,totpz,tote;
+      double pie[4];
+      double mass;
+      totpx = factorpi*(pippx[0]+pippx[1]+pimpx[0]+pimpx[1]);
+      totpy = factorpi*(pippy[0]+pippy[1]+pimpy[0]+pimpy[1]);
+      totpz = factorpi*(pippz[0]+pippz[1]+pimpz[0]+pimpz[1]);
+      pie[0]=TMath::Sqrt(mpi*mpi+
+             factorpi*factorpi*(pippx[0]*pippx[0]+pippy[0]*pippy[0]+pippz[0]*pippz[0]) );
+      pie[1]=TMath::Sqrt(mpi*mpi+
+             factorpi*factorpi*(pippx[1]*pippx[1]+pippy[1]*pippy[1]+pippz[1]*pippz[1]) );
+      pie[2]=TMath::Sqrt(mpi*mpi+
+             factorpi*factorpi*(pimpx[0]*pimpx[0]+pimpy[0]*pimpy[0]+pimpz[0]*pimpz[0]) );
+      pie[3]=TMath::Sqrt(mpi*mpi+
+             factorpi*factorpi*(pimpx[1]*pimpx[1]+pimpy[1]*pimpy[1]+pimpz[1]*pimpz[1]) );
+      tote  = pie[0] +pie[1] +pie[2] +pie[3];
+      mass = TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+      h->Fill(mass);
+      hene->Fill(mass);
+   }
+   h->Draw();
+   sprintf(tmpchr,"%s/fit4pi_re1.eps",outputdir.c_str());
+   c1->Print(tmpchr);
+
+   xframe = x.frame(Title("fit f4pi"));
+   sprintf(tmpchr,"data_f4pi");
+   data_f4pi = new RooDataHist(tmpchr,"data_f4pi",x,hene);
+   sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+   mean.setVal(peakvalue);
+   //sigma.setVal(0.035);
+   signal.setVal(120);
+   background.setVal(50);
+   co1.setVal(0);
+   sum->fitTo(*data_f4pi,Range(Dlow,Dup));
+   data_f4pi->plotOn(xframe);
+   sum->plotOn(xframe);
+   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
+   xframe->Draw();
+   sprintf(tmpchr,"%s/fit4pi_re2.eps",outputdir.c_str());
+   c1->Print(tmpchr);
+   ofpar<<"re\t"<<mean.getVal()<<"\t"<<mean.getError()<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
+   ofpar<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError();
+   ofpar<<"\t"<<signal.getVal()/(signal.getVal()+background.getVal())<<std::endl;
+   delete data_f4pi;
+   delete xframe;
+   delete sum;
+ 
+
+   //TCanvas *c1=new TCanvas("","",800,600);
+   //gStyle->SetOptStat(0);
+   //gStyle->SetOptFit(1111);
+   //TF1 *fit=new TF1("fit",GausLineBack,3.75,4.0);
+   //fit->SetParameters(1,3.8,0.02,10,1);
+   //h->Fit(fit,"","",3.75,4.0);
+   //h->Draw();
+   //h->Fit("gaus","","",3.75,4.0);
+   //c1->Print("f4pi.eps");
 }
 
 #ifdef gepep_fast4pi_cxx

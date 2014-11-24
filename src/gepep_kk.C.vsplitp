@@ -1,29 +1,15 @@
 #define gepep_kk_cxx
 #include "gepep_kk.h"
+#include <TH1.h>
 #include <TH2.h>
-#include "TH1.h"
 #include <TStyle.h>
 #include <TCanvas.h>
 #include "function.h"
 #include "TF1.h"
 #include "TF2.h"
-#include <fstream>
 #include "TGaxis.h"
 #include "TPad.h"
-#include "RooFit.h"
-#include "RooRealVar.h"
-#include "RooGaussian.h"
-#include "RooChebychev.h"
-#include "RooDataHist.h"
-#include "RooAddPdf.h"
-#include "RooArgList.h"
-#include "RooPlot.h"
-using RooFit::Title;
-using RooFit::Components;
-using RooFit::LineStyle;
-using RooFit::LineColor;
-using RooFit::Range;
-
+#include <fstream>
 //#include <iostream>
 extern std::string outputdir;
 extern std::vector<double> px1,py1,pz1,px2,py2,pz2;
@@ -65,50 +51,27 @@ void gepep_kk::Loop()
    std::cout<<"Toral entry is "<<nentries<<std::endl; 
    ofstream ofpar;
    ofpar.open("parkk.txt",std::ios::app);
-   ofpar<<"kk algrithm: will give factors for kaon"<<std::endl;
-   ofstream ofpardetail;
-   ofpardetail.open("detail.txt",std::ios::app);
-   
-   double pxa,pya,pza,pxb,pyb,pzb;
-   //double philow=1.0;
-   //double phiup=1.05;
-   double philow=1.82;
-   double phiup=1.90;
-   double peakvalue=1.86486;
-   //double philow=3.0;
-   //double phiup=3.2;
-   // try to use roofit
-   RooRealVar x("x","energy",peakvalue,philow,phiup,"GeV");
-   RooRealVar mean("mean","mean of gaussian",peakvalue,philow,phiup);
-   RooRealVar sigma1("sigma1","width of gaussian",0.003,0.0001,0.008);
-   //RooRealVar sigma2("sigma2","width of gaussian",0.02,0.005,0.05);
-   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma1);
-   //RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
-   RooRealVar co1("co1","coefficient #1",0,-1000.,1000.);
-   //RooRealVar co4("co4","coefficient #4",0);
-   RooChebychev bkg("bkg","background",x,RooArgList(co1));
-   RooRealVar signal("signal"," ",300,1,1000000);//event number
-   //RooRealVar signal2("signal2"," ",1200,10,1000000);//event number
-   RooRealVar background("background"," ",200,0,100000);
-   RooPlot *xframe;
-   RooDataHist *data_k;
-   RooAddPdf *sum;
- 
+   ofstream detail;
+   detail.open("detailkk.txt",std::ios::app);
+   detail<<"kk algrithm: will give factors for kaon"<<std::endl;
+
 // for saving the fit result
    
    Long64_t nbytes = 0, nb = 0;
    double factor,factorlow,factorup;
    double minimum;
    double minx,miny;
-   double mpeak;
    std::string tmpstr;
-   TH1D *hmass = new TH1D("hmass","mass",100,philow,phiup);
-
+   TH1D *h1 = new TH1D("h1","momentum of kaon+",100,0,3.0);
+   TH1D *h2 = new TH1D("h2","momentum of kaon+",100,0,3.0);
+   //TH1D *h1 = new TH1D("h1","momentum of kaon-",100,0,3.0);
+   //TH1D *h2 = new TH1D("h2","momentum of kaon-",100,0,3.0);
+   h2->SetLineColor(2);
    // ~~~~~~~~~kaon part~~~~~~~~~~
+   m0 = 1.01946;
    //m0 = 1.019455;
-   m0=peakvalue;
-   sigma=0.007;//0.0024 for phi,
-   width = 10.*sigma;
+   sigma=0.0024;
+   width = 20.*sigma;
    mparticle=0.493677;
    px1.clear();
    px2.clear();
@@ -124,13 +87,18 @@ void gepep_kk::Loop()
      //if(ngam>0) continue;
      double mass;
      double totpx,totpy,totpz,tote;
+     double kapp;
      // total invariant mass
      totpx=(kappx+kampx);
      totpy=(kappy+kampy);
      totpz=(kappz+kampz);
      tote=kape+kame;
+     kapp=TMath::Sqrt(kappx*kappx+kappy*kappy+kappz*kappz);
+     if(kapp>1.0) continue;
+     h1->Fill(kapp);
      mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
      if(mass>m0-width/2. && mass<m0+width/2.){
+       h2->Fill(kapp);
        px1.push_back(kappx);
        px2.push_back(kampx);
        py1.push_back(kappy);
@@ -140,9 +108,21 @@ void gepep_kk::Loop()
      }
    }
  
+   TCanvas *c2=new TCanvas("c2","likelihood",800,600);
+   h1->Draw();
+   c2->Update();
+   double rightmax = 1.1*h2->GetMaximum();
+   h2->Scale(gPad->GetUymax()/rightmax);
+   h2->Draw("same");
+   TGaxis *axis = new TGaxis(gPad->GetUxmax(),gPad->GetUymin(),
+                            gPad->GetUxmax(),gPad->GetUymax(),
+			    0,rightmax,510,"+L");
+   axis->SetLineColor(kRed);
+   axis->SetLabelColor(kRed);
+   axis->Draw();
+   c2->Print("momentumk_lt1GeV.eps");
    std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
    TF2 *likeli=new TF2("likeli",maxlikelihood1,0.95,1.05,0.01,0.99);
-   TCanvas *c2=new TCanvas("c2","likelihood",800,600);
    likeli->Draw();
    tmpstr=outputdir+"/likeliK_2D.eps";
    c2->Print(tmpstr.c_str());
@@ -159,151 +139,87 @@ void gepep_kk::Loop()
    //factor=likeli->GetMinimumX(0.98,1.02);
    factorlow=likeli_1->GetX(minimum+1,0.98,factor);
    factorup =likeli_1->GetX(minimum+1,factor,1.02);
-   ofpar<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<"\t"<<weight<<std::endl;
-   std::cout<<"signal weight is "<<weight<<" best factor  "<<likeli_1->GetMinimumX(0.99,1.01)<<std::endl;
-
-   // pre fit
-   hmass->Reset();
-   for (Long64_t jentry=0; jentry<nentries;jentry++) {
-     Long64_t ientry = LoadTree(jentry);
-     if (ientry < 0) break;
-     nb = fChain->GetEntry(jentry);   nbytes += nb;
-
-     pxa=kappx;
-     pya=kappy;
-     pza=kappz;
-     pxb=kampx;
-     pyb=kampy;
-     pzb=kampz;
-     std::string name;
-     //getline(sample,name);
-     //if(ngam>0) continue;
-     double mass;
-     double totpx,totpy,totpz,tote;
-     double ke[2];
-     double kapp,kamp;
-     // total invariant mass
-     totpx=(pxa+pxb);
-     totpy=(pya+pyb);
-     totpz=(pza+pzb);
-     ke[0]=TMath::Sqrt(mparticle*mparticle + 
-           (pxa*pxa+pya*pya+pza*pza));
-     ke[1]=TMath::Sqrt(mparticle*mparticle + 
-           (pxb*pxb+pyb*pyb+pzb*pzb));
-     kapp=TMath::Sqrt(pxa*pxa+pya*pya+pza*pza);
-     kamp=TMath::Sqrt(pxb*pxb+pyb*pyb+pzb*pzb);
-     //if(!(kapp>Ps[part] && kapp<Ps[part+1] && kamp>Ps[part] && kamp<Ps[part+1])) continue;
-     tote=ke[0]+ke[1];
-     mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-     hmass->Fill(mass);
-     // if (Cut(ientry) < 0) continue;
-   }
-
-   char tmpchr[100];
-   char name[100];
-   //TCanvas *c2=new TCanvas("c2","likelihood",800,600);
-   sprintf(tmpchr,"mass_k");
-   data_k = new RooDataHist(tmpchr,"data_k",x,hmass);
-   sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
-   mean.setVal(m0);
-   //sigma.setVal(0.035);
-   signal.setVal(300);
-   background.setVal(200);
-   co1.setVal(0);
-   sum->fitTo(*data_k,Range(philow,phiup));
-   mpeak = mean.getVal();
-   sigma = sigma1.getVal();;
-   xframe = x.frame(Title("fit kaon"));
-   data_k->plotOn(xframe);
-   sum->plotOn(xframe);
-   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-   //sum->plotOn(xframe,Components(gaus2),LineStyle(4),LineColor(4));
-   sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
-   xframe->Draw();
-   sprintf(name,"%s/mass_pre.eps",outputdir.c_str());
-   c2->Print(name);
-   ofpar<<"pre\t"<<mean.getVal()<<"\t"<<mean.getError()<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
-   //ofpar<<"pre\t"<<hmass[part]->GetMean()<<std::endl;
-   ofpar<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError();
-   ofpar<<"\t"<<signal.getVal()/(signal.getVal()+background.getVal())<<std::endl;
-   delete data_k;
-   //delete xframe;
-   delete sum;
- 
+   ofpar<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
+   detail<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
+   detail<<"signal weight is "<<weight<<" best factor  "<<likeli_1->GetMinimumX(0.99,1.01)<<std::endl;
    
-   //
-   // maybe best fit
-
-   // using the factor to fit
-   hmass->Reset();
+   // another p scale
+   h1->Reset();
+   h2->Reset();
+   px1.clear();
+   px2.clear();
+   py1.clear();
+   py2.clear();
+   pz1.clear();
+   pz2.clear();
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
      Long64_t ientry = LoadTree(jentry);
      if (ientry < 0) break;
      nb = fChain->GetEntry(jentry);   nbytes += nb;
 
-     pxa=kappx;
-     pya=kappy;
-     pza=kappz;
-     pxb=kampx;
-     pyb=kampy;
-     pzb=kampz;
-     std::string tmpcha;
-     //getline(sample,tmpcha);
-    
      //if(ngam>0) continue;
      double mass;
      double totpx,totpy,totpz,tote;
-     double ke[2];
-     double kapp,kamp;
+     double kapp;
      // total invariant mass
-     totpx=factor*(pxa+pxb);
-     totpy=factor*(pya+pyb);
-     totpz=factor*(pza+pzb);
-     ke[0]=TMath::Sqrt(mparticle*mparticle + 
-           factor*factor*(pxa*pxa+pya*pya+pza*pza));
-     ke[1]=TMath::Sqrt(mparticle*mparticle + 
-           factor*factor*(pxb*pxb+pyb*pyb+pzb*pzb));
-     kapp=TMath::Sqrt(pxa*pxa+pya*pya+pza*pza);
-     kamp=TMath::Sqrt(pxb*pxb+pyb*pyb+pzb*pzb);
-     //if(!(kapp>Ps[part] && kapp<Ps[part+1] && kamp>Ps[part] && kamp<Ps[part+1])) continue;
-     tote=ke[0]+ke[1];
+     totpx=(kappx+kampx);
+     totpy=(kappy+kampy);
+     totpz=(kappz+kampz);
+     tote=kape+kame;
+     kapp=TMath::Sqrt(kappx*kappx+kappy*kappy+kappz*kappz);
+     if(kapp<1.0) continue;
+     h1->Fill(kapp);
      mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-     hmass->Fill(mass);
-     //ofpar<<"mass: "<<mass<<std::endl;
-     // if (Cut(ientry) < 0) continue;
+     if(mass>m0-width/2. && mass<m0+width/2.){
+       h2->Fill(kapp);
+       px1.push_back(kappx);
+       px2.push_back(kampx);
+       py1.push_back(kappy);
+       py2.push_back(kampy);
+       pz1.push_back(kappz);
+       pz2.push_back(kampz);
+     }
    }
-
-   sprintf(tmpchr,"mass_k");
-   data_k = new RooDataHist(tmpchr,"data_k",x,hmass);
-   sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
-   mean.setVal(m0);
-   //sigma.setVal(0.035);
-   signal.setVal(300);
-   background.setVal(200);
-   co1.setVal(0);
-   sum->fitTo(*data_k,Range(philow,phiup));
-   xframe = x.frame(Title("fit kaon"));
-   data_k->plotOn(xframe);
-   sum->plotOn(xframe);
-   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-   //sum->plotOn(xframe,Components(gaus2),LineStyle(4),LineColor(4));
-   sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
-   xframe->Draw();
-   sprintf(name,"%s/mass.eps",outputdir.c_str());
-   c2->Print(name);
-   ofpar<<"after\t"<<mean.getVal()<<"\t"<<mean.getError()<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
-   //ofpar<<"\t"<<hmass->GetMean()<<std::endl;
-   ofpar<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError();
-   ofpar<<"\t"<<signal.getVal()/(signal.getVal()+background.getVal())<<std::endl;
-   delete data_k;
-   delete xframe;
-   delete sum;
-   delete c2;
+ 
+   //TCanvas *c2=new TCanvas("c2","likelihood",800,600);
+   h1->Draw();
+   c2->Update();
+   rightmax = 1.1*h2->GetMaximum();
+   h2->Scale(gPad->GetUymax()/rightmax);
+   h2->Draw("same");
+   axis = new TGaxis(gPad->GetUxmax(),gPad->GetUymin(),
+                            gPad->GetUxmax(),gPad->GetUymax(),
+			    0,rightmax,510,"+L");
+   axis->SetLineColor(kRed);
+   axis->SetLabelColor(kRed);
+   axis->Draw();
+   c2->Print("momentumk_gt1GeV.eps");
+   std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
+   likeli=new TF2("likeli",maxlikelihood1,0.95,1.05,0.01,0.99);
+   likeli->Draw();
+   tmpstr=outputdir+"/likeliK_2D.eps";
+   c2->Print(tmpstr.c_str());
+   likeli->Draw("surf2");
+   tmpstr=outputdir+"/likeliK_2D2.eps";
+   c2->Print(tmpstr.c_str());
+   likeli->GetMinimumXY(factor,miny);
+   weight = miny;
+   likeli_1=new TF1("likeli_1",maxlikelihood1_1,0.95,1.05);
+   likeli_1->Draw();
+   tmpstr=outputdir+"/likeliK_1D.eps";
+   c2->Print(tmpstr.c_str());
+   minimum = likeli_1->GetMinimum(0.98,1.02);
+   //factor=likeli->GetMinimumX(0.98,1.02);
+   factorlow=likeli_1->GetX(minimum+1,0.98,factor);
+   factorup =likeli_1->GetX(minimum+1,factor,1.02);
+   ofpar<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
+   detail<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
+   detail<<"signal weight is "<<weight<<" best factor  "<<likeli_1->GetMinimumX(0.99,1.01)<<std::endl;
  
    // ~~~~~~~~~kaon part end~~~~~~~~~~
 
    ofpar.close();
-   ofpardetail.close();
+   detail.close();
 
 }
 

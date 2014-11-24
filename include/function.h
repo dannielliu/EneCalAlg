@@ -32,4 +32,10 @@ double maxlikelihood4(double *x,double *par);
 double maxlikelihood4_0(double *x,double *par);//2D function
 double maxlikelihood4_1(double *x,double *par);//1D
 
+// for three particle
+double maxlikelihood3(double *x,double *par);
+double maxlikelihood3_0(double *x,double *par);//two dimension
+double maxlikelihood3_1(double *x,double *par);//one dimension
+
+
 #endif

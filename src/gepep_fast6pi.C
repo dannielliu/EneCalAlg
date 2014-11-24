@@ -57,86 +57,168 @@ void gepep_fast6pi::Loop()
 
    std::cout<<"Toral entry is "<<nentries<<std::endl;
    int nBins=50;
-   double beamlow=3.7;
-   double beamup=4.0;
    double peakvalue=3.85;// mbeam
-   TH1D *h = new TH1D("h","invariant mass",nBins,beamlow,beamup);
+   double beamlow=peakvalue-0.1;
+   double beamup=peakvalue+0.1;
    double factore,factoreerr;
    double factorpi,factorpierr;
    double mpi=0.13957;
-   
-   ifstream f;
-   f.open("par.txt");
-   f >> factore >> factoreerr;
-   f >> factorpi>> factorpierr;
-   f.close();
-   factorpi =1.00219;
+   TH1D *h = new TH1D("h","invariant mass",200,0,4.0);
+   TH1D *hene = new TH1D("hene","invariant mass",nBins,beamlow,beamup);
+    
+   ofstream ofpar;
+   ofpar.open("parf6pi.txt",std::ios::app);
+   ofpar<<"\n";
+   ofstream detail;
+   detail.open("detailf6pi.txt",std::ios::app);
+   detail<<"fast4pi will give fitting results for cms energy"<<std::endl;
+
+
+   //ifstream f;
+   //f.open("par.txt");
+   //f >> factore >> factoreerr;
+   //f >> factorpi>> factorpierr;
+   //f.close();
+   factorpi =1.00134;
    std::cout<<"factor is "<<factorpi<<std::endl;
    
    // try to use roofit
    RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
    RooRealVar mean("mean","mean of gaussian",peakvalue,beamlow,beamup);
-   RooRealVar sigma("sigma","width of gaussian",0.003,0.0001,0.02);
-   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
+   RooRealVar sigma1("sigma1","width of gaussian",0.003,0.0001,0.02);
+   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma1);
    RooRealVar co1("co1","coefficient #1",0,-100.,100.);
    //RooRealVar co4("co4","coefficient #4",0);
    RooChebychev bkg("bkg","background",x,RooArgList(co1));
    RooRealVar signal("signal"," ",1200,10,100000);//event number
    RooRealVar background("background"," ",200,0,1000);
+   RooAddPdf *sum;//("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
    RooPlot *xframe;
    RooDataHist *data_6pi;
  
    Long64_t nbytes = 0, nb = 0;
+   // spectrum without correction
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;	  
-	  double totpx,totpy,totpz,tote;
-	  double pie[6];
-	  double mass;
-	  totpx = pippx[0]+pippx[1]+pippx[2]+pimpx[0]+pimpx[1]+pimpx[2];
-	  totpy = pippy[0]+pippy[1]+pippy[2]+pimpy[0]+pimpy[1]+pimpy[2];
-	  totpz = pippz[0]+pippz[1]+pippz[2]+pimpz[0]+pimpz[1]+pimpz[2];
-	  //tote  = pipe[0] +pipe[1] +pipe[2] +pime[0] +pime[1] +pime[2];
-	  pie[0]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pippx[0]*pippx[0]+pippy[0]*pippy[0]+pippz[0]*pippz[0]) );
-	  pie[1]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pippx[1]*pippx[1]+pippy[1]*pippy[1]+pippz[1]*pippz[1]) );	
-	  pie[2]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pippx[2]*pippx[2]+pippy[2]*pippy[2]+pippz[2]*pippz[2]) );
-	  pie[3]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pimpx[0]*pimpx[0]+pimpy[0]*pimpy[0]+pimpz[0]*pimpz[0]) );
-	  pie[4]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pimpx[1]*pimpx[1]+pimpy[1]*pimpy[1]+pimpz[1]*pimpz[1]) );
-	  pie[5]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pimpx[2]*pimpx[2]+pimpy[2]*pimpy[2]+pimpz[2]*pimpz[2]) );
-	  tote  = pie[0] +pie[1] +pie[2] +pie[3] +pie[4] +pie[5];
-  mass = TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-	  h->Fill(mass);
+      double totpx,totpy,totpz,tote;
+      double pie[6];
+      double mass;
+      totpx = pippx[0]+pippx[1]+pippx[2]+pimpx[0]+pimpx[1]+pimpx[2];
+      totpy = pippy[0]+pippy[1]+pippy[2]+pimpy[0]+pimpy[1]+pimpy[2];
+      totpz = pippz[0]+pippz[1]+pippz[2]+pimpz[0]+pimpz[1]+pimpz[2];
+      //tote  = pipe[0] +pipe[1] +pipe[2] +pime[0] +pime[1] +pime[2];
+      pie[0]=TMath::Sqrt(mpi*mpi+
+             (pippx[0]*pippx[0]+pippy[0]*pippy[0]+pippz[0]*pippz[0]) );
+      pie[1]=TMath::Sqrt(mpi*mpi+
+             (pippx[1]*pippx[1]+pippy[1]*pippy[1]+pippz[1]*pippz[1]) );
+      pie[2]=TMath::Sqrt(mpi*mpi+
+             (pippx[2]*pippx[2]+pippy[2]*pippy[2]+pippz[2]*pippz[2]) );
+      pie[3]=TMath::Sqrt(mpi*mpi+
+             (pimpx[0]*pimpx[0]+pimpy[0]*pimpy[0]+pimpz[0]*pimpz[0]) );
+      pie[4]=TMath::Sqrt(mpi*mpi+
+             (pimpx[1]*pimpx[1]+pimpy[1]*pimpy[1]+pimpz[1]*pimpz[1]) );
+      pie[5]=TMath::Sqrt(mpi*mpi+
+             (pimpx[2]*pimpx[2]+pimpy[2]*pimpy[2]+pimpz[2]*pimpz[2]) );
+      tote  = pie[0] +pie[1] +pie[2] +pie[3] +pie[4] +pie[5];
+      mass = TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+      h->Fill(mass);
+      hene->Fill(mass);
    }
    TCanvas *c1=new TCanvas("","",800,600);
-	 
    char tmpchr[100];
+   h->Draw();
+   sprintf(tmpchr,"%s/fit6pi_pre1.eps",outputdir.c_str());
+   c1->Print(tmpchr);
+
    sprintf(tmpchr,"data_6pi_%02d",0);
-   data_6pi = new RooDataHist(tmpchr,"data_6pi",x,h);
+   data_6pi = new RooDataHist(tmpchr,"data_6pi",x,hene);
    xframe = x.frame(Title("fit 6 pi"));
-   RooAddPdf sum("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+   sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
    mean.setVal(peakvalue);
    //sigma.setVal(0.035);
    signal.setVal(1200);
    background.setVal(200);
    co1.setVal(0);
-   sum.fitTo(*data_6pi,Range(beamlow,beamup));
+   sum->fitTo(*data_6pi,Range(beamlow,beamup));
    data_6pi->plotOn(xframe);
-   sum.plotOn(xframe);
-   sum.plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-   sum.plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
+   sum->plotOn(xframe);
+   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
    xframe->Draw();
-   c1->Print("fit6pi.eps");
+   sprintf(tmpchr,"%s/fit6pi_pre2.eps",outputdir.c_str());
+   c1->Print(tmpchr);
+   ofpar<<run<<"\n";
+   ofpar<<"pre\t"<<mean.getVal()<<"\t"<<mean.getError()<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
+   ofpar<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError();
+   ofpar<<"\t"<<signal.getVal()/(signal.getVal()+background.getVal())<<std::endl;
    delete data_6pi;
    delete xframe;
+   delete sum;
 
+   // use factor to refit
+   nbytes = 0, nb = 0;
+   h->Reset();
+   hene->Reset();
+   for (Long64_t jentry=0; jentry<nentries;jentry++) {
+      Long64_t ientry = LoadTree(jentry);
+      if (ientry < 0) break;
+      nb = fChain->GetEntry(jentry);   nbytes += nb;
+      // if (Cut(ientry) < 0) continue;	  
+      double totpx,totpy,totpz,tote;
+      double pie[6];
+      double mass;
+      totpx = factorpi*(pippx[0]+pippx[1]+pippx[2]+pimpx[0]+pimpx[1]+pimpx[2]);
+      totpy = factorpi*(pippy[0]+pippy[1]+pippy[2]+pimpy[0]+pimpy[1]+pimpy[2]);
+      totpz = factorpi*(pippz[0]+pippz[1]+pippz[2]+pimpz[0]+pimpz[1]+pimpz[2]);
+      //tote  = pipe[0] +pipe[1] +pipe[2] +pime[0] +pime[1] +pime[2];
+      pie[0]=TMath::Sqrt(mpi*mpi+
+             factorpi*factorpi*(pippx[0]*pippx[0]+pippy[0]*pippy[0]+pippz[0]*pippz[0]) );
+      pie[1]=TMath::Sqrt(mpi*mpi+
+             factorpi*factorpi*(pippx[1]*pippx[1]+pippy[1]*pippy[1]+pippz[1]*pippz[1]) );	
+      pie[2]=TMath::Sqrt(mpi*mpi+
+             factorpi*factorpi*(pippx[2]*pippx[2]+pippy[2]*pippy[2]+pippz[2]*pippz[2]) );
+      pie[3]=TMath::Sqrt(mpi*mpi+
+             factorpi*factorpi*(pimpx[0]*pimpx[0]+pimpy[0]*pimpy[0]+pimpz[0]*pimpz[0]) );
+      pie[4]=TMath::Sqrt(mpi*mpi+
+             factorpi*factorpi*(pimpx[1]*pimpx[1]+pimpy[1]*pimpy[1]+pimpz[1]*pimpz[1]) );
+      pie[5]=TMath::Sqrt(mpi*mpi+
+             factorpi*factorpi*(pimpx[2]*pimpx[2]+pimpy[2]*pimpy[2]+pimpz[2]*pimpz[2]) );
+      tote  = pie[0] +pie[1] +pie[2] +pie[3] +pie[4] +pie[5];
+      mass = TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+      h->Fill(mass);
+      hene->Fill(mass);
+   }
+   h->Draw();
+   sprintf(tmpchr,"%s/fit6pi_re1.eps",outputdir.c_str());
+   c1->Print(tmpchr);
+	 
+   sprintf(tmpchr,"data_6pi_%02d",0);
+   data_6pi = new RooDataHist(tmpchr,"data_6pi",x,hene);
+   xframe = x.frame(Title("fit 6 pi"));
+   sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+   mean.setVal(peakvalue);
+   //sigma.setVal(0.035);
+   signal.setVal(1200);
+   background.setVal(200);
+   co1.setVal(0);
+   sum->fitTo(*data_6pi,Range(beamlow,beamup));
+   data_6pi->plotOn(xframe);
+   sum->plotOn(xframe);
+   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
+   xframe->Draw();
+   sprintf(tmpchr,"%s/fit6pi_re2.eps",outputdir.c_str());
+   c1->Print(tmpchr);
+   ofpar<<run<<"\n";
+   ofpar<<"re\t"<<mean.getVal()<<"\t"<<mean.getError()<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
+   ofpar<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError();
+   ofpar<<"\t"<<signal.getVal()/(signal.getVal()+background.getVal())<<std::endl;
+   delete data_6pi;
+   delete xframe;
+   delete sum;
 
    //gStyle->SetOptStat(0);
    //gStyle->SetOptFit(1111);

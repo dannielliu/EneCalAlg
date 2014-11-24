@@ -253,12 +253,12 @@ int main(int argc,char** argv)
        totpx=factor*(pxa+pxb);
        totpy=factor*(pya+pyb);
        totpz=factor*(pza+pzb);
+       ke[0]=TMath::Sqrt(mparticle*mparticle + 
+             factor*factor*(pxa*pxa+pya*pya+pza*pza));
+       ke[1]=TMath::Sqrt(mparticle*mparticle + 
+             factor*factor*(pxb*pxb+pyb*pyb+pzb*pzb));
        kapp=TMath::Sqrt(pxa*pxa+pya*pya+pza*pza);
        kamp=TMath::Sqrt(pxb*pxb+pyb*pyb+pzb*pzb);
-       ke[0]=TMath::Sqrt(mparticle*mparticle + 
-             factor*factor*kapp*kapp);
-       ke[1]=TMath::Sqrt(mparticle*mparticle + 
-             factor*factor*kamp*kamp);
        //if(!(kapp>Ps[part] && kapp<Ps[part+1] && kamp>Ps[part] && kamp<Ps[part+1])) continue;
        tote=ke[0]+ke[1];
        mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
