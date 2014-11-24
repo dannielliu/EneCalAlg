@@ -161,7 +161,7 @@ void pardrawscript()
   //graph3->SetMaximum(1.05);
   //graph3->Fit(f);
   TCanvas *c1=new TCanvas();
-  graph1->Draw("APL");
+  graph1->Draw("AP");
   graph2->Draw("same");
   graph3->Draw("same");
   graph1->SetMarkerStyle(2);

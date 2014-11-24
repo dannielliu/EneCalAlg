@@ -77,8 +77,8 @@ void gepep_fast4pi::Loop()
    double mk=0.493677;
    double mpi=0.13957018;
    double peakvalue=3.85;// cms energy
-   double Dlow=peakvalue-0.3;
-   double Dup=peakvalue+0.2;
+   double Dlow=peakvalue-0.06;
+   double Dup=peakvalue+0.04;
    //double factor,factorlow,factorup;
    //double minimum;
    //double minx,miny;
@@ -97,7 +97,8 @@ void gepep_fast4pi::Loop()
    RooAddPdf *sum;
  
    TH1D *h = new TH1D("h","invariant mass",200,0.,4.);
-   TH1D *hene = new TH1D("hene","cms energy",80,Dlow,Dup);
+   TH1D *hene = new TH1D("hene","cms energy",50,Dlow,Dup);
+   TH1D *hp = new TH1D("hp","momentum of pi",80,0,4);
    
    // no correction~~~~~~~~~~~~~~
    Long64_t nbytes = 0, nb = 0;
@@ -108,27 +109,39 @@ void gepep_fast4pi::Loop()
       // if (Cut(ientry) < 0) continue;
       
       double totpx,totpy,totpz,tote;
+      double p[4];
       double pie[4];
       double mass;
       totpx = (pippx[0]+pippx[1]+pimpx[0]+pimpx[1]);
       totpy = (pippy[0]+pippy[1]+pimpy[0]+pimpy[1]);
       totpz = (pippz[0]+pippz[1]+pimpz[0]+pimpz[1]);
-      pie[0]=TMath::Sqrt(mpi*mpi+
-             (pippx[0]*pippx[0]+pippy[0]*pippy[0]+pippz[0]*pippz[0]) );
-      pie[1]=TMath::Sqrt(mpi*mpi+
-             (pippx[1]*pippx[1]+pippy[1]*pippy[1]+pippz[1]*pippz[1]) );
-      pie[2]=TMath::Sqrt(mpi*mpi+
-             (pimpx[0]*pimpx[0]+pimpy[0]*pimpy[0]+pimpz[0]*pimpz[0]) );
-      pie[3]=TMath::Sqrt(mpi*mpi+
-             (pimpx[1]*pimpx[1]+pimpy[1]*pimpy[1]+pimpz[1]*pimpz[1]) );
+      p[0]  = TMath::Sqrt(pippx[0]*pippx[0]+pippy[0]*pippy[0]+pippz[0]*pippz[0]);
+      p[1]  = TMath::Sqrt(pippx[1]*pippx[1]+pippy[1]*pippy[1]+pippz[1]*pippz[1]);
+      p[2]  = TMath::Sqrt(pimpx[0]*pimpx[0]+pimpy[0]*pimpy[0]+pimpz[0]*pimpz[0]);
+      p[3]  = TMath::Sqrt(pimpx[1]*pimpx[1]+pimpy[1]*pimpy[1]+pimpz[1]*pimpz[1]);
+      pie[0]=TMath::Sqrt(mpi*mpi+ p[0]*p[0]);
+      pie[1]=TMath::Sqrt(mpi*mpi+ p[1]*p[1]);
+      pie[2]=TMath::Sqrt(mpi*mpi+ p[2]*p[2]);
+      pie[3]=TMath::Sqrt(mpi*mpi+ p[3]*p[3]);
       tote  = pie[0] +pie[1] +pie[2] +pie[3];
       mass = TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
       h->Fill(mass);
+      if(mass>Dlow&&mass<Dup){
+        hp->Fill(p[0]);
+        hp->Fill(p[1]);
+        hp->Fill(p[2]);
+        hp->Fill(p[3]);
+      }
       hene->Fill(mass);
    }
    TCanvas *c1= new TCanvas("","",800,600);
-   h->Draw();
+   hp->Draw();
    char tmpchr[100];
+   sprintf(tmpchr,"%s/momentumpi_f4pi.eps",outputdir.c_str());
+   c1->Print(tmpchr);
+   
+   h->Draw();
+   //char tmpchr[100];
    sprintf(tmpchr,"%s/fit4pi_pre1.eps",outputdir.c_str());
    c1->Print(tmpchr);
 

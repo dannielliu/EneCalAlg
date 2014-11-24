@@ -7,6 +7,7 @@
 #include <TF1.h>
 #include "function.h"
 #include <fstream>
+#include "Pars.h"
 #include "RooFit.h"
 #include "RooRealVar.h"
 #include "RooGaussian.h"
@@ -79,8 +80,11 @@ void gepep_fast6pi::Loop()
    //f >> factore >> factoreerr;
    //f >> factorpi>> factorpierr;
    //f.close();
-   factorpi =1.00134;
-   std::cout<<"factor is "<<factorpi<<std::endl;
+   ParMap parmap("pion.par");
+   fChain->GetEntry(1);//make run a valid number
+   factorpi=parmap.GetPar(run);
+   //factorpi =1.00134;
+   std::cout<<"run is "<<run<<", factor is "<<factorpi<<std::endl;
    
    // try to use roofit
    RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");

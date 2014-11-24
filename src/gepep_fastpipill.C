@@ -78,7 +78,7 @@ bool gepep_fastpipill::Loop()
    
    double jlow=3.0;
    double jup=3.2;
-   double psilow=3.675;
+   double psilow=3.67;
    double psiup=3.695;
    // try to use roofit
    RooRealVar x("x","energy",3.097,jlow,jup,"GeV");
@@ -643,7 +643,7 @@ bool gepep_fastpipill::Loop()
    tmpstr = outputdir +"/likelipi_1D.eps";
    c2->Print(tmpstr.c_str());
    factor = likeli3_1->GetMinimumX(0.98,1.02);
-   minimum = likeli3_1->GetMinimum(0.98,1.02);
+   minimum= likeli3_1->GetMinimum(0.98,1.02);
    factorlow=likeli3_1->GetX(minimum+1,0.98,factor);
    factorup =likeli3_1->GetX(minimum+1,factor,1.02);
    ofparpi<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
