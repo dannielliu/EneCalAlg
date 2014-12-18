@@ -13,7 +13,7 @@ make
 cp ./src/gepep_kpi.C.vkpipi ./src/gepep_kpi.C
 make
 ./autoanakpipi.sh
-bash root -l weightedpar.C
+root -l weightedpar.C
 #./autoanaf4pi.sh
 ./autoanaf6pi.sh
 echo "done"

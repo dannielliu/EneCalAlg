@@ -104,7 +104,8 @@ void gepep_kpi::Loop()
    RooDataHist *data_kpi;
    RooAddPdf *sum;
  
-   TH1D *hmass   = new TH1D("hmass","k- pi+ invariant mass",100,D0low,D0up);
+   TH1D *hmass = new TH1D("hmass","k- pi+ invariant mass",100,D0low,D0up);
+   TH1D *hp    = new TH1D("hp"   ,"k- pi+ momentum of pi",200,0,2);
    //TH1D *hmass   = new TH1D("h1","k- pi+ invariant mass",nBins,D0low,D0up);
    TCanvas *c1= new TCanvas("","",800,600);
    // ~~~~~~~~~pion part~~~~~~~~~~
@@ -191,6 +192,7 @@ void gepep_kpi::Loop()
    py2.clear();
    pz1.clear();
    pz2.clear();
+   hp->Reset();
    //nb = fChain->GetEntry(1);   nbytes += nb;
    //factor2 = kmap.GetPar(run);
    //factor2 = 1.0;
@@ -205,7 +207,7 @@ void gepep_kpi::Loop()
      //if(npip>1 ) continue;
      double mass;
      double totpx,totpy,totpz,tote;
-     double totp;
+     double totp,p1,p2;
      double e[2];
      int besidx=0;
      double tmpdeltaold=100;
@@ -232,14 +234,14 @@ void gepep_kpi::Loop()
      totpx=pippx[besidx]+kampx[0];
      totpy=pippy[besidx]+kampy[0];
      totpz=pippz[besidx]+kampz[0];
-     e[0]=TMath::Sqrt(mparticle*mparticle + 
-    	  (pippx[besidx]*pippx[besidx]+pippy[besidx]*pippy[besidx]+pippz[besidx]*pippz[besidx]));
+     p1=TMath::Sqrt(pippx[besidx]*pippx[besidx]+pippy[besidx]*pippy[besidx]+pippz[besidx]*pippz[besidx]);
+     e[0]=TMath::Sqrt(mparticle*mparticle + p1*p1);
      e[1]=TMath::Sqrt(mparticle2*mparticle2 + 
           (kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]));
      tote=e[0]+e[1];
      //totp=TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
      //if(totp>1.0) continue;
-     //h1->Fill(totp);
+     hp->Fill(p1);
      mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
      if (mass>m0-width/2. && m0<m0+width/2.){
        //h2->Fill(totp);
@@ -252,6 +254,9 @@ void gepep_kpi::Loop()
      }
    }
    TCanvas *c2=new TCanvas("c2","likelihood",800,600);
+   hp->Draw();
+   tmpstr=outputdir+"/momentumpi_kpi.eps";
+   c2->Print(tmpstr.c_str());
    /*h1->Draw();
    c2->Update();
    double rightmax = 1.1*h2->GetMaximum();

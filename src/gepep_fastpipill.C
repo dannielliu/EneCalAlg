@@ -169,7 +169,8 @@ bool gepep_fastpipill::Loop()
     xframe->Draw();
     sprintf(name,"%s/mass_jpsi_e_pre.eps",outputdir.c_str());
     c2->Print(name);
-    ofpare<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+    ofpare<<"\t"<<mean.getVal()<<"\t"<<mean.getError();
+    ofpare<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
     ofpare<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError()<<std::endl;
     delete data;
     delete xframe;
@@ -291,7 +292,8 @@ bool gepep_fastpipill::Loop()
     xframe->Draw();
     sprintf(name,"%s/mass_jpsi_e.eps",outputdir.c_str());
     c2->Print(name);
-    ofpare<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+    ofpare<<"\t"<<mean.getVal()<<"\t"<<mean.getError();
+    ofpare<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
     ofpare<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError()<<std::endl;
     delete data;
     delete xframe;
@@ -358,7 +360,8 @@ bool gepep_fastpipill::Loop()
     xframe->Draw();
     sprintf(name,"%s/mass_jpsi_mu_pre.eps",outputdir.c_str());
     c2->Print(name);
-    ofparmu<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+    ofparmu<<"\t"<<mean.getVal()<<"\t"<<mean.getError();
+    ofparmu<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
     ofparmu<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError()<<std::endl;
     delete data;
     delete xframe;
@@ -404,20 +407,25 @@ bool gepep_fastpipill::Loop()
    }
    
    detail<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
-   TF2 *likeli2=new TF2("likeli2",maxlikelihood1,0.95,1.05,0.01,0.99);
-   likeli2->Draw("surf1");
+   //TF2 *likeli2=new TF2("likeli2",maxlikelihood1,0.95,1.05,0.01,0.99);
+   //likeli2->Draw("surf1");
    //tmpstr = outputdir+"/likelimu_2D.eps";
-   sprintf(name,"%s/likelimu_2D.eps",outputdir.c_str());
-   c2->Print(name);
-   minimum = likeli2->GetMinimum(0.98,1.02);
+   //sprintf(name,"%s/likelimu_2D.eps",outputdir.c_str());
+   //c2->Print(name);
+   //minimum = likeli2->GetMinimum(0.98,1.02);
    //factor=likeli2->GetMinimumX(0.98,1.02);
-   likeli2->GetMinimumXY(factor,weight);
+   //likeli2->GetMinimumXY(factor,weight);
    //weight = miny;
+   sigNo=signal.getVal() ;
+   bckNo=width/(jup-jlow)*background.getVal();
+   weight = sigNo/(sigNo+bckNo);
    TF1 *likeli2_1=new TF1("likeli2_1",maxlikelihood1_1,0.95,1.05);
    likeli2_1->Draw();
    //tmpstr = outputdir+"/likelimu_1D.eps";
    sprintf(name,"%s/likelimu_1D.eps",outputdir.c_str());
    c2->Print(name);
+   minimum = likeli2_1->GetMinimum(0.98,1.02);
+   factor = likeli2_1->GetMinimumX(0.98,1.02);
    factorlow=likeli2_1->GetX(minimum+1,0.98,factor);
    //factorlow=likeli2->GetX(miny,0.98,factor);
    factorup =likeli2_1->GetX(minimum+1,factor,1.02);
@@ -478,7 +486,8 @@ bool gepep_fastpipill::Loop()
     xframe->Draw();
     sprintf(name,"%s/mass_jpsi_mu.eps",outputdir.c_str());
     c2->Print(name);
-    ofparmu<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+    ofparmu<<"\t"<<mean.getVal()<<"\t"<<mean.getError();
+    ofparmu<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
     ofparmu<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError()<<std::endl;
     delete data;
     delete xframe;
@@ -539,7 +548,7 @@ bool gepep_fastpipill::Loop()
    mean.setRange(psilow,psiup);
    mean.setVal(m0);
    sigma1.setVal(sigma);
-   sigma1.setRange(0.9*sigma,1.1*sigma);
+   sigma1.setRange(0.4*sigma,1.1*sigma);
    signal.setVal(120);
    background.setVal(0);
    co1.setVal(0);
@@ -553,7 +562,8 @@ bool gepep_fastpipill::Loop()
    xframe->Draw();
    sprintf(name,"%s/mass_psi_pi_pre.eps",outputdir.c_str());
    c2->Print(name);
-   ofparpi<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+   ofparpi<<"\t"<<mean.getVal()<<"\t"<<mean.getError();
+   ofparpi<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
    ofparpi<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError()<<std::endl;
    delete data;
    delete xframe;
@@ -599,12 +609,12 @@ bool gepep_fastpipill::Loop()
       //tote=lee4[0]+lee4[1]+pie4[0]+pie4[1];
       //tote=lee[0]+lee[1]+pie[0]+pie[1];
       jpsie=lee4[0]+lee4[1];
-      hp->Fill(p1);
-      hp->Fill(p2);
       mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
       massjpsi=TMath::Sqrt(jpsie*jpsie-jpsipx*jpsipx-jpsipy*jpsipy-jpsipz*jpsipz);
       mass = mass-massjpsi+3.096916;
       if (mass>m0-width/2. && mass<m0+width/2.){
+        hp->Fill(p1);
+        hp->Fill(p2);
         px1.push_back(pipx4[0]);
         px2.push_back(pipx4[1]);
         py1.push_back(pipy4[0]);
@@ -635,9 +645,13 @@ bool gepep_fastpipill::Loop()
    //minimum = likeli3->GetMinimum(0.98,1.02);
    //likeli3->GetMinimumXY(factor,miny);
    //weight = miny;
-   sigNo=signal.getVal() ;
+   sigNo=signal.getVal();
    bckNo=width/(psiup-psilow)*background.getVal();
-   weight = sigNo/(sigNo+bckNo);
+   //double deltab,deltas,deltaw;
+   //deltab=width/(psiup-psilow)*background.getError();
+   //deltas=signal.getError();
+   //deltaw=TMath::Sqrt(TMath::Power(sigNo*bckNo/((sigNo+bckNo)*(sigNo+bckNo)),2)*(deltab/bckNo*deltab/bckNo+deltas/sigNo*deltas/sigNo));
+   weight = sigNo/(sigNo+bckNo);//-deltaw;
    TF1 *likeli3_1=new TF1("likeli3_1",maxlikelihood4_1,0.95,1.05);
    likeli3_1->Draw();
    tmpstr = outputdir +"/likelipi_1D.eps";
@@ -648,7 +662,7 @@ bool gepep_fastpipill::Loop()
    factorup =likeli3_1->GetX(minimum+1,factor,1.02);
    ofparpi<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
    ofparpi<<"\t"<<factor<<"\t"<<weight<<"\t"<<likeli3_1->GetMinimumX(0.98,1.02)<<std::endl;
-   detail<<"weight is "<<miny<<", factor is "<<likeli3_1->GetMinimumX(0.98,1.02)<<std::endl;
+   detail<<"weight is "<<weight<<", factor is "<<likeli3_1->GetMinimumX(0.98,1.02)<<std::endl;
    detail<<"best factor  "<<factor<<std::endl;
    purepar<<factor<<"\t"<<(factorup-factorlow)/2;
    
@@ -681,7 +695,8 @@ bool gepep_fastpipill::Loop()
      mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
      massjpsi=TMath::Sqrt(jpsie*jpsie-jpsipx*jpsipx-jpsipy*jpsipy-jpsipz*jpsipz);
      mass = mass-massjpsi+3.096916;
-     if(mass>m0-width/2. && mass<m0+width/2.){
+     //if(mass>m0-width/2. && mass<m0+width/2.)
+     {
        hmass3->Fill(mass);
      }
    }
@@ -709,7 +724,8 @@ bool gepep_fastpipill::Loop()
    xframe->Draw();
    sprintf(name,"%s/mass_psi_pi.eps",outputdir.c_str());
    c2->Print(name);
-   ofparpi<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+   ofparpi<<"\t"<<mean.getVal()<<"\t"<<mean.getError();
+   ofparpi<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
    ofparpi<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError()<<std::endl;
    delete data;
    delete xframe;

@@ -3,7 +3,7 @@ ROOTLIB = $(shell root-config --libs)
 INCDIR = -I./include
 VPATH = src
 CC = g++ $(ROOTINCLUDE) $(ROOTLIB) $(INCDIR)
-OBJS= function.o bes3plotstyle.o gepep_fastpipill.o gepep_fast4pi.o gepep_fast6pi.o gepep_kk.o gepep_kpi.o gepep_kpi2.o gepep_fkkpipi.o
+OBJS= function.o bes3plotstyle.o gepep_fastpipill.o gepep_fast4pi.o gepep_fast6pi.o gepep_kk.o gepep_kpi.o gepep_kpi2.o gepep_fkkpipi.o Pars.o
 
 all: analysis CreateSample testsample
 
@@ -42,6 +42,9 @@ CreateSample:CreateSample.C
 
 testsample:testsample.C src/function.o
 	$(CC) -lRooFitCore -lRooFit $^ -o $@
+
+src/Pars.o:Pars.cc
+	g++ $(ROOTINCLUDE) $(INCDIR) -c $^ -o $@
 
 .PHONY:clean
 clean:

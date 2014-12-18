@@ -3,11 +3,7 @@
 void pardrawscript()
 {
   cout<<"start"<<endl;
-  //TH1D *h1=new TH1D("h1","factor e",50,0.98,1.02);
-  //TH1D *h2=new TH1D("h2","factor mu",30,0.95,1.05);
-  //TH1D *h3=new TH1D("h3","factor pi(ee)",30,0.95,1.05);
-  //TH1D *h4=new TH1D("h4","factor pi(mumu)",30,0.95,1.05);
-  TH1D *h1=new TH1D("h","correction factor for pi",30,0.95,1.05);
+  TH1D *h1=new TH1D("h","correction factor for pi",100,0.995,1.005);
   ifstream in1("parpipill");
   ifstream in2("parkpi");
   ifstream in3("parkpipi");
@@ -127,15 +123,20 @@ void pardrawscript()
     fpi3[i] =y3.at(i);
     fpi3e[i]=y3e.at(i);
 
-    //fe[i]=y1.at(i);
-    //feelow[i]=fe[i]-y1elow.at(i);
-    //feeup[i]=y1eup.at(i)-fe[i];
-    //fmu[i]=y2.at(i);
-    //fmue[i]=y2e.at(i);
-    //fpi[i]=y3.at(i);
-    //fpie[i]=y3e.at(i);
   }
-  
+
+  // combine three factors to one
+  //ofstream of("pion.par");
+  double factor[n],factorerr[n];
+  for(int i=0;i<n;i++){
+    factor[i]=(fpi1[i]/fpi1e[i]+fpi2[i]/fpi2e[i]+fpi3[i]/fpi3e[i])
+             /(1./fpi1e[i]+1./fpi2e[i]+1./fpi3e[i]);
+    factorerr[i]=sqrt(3)
+             /(1./fpi1e[i]+1./fpi2e[i]+1./fpi3e[i]);
+    h1->Fill(factor[i]);
+    //of<<ene[i]<<"\t"<<factor<<"\n";
+  }
+ 
   //gStyle->SetOptFit(1111);
   //TF1 *f=new TF1("f","[0]",3800,4600);
   //f->SetParameter(0,1.0);
@@ -155,11 +156,6 @@ void pardrawscript()
   //graph2->Fit(f);
   //graph2->SetMinimum(0.95);
   //graph2->SetMaximum(1.05);
-  //TGraphErrors *graph3=new TGraphErrors(n,ene,fpi,enee,fpie);
-  //graph3->SetMarkerStyle(5);
-  //graph3->SetMinimum(0.95);
-  //graph3->SetMaximum(1.05);
-  //graph3->Fit(f);
   TCanvas *c1=new TCanvas();
   graph1->Draw("AP");
   graph2->Draw("same");
@@ -167,25 +163,26 @@ void pardrawscript()
   graph1->SetMarkerStyle(2);
   graph1->SetMarkerColor(2);
   graph1->SetLineColor(2);
+  graph1->SetFillColor(kWhite);
   graph2->SetMarkerStyle(4);
   graph2->SetMarkerColor(3);
   graph2->SetLineColor(3);
+  graph2->SetFillColor(kWhite);
   graph3->SetMarkerStyle(5);
   graph3->SetMarkerColor(4);
   graph3->SetLineColor(4);
+  graph3->SetFillColor(kWhite);
   TLegend *legend=new TLegend(0.70,0.75,0.90,0.90);
-  legend->AddEntry(graph1,"pi factor from pipill");
-  legend->AddEntry(graph2,"pi factor from kpi");
-  legend->AddEntry(graph3,"pi factor from kpipi");
+  legend->AddEntry(graph1,"#psi' --> #pi^{+}#pi^{-} J/#psi");
+  legend->AddEntry(graph2,"D^{0} --> K^{+} #pi^{-}");
+  legend->AddEntry(graph3,"D^{+} --> K^{-} #pi^{+} #pi^{+}");
   legend->Draw();
-  //c1->Divide(2,2);
-  //c1->cd(1);
-  //c1->Print("factorse.eps");
-  //c1->cd(2);
-  //graph2->Draw("AP");
-  //c1->Print("factorsmu.eps");
-  //c1->cd(3);
-  //graph3->Draw("AP");
-  //c1->Print("factorspi.eps");
+
+  TCanvas *c2 = new TCanvas();
+  TGraphErrors *graph4=new TGraphErrors(n,ene,factor,enee,factorerr);
+  graph4->Draw("AP");
+  TCanvas *c3 = new TCanvas();
+  h1->Draw();
+  h1->Fit("gaus");
   //exit();
 }

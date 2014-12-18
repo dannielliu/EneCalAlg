@@ -2,10 +2,13 @@
 #include <iostream>
 #include <fstream>
 #include "TMath.h"
+#include <string>
+#include <map>
 
 int main(int argc,char** argv)
 {
   ofstream sample;
+  double args[10];
   sample.open("sample.txt");
   double cmspsig,cmspsig1,cmspsig2,cmspbck,cmspbck1,cmspbck2,msig,mbck;
   double labpsig,labpsig1,labpsig2,labpbck,labpbck1,labpbck2;
@@ -15,106 +18,160 @@ int main(int argc,char** argv)
   double cmsbeta;
   double pi=TMath::Pi();
   double twopi=2*pi;
-  double mpeak=1.019455;
-  double sigma=0.0025;
+  //double mpeak=1.019455;
   //double mpeak=3.0969;
   //double sigma=0.0025;
-  int sigNo=3000;
-  if(argc>1) sigNo = atoi(argv[1]);
-  int backNo=0;
-  if(argc>2) backNo = atoi(argv[2]);
+  double &sigNo=args[1]=10000;
+  double &backNo=args[2]=0;
+  double &mpeak=args[3]=1.019455;
+  double &sigma=args[4]=0.0025;
+  double &cmsp=args[5]=1.0;
+  double &runmode=args[6]=0;
+  double &factor=args[7]=1;
+
+  // deal with input arguments
+  std::map<std::string,int> ArgMap;
+  ArgMap.insert(std::make_pair("-signal",1));
+  ArgMap.insert(std::make_pair("-s",1));
+  ArgMap.insert(std::make_pair("-background",2));
+  ArgMap.insert(std::make_pair("-b",2));
+  ArgMap.insert(std::make_pair("-peak",3));
+  ArgMap.insert(std::make_pair("-m",3));
+  ArgMap.insert(std::make_pair("-sigma",4));
+  ArgMap.insert(std::make_pair("-w",4));
+  ArgMap.insert(std::make_pair("-cmsp",5));
+  ArgMap.insert(std::make_pair("-pc",5));
+  ArgMap.insert(std::make_pair("-runmode",6));
+  ArgMap.insert(std::make_pair("-k",7));
+  ArgMap.insert(std::make_pair("-f",7));
+  ArgMap.insert(std::make_pair("-factor",7));
+  // the following map just for showing information
+  std::map<std::string,int> InfoMap;
+  InfoMap["SignalNumber    "] = 1;
+  InfoMap["BackgroundNumber"] = 2;
+  InfoMap["InvariantMass   "] = 3;
+  InfoMap["Sigma           "] = 4;
+  InfoMap["CMSMomentum     "] = 5;
+  InfoMap["RunMode         "] = 6;
+  InfoMap["Factor          "] = 7;
+  //InfoMap["SignalNumber"]=1;
+
+  std::cout<<"argc is "<<argc<<"\n";
+  for (int i=1;i<argc;i++){
+    std::cout<<"arg "<<i<<" is "<<argv[i]<<"\n";
+    std::string tmpstr=argv[i];
+    if(tmpstr.find("-")==0 && argc>i){
+      std::cout<<"setting arg: "<<&tmpstr[1]<<"\n";
+      args[ArgMap[tmpstr]] = atof(argv[i+1]);
+      i++;
+    }
+  }
+  for (std::map<std::string,int>::iterator iter=InfoMap.begin();iter!=InfoMap.end();iter++){
+    std::cout<<iter->first<<" : "<<args[iter->second]<<"\n";
+  } 
+
   double mk=0.493677;
   //double mk=0.000511;
   double c = 299792458;
   gRandom->SetSeed(time(0));
   //signal part,
-  for(int i=0;i<sigNo;i++){
-    //initial
-    msig=gRandom->Gaus(mpeak,sigma);
-    cmspsig = gRandom->Gaus(.0,0.005);
-    betac = cmspsig/TMath::Sqrt(msig*msig+cmspsig*cmspsig);
-    gammac = TMath::Sqrt(msig*msig+cmspsig*cmspsig)/msig;
-    //split
-    //cms
-    cmspsig1 = TMath::Sqrt(msig*msig/4.0 - mk*mk);
-    cmspsig2 = cmspsig1;
-    cmstheta1 = gRandom->Uniform(0,pi);
-    cmsphi1   = gRandom->Uniform(0,twopi);
-    cmstheta2 = pi - cmstheta1;
-    cmsphi2   = cmsphi1 + pi;
-//std::cout<<cmstheta1<<" "<<cmstheta2<<" "<<cmsphi1<<" "<<cmsphi2<<"\n";
-    // change to lab
-    cmsbeta   = cmspsig1 / (msig/2.);
-    labtheta1 = atan(sin(cmstheta1)/(gammac*(cos(cmstheta1)+betac/cmsbeta)));
-    if(labtheta1<0) labtheta1 += pi;
-    labpsig1 = cmspsig1*sin(cmstheta1)/sin(labtheta1);
-    labphi1  = cmsphi1;
-    labtheta2 = atan(sin(cmstheta2)/(gammac*(cos(cmstheta2)+betac/cmsbeta)));
-    if(labtheta1<0) labtheta2 += pi;
-    labpsig2 = cmspsig1*sin(cmstheta2)/sin(labtheta2);
-    labphi2  = cmsphi2;
-    double p1[3],p2[3];
-    p1[0] = labpsig1*sin(labtheta1)*cos(labphi1);
-    p1[1] = labpsig1*sin(labtheta1)*sin(labphi1);
-    p1[2] = labpsig1*cos(labtheta1);
-    p2[0] = labpsig2*sin(labtheta2)*cos(labphi2);
-    p2[1] = labpsig2*sin(labtheta2)*sin(labphi2);
-    p2[2] = labpsig2*cos(labtheta2);
-    //psig1 = gRandom->Gaus(1.,0.5);
-    //psig2 = TMath::Sqrt(mpeak*mpeak - msig*msig)-psig1;
-    sample<<"\n"<<p1[0]<<"\t"<<p1[1]<<"\t"<<p1[2]<<"\t";
-    sample<<"\t"<<p2[0]<<"\t"<<p2[1]<<"\t"<<p2[2]<<"\t";
-  }
-  //background part,
-  sample<<"\n";
-  for(int i=0;i<backNo;i++){
-    //initial
-    msig    = gRandom->Uniform(mpeak-10*sigma,mpeak+30*sigma);
-    //cmspsig = gRandom->Exp(0.5);
-    cmspsig = gRandom->Gaus(0,3);
-    betac   = cmspsig/TMath::Sqrt(msig*msig+cmspsig*cmspsig);
-    gammac  = TMath::Sqrt(msig*msig+cmspsig*cmspsig)/msig;
-    //split
-    //cms
-    cmspsig1 = TMath::Sqrt(msig*msig/4.0 - mk*mk);
-    cmspsig2 = cmspsig1;
-    cmstheta1 = gRandom->Uniform(0,pi);
-    cmsphi1   = gRandom->Uniform(0,twopi);
-    cmstheta2 = pi - cmstheta1;
-    cmsphi2   = cmsphi1 + pi;
-    // change to lab
-    cmsbeta   = cmspsig1 / (msig/2.);
-    if(cos(cmstheta1)+betac/cmsbeta==0){
-      labtheta1 = pi/2;
+  if(runmode>0){ 
+    for(int i=0;i <sigNo;i++){
+      msig=gRandom->Gaus(mpeak,sigma)/factor;
+      sample<<"\n"<<msig;
     }
-    else
-      labtheta1 = atan(sin(cmstheta1)/(gammac*(cos(cmstheta1)+betac/cmsbeta)));
-    if(labtheta1<0) labtheta1 += pi;
-    labpsig1 = cmspsig1*sin(cmstheta1)/sin(labtheta1);
-    labphi1  = cmsphi1;
-    if(cos(cmstheta2)+betac/cmsbeta==0){
-      labtheta2 = pi/2;
-    }else
-      labtheta2 = atan(sin(cmstheta2)/(gammac*(cos(cmstheta2)+betac/cmsbeta)));
-    if(labtheta2<0) labtheta2 += pi;
-    labpsig2 = cmspsig1*sin(cmstheta2)/sin(labtheta2);
-    labphi2  = cmsphi2;
-    double p1[3],p2[3];
-    p1[0] = labpsig1*sin(labtheta1)*cos(labphi1);
-    p1[1] = labpsig1*sin(labtheta1)*sin(labphi1);
-    p1[2] = labpsig1*cos(labtheta1);
-    p2[0] = labpsig2*sin(labtheta2)*cos(labphi2);
-    p2[1] = labpsig2*sin(labtheta2)*sin(labphi2);
-    p2[2] = labpsig2*cos(labtheta2);
-    //psig1 = gRandom->Gaus(1.,0.5);
-    //psig2 = TMath::Sqrt(mpeak*mpeak - msig*msig)-psig1;
-    sample<<"\n"<<p1[0]<<"\t"<<p1[1]<<"\t"<<p1[2]<<"\t";
-    sample<<"\t"<<p2[0]<<"\t"<<p2[1]<<"\t"<<p2[2]<<"\t";
-  //  mbck=gRandom->Uniform(mpeak-30*sigma,mpeak-30*sigma);
-  //  pbck1 = gRandom->Uniform(0,2.0);
-  //  pbck2 = TMath::Sqrt(mbck);
-  //  sample<<"\n"<<pbck;
   }
+  else{
+    for(int i=0;i<sigNo;i++){
+      //initial
+      msig=gRandom->Gaus(mpeak,sigma);
+      cmspsig = gRandom->Gaus(cmsp,0.005);
+      betac = cmspsig/TMath::Sqrt(msig*msig+cmspsig*cmspsig);
+      gammac = TMath::Sqrt(msig*msig+cmspsig*cmspsig)/msig;
+      //split
+      //cms
+      cmspsig1 = TMath::Sqrt(msig*msig/4.0 - mk*mk);
+      cmspsig2 = cmspsig1;
+      double costheta;
+      costheta  = gRandom->Uniform(-1,1);
+      cmstheta1 = acos(costheta);
+      cmsphi1   = gRandom->Uniform(0,twopi);
+      cmstheta2 = pi - cmstheta1;
+      cmsphi2   = cmsphi1 + pi;
+      //std::cout<<cmstheta1<<" "<<cmstheta2<<" "<<cmsphi1<<" "<<cmsphi2<<"\n";
+      // change to lab
+      cmsbeta   = cmspsig1 / (msig/2.); // particle momentum in cms
+      labtheta1 = atan(sin(cmstheta1)/(gammac*(cos(cmstheta1)+betac/cmsbeta)));
+      if(labtheta1<0) labtheta1 += pi;
+      labpsig1 = cmspsig1*sin(cmstheta1)/sin(labtheta1);
+      labphi1  = cmsphi1;
+      labtheta2 = atan(sin(cmstheta2)/(gammac*(cos(cmstheta2)+betac/cmsbeta)));
+      if(labtheta1<0) labtheta2 += pi;
+      labpsig2 = cmspsig1*sin(cmstheta2)/sin(labtheta2);
+      labphi2  = cmsphi2;
+      double p1[3],p2[3];
+      p1[0] = labpsig1*sin(labtheta1)*cos(labphi1)/factor;
+      p1[1] = labpsig1*sin(labtheta1)*sin(labphi1)/factor;
+      p1[2] = labpsig1*cos(labtheta1)/factor;
+      p2[0] = labpsig2*sin(labtheta2)*cos(labphi2)/factor;
+      p2[1] = labpsig2*sin(labtheta2)*sin(labphi2)/factor;
+      p2[2] = labpsig2*cos(labtheta2)/factor;
+      //psig1 = gRandom->Gaus(1.,0.5);
+      //psig2 = TMath::Sqrt(mpeak*mpeak - msig*msig)-psig1;
+      sample<<"\n"<<p1[0]<<"\t"<<p1[1]<<"\t"<<p1[2]<<"\t";
+      sample<<"\t"<<p2[0]<<"\t"<<p2[1]<<"\t"<<p2[2]<<"\t";
+    }
+    //background part,
+    sample<<"\n";
+    for(int i=0;i<backNo;i++){
+      //initial
+      msig    = gRandom->Uniform(mpeak-10*sigma,mpeak+30*sigma);
+      //cmspsig = gRandom->Exp(0.5);
+      cmspsig = gRandom->Gaus(0,3);
+      betac   = cmspsig/TMath::Sqrt(msig*msig+cmspsig*cmspsig);
+      gammac  = TMath::Sqrt(msig*msig+cmspsig*cmspsig)/msig;
+      //split
+      //cms
+      cmspsig1 = TMath::Sqrt(msig*msig/4.0 - mk*mk);
+      cmspsig2 = cmspsig1;
+      cmstheta1 = gRandom->Uniform(0,pi);
+      cmsphi1   = gRandom->Uniform(0,twopi);
+      cmstheta2 = pi - cmstheta1;
+      cmsphi2   = cmsphi1 + pi;
+      // change to lab
+      cmsbeta   = cmspsig1 / (msig/2.);
+      if(cos(cmstheta1)+betac/cmsbeta==0){
+        labtheta1 = pi/2;
+      }
+      else
+        labtheta1 = atan(sin(cmstheta1)/(gammac*(cos(cmstheta1)+betac/cmsbeta)));
+      if(labtheta1<0) labtheta1 += pi;
+      labpsig1 = cmspsig1*sin(cmstheta1)/sin(labtheta1);
+      labphi1  = cmsphi1;
+      if(cos(cmstheta2)+betac/cmsbeta==0){
+        labtheta2 = pi/2;
+      }else
+        labtheta2 = atan(sin(cmstheta2)/(gammac*(cos(cmstheta2)+betac/cmsbeta)));
+      if(labtheta2<0) labtheta2 += pi;
+      labpsig2 = cmspsig1*sin(cmstheta2)/sin(labtheta2);
+      labphi2  = cmsphi2;
+      double p1[3],p2[3];
+      p1[0] = labpsig1*sin(labtheta1)*cos(labphi1)/factor;
+      p1[1] = labpsig1*sin(labtheta1)*sin(labphi1)/factor;
+      p1[2] = labpsig1*cos(labtheta1)/factor;
+      p2[0] = labpsig2*sin(labtheta2)*cos(labphi2)/factor;
+      p2[1] = labpsig2*sin(labtheta2)*sin(labphi2)/factor;
+      p2[2] = labpsig2*cos(labtheta2)/factor;
+      //psig1 = gRandom->Gaus(1.,0.5);
+      //psig2 = TMath::Sqrt(mpeak*mpeak - msig*msig)-psig1;
+      sample<<"\n"<<p1[0]<<"\t"<<p1[1]<<"\t"<<p1[2]<<"\t";
+      sample<<"\t"<<p2[0]<<"\t"<<p2[1]<<"\t"<<p2[2]<<"\t";
+    //  mbck=gRandom->Uniform(mpeak-30*sigma,mpeak-30*sigma);
+    //  pbck1 = gRandom->Uniform(0,2.0);
+    //  pbck2 = TMath::Sqrt(mbck);
+    //  sample<<"\n"<<pbck;
+    }
+  } 
   sample.close();
   return 0;
 }

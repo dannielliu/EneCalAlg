@@ -1,9 +1,11 @@
 #!/bin/bash
 #datadir="./data"
 datadir="/Volumes/data/besIIIwork/"
+parfile="parkk"
 mv parkk.txt parkk.txt.old
 #mv analog analog.old
 #mv detail.txt detail.txt.old
+echo -e "energy\t\tfactor k\terror">$parfile
 
 for algdir in `ls $datadir`;do
   if test -d "$datadir/$algdir";then
@@ -15,6 +17,9 @@ for algdir in `ls $datadir`;do
         echo $ene>>"detailkk.txt"
         echo "analysis $ene"
         ./analysis ${datadir}/${algdir}/${datafile} "./graphs/$ene" >> anakklog
+        echo -n -e "$ene\t\t">>$parfile
+        cat par>>$parfile
+        echo  >>$parfile
       done
     fi
   fi

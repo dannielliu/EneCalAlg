@@ -6,6 +6,7 @@
 #include <TMath.h>
 #include <TF1.h>
 #include "function.h"
+#include "Pars.h"
 #include <fstream>
 #include "RooFit.h"
 #include "RooRealVar.h"
@@ -61,6 +62,7 @@ void gepep_fast4pi::Loop()
    ofstream detail;
    detail.open("detailf4pi.txt",std::ios::app);
    detail<<"fast4pi will give fitting results for cms energy"<<std::endl;
+   ofstream purpar("par");
 
 
    //ifstream f;
@@ -69,16 +71,20 @@ void gepep_fast4pi::Loop()
    //f >> factorpi>> factorpierr;
    //f.close();
    //factorpi =1.0;
-   factorpi=1.00134;
+   ParMap parmap("pion.par");
+   fChain->GetEntry(1);//make run a valid number
+   factorpi=parmap.GetPar(run);
+   double peakvalue=parmap.GetEnergy(run);// mbeam
+   //factorpi=1.00134;
    std::cout<<"factor is "<<factorpi<<std::endl;
    Long64_t nentries = fChain->GetEntriesFast();
    std::cout<<"Toral entry is "<<nentries<<std::endl;
    int nBins=40;
    double mk=0.493677;
    double mpi=0.13957018;
-   double peakvalue=3.85;// cms energy
-   double Dlow=peakvalue-0.06;
-   double Dup=peakvalue+0.04;
+   //double peakvalue=3.85;// cms energy
+   double Dlow=peakvalue-0.07;
+   double Dup=peakvalue+0.05;
    //double factor,factorlow,factorup;
    //double minimum;
    //double minx,miny;
@@ -89,7 +95,8 @@ void gepep_fast4pi::Loop()
    RooRealVar sigma1("sigma1","width of gaussian",0.0068,0.004,0.07);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma1);
    RooRealVar co1("co1","coefficient #1",0,-100000.,100000.);
-   RooChebychev bkg("bkg","background",x,RooArgList(co1));
+   RooRealVar co2("co2","coefficient #2",0,-100000.,100000.);
+   RooChebychev bkg("bkg","background",x,RooArgList(co1,co2));
    RooRealVar signal("signal"," ",120,10,1000000);//event number
    RooRealVar background("background"," ",20,0,100000);
    RooPlot *xframe;
@@ -102,6 +109,7 @@ void gepep_fast4pi::Loop()
    
    // no correction~~~~~~~~~~~~~~
    Long64_t nbytes = 0, nb = 0;
+   ofstream ofevt("evtmark.txt");
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
@@ -131,9 +139,12 @@ void gepep_fast4pi::Loop()
         hp->Fill(p[1]);
         hp->Fill(p[2]);
         hp->Fill(p[3]);
+        ofevt<<run<<"\t"<<rec<<"\n";
       }
       hene->Fill(mass);
    }
+   ofevt.close();
+   
    TCanvas *c1= new TCanvas("","",800,600);
    hp->Draw();
    char tmpchr[100];
@@ -166,6 +177,7 @@ void gepep_fast4pi::Loop()
    ofpar<<"pre\t"<<mean.getVal()<<"\t"<<mean.getError()<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
    ofpar<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError();
    ofpar<<"\t"<<signal.getVal()/(signal.getVal()+background.getVal())<<std::endl;
+   purpar<<mean.getVal()<<"\t"<<mean.getError()<<"\t";
    delete data_f4pi;
    delete xframe;
    delete sum;
@@ -223,6 +235,7 @@ void gepep_fast4pi::Loop()
    ofpar<<"re\t"<<mean.getVal()<<"\t"<<mean.getError()<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
    ofpar<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError();
    ofpar<<"\t"<<signal.getVal()/(signal.getVal()+background.getVal())<<std::endl;
+   purpar<<mean.getVal()<<"\t"<<mean.getError()<<"\t";
    delete data_f4pi;
    delete xframe;
    delete sum;

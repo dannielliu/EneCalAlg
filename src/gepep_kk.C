@@ -68,18 +68,19 @@ void gepep_kk::Loop()
    ofpar<<"kk algrithm: will give factors for kaon"<<std::endl;
    ofstream ofpardetail;
    ofpardetail.open("detail.txt",std::ios::app);
+   ofstream purpar("par");
    
    double pxa,pya,pza,pxb,pyb,pzb;
-   //double philow=1.0;
-   //double phiup=1.05;
-   double philow=1.82;
-   double phiup=1.90;
+   //double D0low=1.0;
+   //double D0up=1.05;
+   double D0low=1.82;
+   double D0up=1.90;
    double peakvalue=1.86486;
-   //double philow=3.0;
-   //double phiup=3.2;
+   //double D0low=3.0;
+   //double D0up=3.2;
    // try to use roofit
-   RooRealVar x("x","energy",peakvalue,philow,phiup,"GeV");
-   RooRealVar mean("mean","mean of gaussian",peakvalue,philow,phiup);
+   RooRealVar x("x","energy",peakvalue,D0low,D0up,"GeV");
+   RooRealVar mean("mean","mean of gaussian",peakvalue,D0low,D0up);
    RooRealVar sigma1("sigma1","width of gaussian",0.003,0.0001,0.008);
    //RooRealVar sigma2("sigma2","width of gaussian",0.02,0.005,0.05);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma1);
@@ -102,7 +103,7 @@ void gepep_kk::Loop()
    double minx,miny;
    double mpeak;
    std::string tmpstr;
-   TH1D *hmass = new TH1D("hmass","mass",100,philow,phiup);
+   TH1D *hmass = new TH1D("hmass","mass",50,D0low,D0up);
 
    // ~~~~~~~~~kaon part~~~~~~~~~~
    //m0 = 1.019455;
@@ -110,58 +111,7 @@ void gepep_kk::Loop()
    sigma=0.007;//0.0024 for phi,
    width = 10.*sigma;
    mparticle=0.493677;
-   px1.clear();
-   px2.clear();
-   py1.clear();
-   py2.clear();
-   pz1.clear();
-   pz2.clear();
-   for (Long64_t jentry=0; jentry<nentries;jentry++) {
-     Long64_t ientry = LoadTree(jentry);
-     if (ientry < 0) break;
-     nb = fChain->GetEntry(jentry);   nbytes += nb;
-
-     //if(ngam>0) continue;
-     double mass;
-     double totpx,totpy,totpz,tote;
-     // total invariant mass
-     totpx=(kappx+kampx);
-     totpy=(kappy+kampy);
-     totpz=(kappz+kampz);
-     tote=kape+kame;
-     mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-     if(mass>m0-width/2. && mass<m0+width/2.){
-       px1.push_back(kappx);
-       px2.push_back(kampx);
-       py1.push_back(kappy);
-       py2.push_back(kampy);
-       pz1.push_back(kappz);
-       pz2.push_back(kampz);
-     }
-   }
  
-   std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
-   TF2 *likeli=new TF2("likeli",maxlikelihood1,0.95,1.05,0.01,0.99);
-   TCanvas *c2=new TCanvas("c2","likelihood",800,600);
-   likeli->Draw();
-   tmpstr=outputdir+"/likeliK_2D.eps";
-   c2->Print(tmpstr.c_str());
-   likeli->Draw("surf2");
-   tmpstr=outputdir+"/likeliK_2D2.eps";
-   c2->Print(tmpstr.c_str());
-   likeli->GetMinimumXY(factor,miny);
-   weight = miny;
-   TF1 *likeli_1=new TF1("likeli_1",maxlikelihood1_1,0.95,1.05);
-   likeli_1->Draw();
-   tmpstr=outputdir+"/likeliK_1D.eps";
-   c2->Print(tmpstr.c_str());
-   minimum = likeli_1->GetMinimum(0.98,1.02);
-   //factor=likeli->GetMinimumX(0.98,1.02);
-   factorlow=likeli_1->GetX(minimum+1,0.98,factor);
-   factorup =likeli_1->GetX(minimum+1,factor,1.02);
-   ofpar<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<"\t"<<weight<<std::endl;
-   std::cout<<"signal weight is "<<weight<<" best factor  "<<likeli_1->GetMinimumX(0.99,1.01)<<std::endl;
-
    // pre fit
    hmass->Reset();
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
@@ -199,6 +149,7 @@ void gepep_kk::Loop()
      // if (Cut(ientry) < 0) continue;
    }
 
+   TCanvas *c2=new TCanvas("c2","likelihood",800,600);
    char tmpchr[100];
    char name[100];
    //TCanvas *c2=new TCanvas("c2","likelihood",800,600);
@@ -210,7 +161,7 @@ void gepep_kk::Loop()
    signal.setVal(300);
    background.setVal(200);
    co1.setVal(0);
-   sum->fitTo(*data_k,Range(philow,phiup));
+   sum->fitTo(*data_k,Range(D0low,D0up));
    mpeak = mean.getVal();
    sigma = sigma1.getVal();;
    xframe = x.frame(Title("fit kaon"));
@@ -220,7 +171,7 @@ void gepep_kk::Loop()
    //sum->plotOn(xframe,Components(gaus2),LineStyle(4),LineColor(4));
    sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
    xframe->Draw();
-   sprintf(name,"%s/mass_pre.eps",outputdir.c_str());
+   sprintf(name,"%s/fitkk_pre.eps",outputdir.c_str());
    c2->Print(name);
    ofpar<<"pre\t"<<mean.getVal()<<"\t"<<mean.getError()<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
    //ofpar<<"pre\t"<<hmass[part]->GetMean()<<std::endl;
@@ -229,7 +180,62 @@ void gepep_kk::Loop()
    delete data_k;
    //delete xframe;
    delete sum;
+  
+   //likelihood
+   px1.clear();
+   px2.clear();
+   py1.clear();
+   py2.clear();
+   pz1.clear();
+   pz2.clear();
+   for (Long64_t jentry=0; jentry<nentries;jentry++) {
+     Long64_t ientry = LoadTree(jentry);
+     if (ientry < 0) break;
+     nb = fChain->GetEntry(jentry);   nbytes += nb;
+
+     //if(ngam>0) continue;
+     double mass;
+     double totpx,totpy,totpz,tote;
+     // total invariant mass
+     totpx=(kappx+kampx);
+     totpy=(kappy+kampy);
+     totpz=(kappz+kampz);
+     tote=kape+kame;
+     mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+     if(mass>m0-width/2. && mass<m0+width/2.){
+       px1.push_back(kappx);
+       px2.push_back(kampx);
+       py1.push_back(kappy);
+       py2.push_back(kampy);
+       pz1.push_back(kappz);
+       pz2.push_back(kampz);
+     }
+   }
  
+   std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
+   //TF2 *likeli=new TF2("likeli",maxlikelihood1,0.95,1.05,0.01,0.99);
+   //likeli->Draw();
+   //tmpstr=outputdir+"/likeliK_2D.eps";
+   //c2->Print(tmpstr.c_str());
+   //likeli->Draw("surf2");
+   //tmpstr=outputdir+"/likeliK_2D2.eps";
+   //c2->Print(tmpstr.c_str());
+   //likeli->GetMinimumXY(factor,miny);
+   //weight = miny;
+   double sigNo=signal.getVal() ;
+   double bckNo=width/(D0up-D0low)*background.getVal();
+   weight = sigNo/(sigNo+bckNo);
+   TF1 *likeli_1=new TF1("likeli_1",maxlikelihood1_1,0.95,1.05);
+   likeli_1->Draw();
+   tmpstr=outputdir+"/likeliK_1D.eps";
+   c2->Print(tmpstr.c_str());
+   minimum = likeli_1->GetMinimum(0.98,1.02);
+   factor=likeli_1->GetMinimumX(0.98,1.02);
+   factorlow=likeli_1->GetX(minimum+1,0.98,factor);
+   factorup =likeli_1->GetX(minimum+1,factor,1.02);
+   ofpar<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<"\t"<<weight<<std::endl;
+   std::cout<<"signal weight is "<<weight<<" best factor  "<<likeli_1->GetMinimumX(0.99,1.01)<<std::endl;
+   purpar<<factor<<"\t"<<(factorup-factorlow)/2;
    
    //
    // maybe best fit
@@ -281,7 +287,7 @@ void gepep_kk::Loop()
    signal.setVal(300);
    background.setVal(200);
    co1.setVal(0);
-   sum->fitTo(*data_k,Range(philow,phiup));
+   sum->fitTo(*data_k,Range(D0low,D0up));
    xframe = x.frame(Title("fit kaon"));
    data_k->plotOn(xframe);
    sum->plotOn(xframe);
@@ -289,7 +295,7 @@ void gepep_kk::Loop()
    //sum->plotOn(xframe,Components(gaus2),LineStyle(4),LineColor(4));
    sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
    xframe->Draw();
-   sprintf(name,"%s/mass.eps",outputdir.c_str());
+   sprintf(name,"%s/fitkk_re.eps",outputdir.c_str());
    c2->Print(name);
    ofpar<<"after\t"<<mean.getVal()<<"\t"<<mean.getError()<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
    //ofpar<<"\t"<<hmass->GetMean()<<std::endl;

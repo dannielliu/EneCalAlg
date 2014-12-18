@@ -16,7 +16,7 @@ double maxlikelihood(double *x,double *par)
   double minv;
   //double sigma=0.023;// from large statistic, and fit it get sigma
   //std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
-   for(int i=0; i<px1.size(); i++){
+  for(int i=0; i<px1.size(); i++){
     p1=TMath::Sqrt(px1.at(i)*px1.at(i)+py1.at(i)*py1.at(i)+pz1.at(i)*pz1.at(i));
     p2=TMath::Sqrt(px2.at(i)*px2.at(i)+py2.at(i)*py2.at(i)+pz2.at(i)*pz2.at(i));
     e1=TMath::Sqrt(mparticle*mparticle+x[0]*x[0]*p1*p1);
@@ -171,9 +171,36 @@ double maxlikelihood2_1(double *x,double *par)//one dimension
   }
   return logl;
 }
+double maxlikelihood2_2(double *x,double *par)//two factor in different momentum range
+{ 
+  double logl=0;
+  double p1,p2,px,py,pz;
+  double e1,e2;
+  double minv;
+  //double sigma=0.0068;// from large statistic, and fit it get sigma
+  //std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
+  for(int i=0; i<px1.size(); i++){
+    p1=TMath::Sqrt(px1.at(i)*px1.at(i)+py1.at(i)*py1.at(i)+pz1.at(i)*pz1.at(i));
+    p2=TMath::Sqrt(px2.at(i)*px2.at(i)+py2.at(i)*py2.at(i)+pz2.at(i)*pz2.at(i));
+    double f1=x[0],f2=x[0];
+    if (p1>par[0]) f1=x[1];
+    if (p2>par[0]) f2=x[1];
+    e1=TMath::Sqrt(mparticle*mparticle  +f1*f1*p1*p1);
+    e2=TMath::Sqrt(mparticle2*mparticle2+f2*f2*p2*p2);
+    px=f1*px1.at(i)+f2*px2.at(i);
+    py=f1*py1.at(i)+f2*py2.at(i);
+    pz=f1*pz1.at(i)+f2*pz2.at(i);
+    minv = TMath::Sqrt((e1+e2)*(e1+e2)-(px*px+py*py+pz*pz));
+    //logl += (minv-m0)*(minv-m0)/(sigma*sigma)+2*TMath::Log(2*TMath::Pi());//here sigma is just a const
+    //logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
+    //        /(TMath::Sqrt(2*TMath::Pi())*sigma)*weight +(1.-weight)/width);//here sigma is just a const
+    logl += -2*TMath::Log(TMath::Gaus(minv,m0,sigma,true)*weight +(1.-weight)/width);//here sigma is just a const
+  }
+  return logl;
+}
 
- std::vector<double> px3,py3,pz3,px4,py4,pz4;
- std::vector<double> le1,le2;
+std::vector<double> px3,py3,pz3,px4,py4,pz4;
+std::vector<double> le1,le2;
 double maxlikelihood4(double *x,double *par)
 {
   double logl=0;
@@ -341,6 +368,50 @@ double maxlikelihood3_1(double *x,double *par)//one dimension
   return logl;
 }
 
+std::vector<double> mass1;
+double maxlikelihood0(double *x, double *par)
+{
+  double ret=0;
+  for(int i=0; i<mass1.size(); i++){
+    ret += -2*TMath::Log(TMath::Gaus(x[0]*mass1.at(i),m0,sigma,true));
+  }
+  return ret;
+}
+
+double CalInvMass(double m1, double px1, double py1, double pz1,
+                  double m2, double px2, double py2, double pz2,
+                  int n, const double *x, const double *par)
+{
+  double p1,p2,px,py,pz;
+  double e1,e2;
+  double minv;
+  double f1,f2;
+  
+  p1=TMath::Sqrt(px1*px1+py1*py1+pz1*pz1);
+  p2=TMath::Sqrt(px2*px2+py2*py2+pz2*pz2);
+  if (n==0) {f1=1; f2=1;}
+  else if(n==1) {f1=x[0]; f2=x[0];}
+  else {
+    int tmpindex;
+    tmpindex=(int)((p1-par[0])/(par[1]-par[0])*n);
+    if (tmpindex<0) tmpindex =0;
+    if (tmpindex>n-1) tmpindex=n-1;
+    f1 = x[tmpindex];
+    tmpindex=(int)((p2-par[0])/(par[1]-par[0])*n);
+    if (tmpindex<0) tmpindex =0;
+    if (tmpindex>n-1) tmpindex=n-1;
+    f2 = x[tmpindex];
+  }
+  e1=TMath::Sqrt(m1*m1+f1*f1*p1*p1);
+  e2=TMath::Sqrt(m2*m2+f2*f2*p2*p2);
+  px=f1*px1+f2*px2;
+  py=f1*py1+f2*py2;
+  pz=f1*pz1+f2*pz2;
+  minv = TMath::Sqrt((e1+e2)*(e1+e2)-(px*px+py*py+pz*pz));
+  
+  return minv;
+}
+
 double BreitWigner(double *x, double *par)
 {
   return par[0]*par[2]/(2*TMath::Pi()*(TMath::Power(x[0]-par[1],2)+TMath::Power(par[2]/2.,2)));
@@ -370,12 +441,104 @@ double GausLineBack(double *x,double *par)
 {
   //TF1 f("gaus","gaus");
   
-  return par[0]*TMath::Gaus(*x,par[1],par[2])+line(x,&par[3]);
+  return par[0]*TMath::Gaus(*x,par[1],par[2],true)+line(x,&par[3]);
 }
 
 double GausLineBack1(double *x,double *par)
 {
   //TF1 f("gaus","gaus");
   
-  return par[0]*TMath::Gaus(*x,par[1],par[2])+line(x,&par[3]);
+  return par[0]*TMath::Gaus(*x,par[1],par[2],true)+line(x,&par[3]);
+}
+
+double maxlikelihood2_n(int n,const double *x,const double *par)//two factor in different momentum range
+{ 
+  double logl=0;
+  double minv;
+  //std::cout<<"par0: "<<par[0]<<", par1: "<<par[1]<<std::endl;
+  for(int i=0; i<px1.size(); i++){
+    minv = CalInvMass(mparticle,px1.at(i),py1.at(i),pz1.at(i),
+                      mparticle,px2.at(i),py2.at(i),pz2.at(i),
+		  n,x,par);
+    logl += -2*TMath::Log(TMath::Gaus(minv,m0,sigma,true));//*weight +(1.-weight)/width);
+    //std::cout<<"inv mass: "<<minv<<" logl value: "<<logl<<std::endl;
+  }
+  return logl;
+}
+
+double MultiDimFunction::DoEvalPar(const double *x, const double *p) const
+{
+  return maxlikelihood2_n(ndim,x,pars);
+}
+
+unsigned int MultiDimFunction::NDim() const
+{
+  return ndim;
+}
+
+unsigned int MultiDimFunction::NPar() const
+{
+  return npar;
+}
+
+double MultiDimFunction::DoParameterDerivative(const double *x, const double *p,unsigned ipar) const
+{
+  return 0;
+}
+
+double MultiDimFunction::GetMinimum(double *xmin, double *xmax)
+{
+  return fValMin;
+}
+
+void MultiDimFunction::GetMinimumX(double *x)
+{
+  double xx[ndim];
+  double xxmin[ndim];
+  double xxlowedge[ndim];
+  for (int i=0; i<ndim; i++){
+    xxmin[i]=fXmin;
+    xxlowedge[i]=fXmin;
+  }
+  double fval; 
+  int Npx=2;
+  double dx=(fXmax-fXmin)/Npx;
+  for (int i=0; i<ndim; i++) xx[i]=fXmin;
+  double zzmin=DoEvalPar(xx,pars);
+  int minindex=0;
+  //std::cout<<"initial min value: "<<zzmin<<std::endl;
+  int itern =(int)(TMath::Log(fNpx)/TMath::Log(Npx))+10;
+  for (int iteri=0; iteri<itern;iteri++){
+    for (int i=0; i<TMath::Power(Npx,ndim); i++){
+      std::cout<<"point: (";
+      for (int idim=0; idim<ndim; idim++){
+        xx[idim] = xxlowedge[idim] + ((i%(int)TMath::Power(Npx,idim+1))/(int)TMath::Power(Npx,idim)+0.5)*dx;// it is dangerous, power may give a wrong int!!
+      std::cout<<xx[idim]<<", ";
+      }
+      fval=DoEvalPar(xx,pars);
+      std::cout<<"), fvalue: "<<fval<<std::endl;
+      if (fval<zzmin){
+        zzmin = fval;
+        for (int idim=0; idim<ndim; idim++) xxmin[idim]=xx[idim];
+        minindex = i;
+      }
+    }
+    for (int idim=0; idim<ndim; idim++){
+      xxlowedge[idim]= xxlowedge[idim] + ((minindex%(int)TMath::Power(Npx,idim+1))/(int)TMath::Power(Npx,idim))*dx;// it is dangerous, power may give a wrong int!!!
+    }
+    dx = dx/Npx;
+  }
+
+  for (int i=0; i<ndim; i++){
+    x[i] = TMath::Min(xxmin[i],fXmax);
+  }
+  fValMin = zzmin;
+
+  return;
+}
+
+void MultiDimFunction::ShowParameters()
+{
+  std::cout<<"par[0]: "<<pars[0]<<" , par[1]: "<<pars[1]<<std::endl;
+  return;
 }
