@@ -4,6 +4,7 @@
 #include <map>
 #include <TH1.h>
 #include <TH2.h>
+#include <TH3.h>
 #include <TStyle.h>
 #include <TCanvas.h>
 #include "function.h"
@@ -151,6 +152,8 @@ int main(int argc,char** argv)
    mparticle=0.493677;
    //mparticle=0.000511;
    double massold=0;
+   double deltaup=0,deltadown=0;
+   double deltaup2=0,deltadown2=0;
    if((int)runmode==0)
    for(int part=0;part<NP;part++){
      ofpar<<Ps[part]<<"\t"<<Ps[part+1]<<std::endl;
@@ -259,6 +262,8 @@ int main(int argc,char** argv)
      sample.clear();
      sample.seekg(0,std::ios::beg);
      massold=0;
+     //factor = 0.996196;
+     //TH2D *massshift= new TH2D("massshift","mass shift",100,philow,phiup,100,-0.01,0.0);
      while(!sample.eof()){
        sample>>pxa>>pya>>pza>>pxb>>pyb>>pzb;
        std::string tmpcha;
@@ -271,7 +276,18 @@ int main(int argc,char** argv)
        massold = mass;
        //ofpar<<"mass: "<<mass<<std::endl;
        // if (Cut(ientry) < 0) continue;
+       
+       //double masstmp;
+       //masstmp = CalInvMass(mparticle,pxa,pya,pza, mparticle,pxb,pyb,pzb);
+       //if (mass<m0+sigma && masstmp>m0+sigma) deltaup++;
+       //else if (mass<m0-sigma && masstmp>m0-sigma) deltadown++;
+       //else if (mass>m0+sigma && masstmp<m0+sigma) deltadown2++;
+       //else if (mass>m0-sigma && masstmp<m0-sigma) deltaup2++;
+       //massshift->Fill(masstmp,mass-masstmp);
      }
+     //massshift->Write();
+     //std::cout<<"shift to high value: "<<deltaup<<" , shift to low value: "<<deltadown<<std::endl;
+     //std::cout<<"shift to high value: "<<deltaup2<<" , shift to low value: "<<deltadown2<<std::endl;
 
      FitAndSave(hmass, part, 
               xframe, data_k, sum, gaus, bkg, 
@@ -282,7 +298,7 @@ int main(int argc,char** argv)
      //likeli->Write();
      //c2->Write();
    }
-   else if (runmode>0) // direct mass mode
+   else if ((int)runmode==1) // direct mass mode
    for(int part=0;part<NP;part++){
      ofpar<<Ps[part]<<"\t"<<Ps[part+1]<<std::endl;
      // pre fit
@@ -359,7 +375,7 @@ int main(int argc,char** argv)
      //likeli->Write();
      //ac2->Write();
    } 
-   else  // multimomentum correction factor mode
+   else if ((int)runmode==2) // multimomentum correction factor mode
    for(int part=0;part<NP;part++){
      ofpar<<Ps[part]<<"\t"<<Ps[part+1]<<std::endl;
      // pre fit
@@ -474,6 +490,214 @@ int main(int argc,char** argv)
      //likeli->Write();
      //c2->Write();
    }
+   else if ((int)runmode==3)
+   for(int part=0;part<NP;part++){
+     ofpar<<Ps[part]<<"\t"<<Ps[part+1]<<std::endl;
+     // pre fit
+     hmass[part]->Reset();
+     while(!sample.eof()){
+       sample>>pxa>>pya>>pza>>pxb>>pyb>>pzb;
+       std::string name;
+       getline(sample,name);
+       //if(ngam>0) continue;
+       double mass;
+       mass = CalInvMass(mparticle,pxa,pya,pza, mparticle,pxb,pyb,pzb);
+       if(massold!=0) hmass[part]->Fill(massold);
+       massold=mass;
+       // if (Cut(ientry) < 0) continue;
+     }
+
+     FitAndSave(hmass, part, 
+              xframe, data_k, sum, gaus, bkg, 
+	    x, mean, sigma1, co1, signal, background,
+	    philow, phiup, Ps, ofpar, f);
+     
+     // likelihood
+     px1.clear();
+     px2.clear();
+     py1.clear();
+     py2.clear();
+     pz1.clear();
+     pz2.clear();
+     hp2->Reset();
+     sample.clear();
+     sample.seekg(0,std::ios::beg);
+     while(!sample.eof()){
+       std::string tmpcha;
+       getline(sample,tmpcha);
+       sample>>pxa>>pya>>pza>>pxb>>pyb>>pzb;
+        //if(ngam>0) continue;
+       double mass;
+       //double totpx,totpy,totpz,tote;
+       double kapp,kamp,kape,kame;
+       kapp=TMath::Sqrt(pxa*pxa+pya*pya+pza*pza);
+       kamp=TMath::Sqrt(pxb*pxb+pyb*pyb+pzb*pzb);
+       mass = CalInvMass(mparticle,pxa,pya,pza, mparticle,pxb,pyb,pzb);
+       if(mass>m0-width/2. && mass<m0+width/2.)
+       {
+         hp[part]->Fill(kapp);
+         hp2->Fill(kapp,kamp);
+         //hmass[part]->Fill(mass);
+         px1.push_back(pxa);
+         px2.push_back(pxb);
+         py1.push_back(pya);
+         py2.push_back(pyb);
+         pz1.push_back(pza);
+         pz2.push_back(pzb);
+       }
+    }
+     char name[100];
+     TCanvas *c2=new TCanvas("c2","likelihood",800,600);
+
+     hp[part]->Draw();
+     sprintf(name,"%s/momentum_%1.2f_%1.2f.eps",outputdir.c_str(),Ps[part],Ps[part+1]);
+     c2->Print(name);
+     std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
+      
+     TF1 *likeli_1=new TF1("likeli_1",BiasCoe,0.95,1.05,1);
+     likeli_1->SetParameter(0,m0);
+     likeli_1->Draw();
+     likeli_1->Write();
+     c2->Write();
+     sprintf(name,"%s/bias_%1.2f_%1.2f.eps",outputdir.c_str(),Ps[part],Ps[part+1]);
+     c2->Print(name);
+     minimum = likeli_1->GetMinimum(0.95,1.05);
+     factor  = likeli_1->GetMinimumX(0.95,1.05);
+     factorlow=likeli_1->GetX(minimum+1,0.95,factor);
+     factorup =likeli_1->GetX(minimum+1,factor,1.05);
+     
+     ofpar<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
+     //ofpar<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<"\t\t"<<weight<<"\t"<<slope<<std::endl;
+     delete c2;
+
+     // using the factor to fit
+     hmass[part]->Reset();
+     sample.clear();
+     sample.seekg(0,std::ios::beg);
+     massold=0;
+     //factor = 0.996196;
+     while(!sample.eof()){
+       sample>>pxa>>pya>>pza>>pxb>>pyb>>pzb;
+       std::string tmpcha;
+       getline(sample,tmpcha);
+      
+       double mass;
+       mass = CalInvMass(mparticle,pxa,pya,pza, mparticle,pxb,pyb,pzb,1,&factor);
+       if(massold!=0) hmass[part]->Fill(massold);
+       massold = mass;
+       //ofpar<<"mass: "<<mass<<std::endl;
+       // if (Cut(ientry) < 0) continue;
+       
+     }
+
+     FitAndSave(hmass, part, 
+              xframe, data_k, sum, gaus, bkg, 
+	    x, mean, sigma1, co1, signal, background,
+	    philow, phiup, Ps, ofpar, f);
+     hp[part]->Write();
+     hp2->Write();
+     //likeli->Write();
+   }
+   else if ((int)runmode==4)
+   for(int part=0;part<NP;part++){
+     ofpar<<Ps[part]<<"\t"<<Ps[part+1]<<std::endl;
+     // pre fit
+     hmass[part]->Reset();
+     while(!sample.eof()){
+       sample>>pxa>>pya>>pza>>pxb>>pyb>>pzb;
+       std::string name;
+       getline(sample,name);
+       //if(ngam>0) continue;
+       double mass;
+       mass = CalInvMass(mparticle,pxa,pya,pza, mparticle,pxb,pyb,pzb);
+       if(massold!=0) hmass[part]->Fill(massold);
+       massold=mass;
+       // if (Cut(ientry) < 0) continue;
+     }
+
+     FitAndSave(hmass, part, 
+              xframe, data_k, sum, gaus, bkg, 
+	    x, mean, sigma1, co1, signal, background,
+	    philow, phiup, Ps, ofpar, f);
+     
+     
+     // 
+     TH3D *hmass3D = new TH3D("hmass3D","hmass_2p_theta",100,0,2,100,0,2,100,0,TMath::Pi());
+     hp2->Reset();
+     sample.clear();
+     sample.seekg(0,std::ios::beg);
+     while(!sample.eof()){
+       std::string tmpcha;
+       getline(sample,tmpcha);
+       sample>>pxa>>pya>>pza>>pxb>>pyb>>pzb;
+        //if(ngam>0) continue;
+       double mass;
+       //double totpx,totpy,totpz,tote;
+       double kapp,kamp,theta;
+       kapp=TMath::Sqrt(pxa*pxa+pya*pya+pza*pza);
+       kamp=TMath::Sqrt(pxb*pxb+pyb*pyb+pzb*pzb);
+       theta = acos((pxa*pxb+pya*pyb+pza*pzb)/(kapp*kamp)/2.);
+       hmass3D->Fill(kapp,kamp,theta);
+       mass = CalInvMass(mparticle,pxa,pya,pza, mparticle,pxb,pyb,pzb);
+       if(mass>m0-width/2. && mass<m0+width/2.)
+       {
+         hp[part]->Fill(kapp);
+         hp2->Fill(kapp,kamp);
+         //hmass[part]->Fill(mass);
+       }
+     }
+     char name[100];
+     TCanvas *c2=new TCanvas("c2","likelihood",800,600);
+
+     hp[part]->Draw();
+     sprintf(name,"%s/momentum_%1.2f_%1.2f.eps",outputdir.c_str(),Ps[part],Ps[part+1]);
+     c2->Print(name);
+     std::cout<<"m0 is "<<m0<<std::endl;
+      
+     TF3 *dis = new TF3("dis",distribution,0,2.0,0,2.0,0.99,1.01,2);
+     dis->SetParameter(0,2);
+     dis->SetParameter(1,1.0);
+     hmass3D->Draw();
+     hmass3D->Fit(dis);
+     hmass3D->Write();
+     dis->Write();
+     c2->Write();
+     sprintf(name,"%s/dis_%1.2f_%1.2f.eps",outputdir.c_str(),Ps[part],Ps[part+1]);
+     c2->Print(name);
+     factor = dis->GetParameter(1);
+     
+     ofpar<<"\t"<<factor<<std::endl;
+     delete c2;
+
+     // using the factor to fit
+     hmass[part]->Reset();
+     sample.clear();
+     sample.seekg(0,std::ios::beg);
+     massold=0;
+     //factor = 0.996196;
+     while(!sample.eof()){
+       sample>>pxa>>pya>>pza>>pxb>>pyb>>pzb;
+       std::string tmpcha;
+       getline(sample,tmpcha);
+      
+       double mass;
+       mass = CalInvMass(mparticle,pxa,pya,pza, mparticle,pxb,pyb,pzb,1,&factor);
+       if(massold!=0) hmass[part]->Fill(massold);
+       massold = mass;
+       //ofpar<<"mass: "<<mass<<std::endl;
+       // if (Cut(ientry) < 0) continue;
+       
+     }
+
+     FitAndSave(hmass, part, 
+              xframe, data_k, sum, gaus, bkg, 
+	    x, mean, sigma1, co1, signal, background,
+	    philow, phiup, Ps, ofpar, f);
+     hp[part]->Write();
+     hp2->Write();
+     //likeli->Write();
+   }
+   
    // ~~~~~~~~~kaon part end~~~~~~~~~~
 
    f->Close();

@@ -2,6 +2,7 @@
 #include "gepep_kpi.h"
 #include <TH1.h>
 #include <TH2.h>
+#include <TH3.h>
 #include "TGaxis.h"
 #include "TPad.h"
 #include <TStyle.h>
@@ -120,6 +121,8 @@ void gepep_kpi::Loop()
    TH2D *h2p   = new TH2D("h2p"  ,"k- pi+ momentum" ,200,0,2,200,0,2);
    h2p->GetXaxis()->SetTitle("pion momentum(GeV)");
    h2p->GetYaxis()->SetTitle("kaon momentum(GeV)");
+   TH3D *hthetadis = new TH3D("hthetadis","",100,0,2,100,0,2,100,0,TMath::Pi());
+   TH1D *hthedis = new TH1D("hthedis","",100,0,TMath::Pi());
    //TH1D *hmass   = new TH1D("h1","k- pi+ invariant mass",nBins,D0low,D0up);
    //TCanvas *c1= new TCanvas("","",800,600);
    TCanvas *c2= new TCanvas("","",800,600);
@@ -138,25 +141,13 @@ void gepep_kpi::Loop()
        if (ientry < 0) break;
        nb = fChain->GetEntry(jentry);   nbytes += nb;
     
-       //double kamp = TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
-       //if (kamp<0.63) continue;
        double mass;
-       double totpx,totpy,totpz,tote;
-       double e[2];
        double p1,p2;
        int besidx=0;
        double tmpdeltaold=100;
        double tmpmass;
        for(int i=0; i<npip;i++){
-         totpx=pippx[i]+kampx[0];
-         totpy=pippy[i]+kampy[0];
-         totpz=pippz[i]+kampz[0];
-         e[0]=TMath::Sqrt(mpi*mpi + 
-              (pippx[i]*pippx[i]+pippy[i]*pippy[i]+pippz[i]*pippz[i]));
-         e[1]=TMath::Sqrt(mk*mk + 
-              (kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]));
-         tote=e[0]+e[1];
-         tmpmass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+         tmpmass = CalInvMass(mpi,pippx[i],pippy[i],pippz[i],mk,kampx[0],kampy[0],kampz[0]);
          if(fabs(tmpmass-peakvalue)<tmpdeltaold){
            tmpdeltaold = fabs(tmpmass-peakvalue);
            besidx = i;
@@ -164,15 +155,9 @@ void gepep_kpi::Loop()
        }
        //std::cout<<"best index is "<<besidx<<std::endl;
        // total invariant mass, D0 -> k- pi+
-       totpx=pippx[besidx]+kampx[0];
-       totpy=pippy[besidx]+kampy[0];
-       totpz=pippz[besidx]+kampz[0];
        p1=TMath::Sqrt(pippx[besidx]*pippx[besidx]+pippy[besidx]*pippy[besidx]+pippz[besidx]*pippz[besidx]);
        p2=TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
-       e[0]=TMath::Sqrt(mparticle*mparticle + p1*p1);
-       e[1]=TMath::Sqrt(mk*mk + p2*p2);
-       tote=e[0]+e[1];
-       mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+       mass = CalInvMass(mpi,pippx[besidx],pippy[besidx],pippz[besidx],mk,kampx[0],kampy[0],kampz[0]);
        if(p1>pcut[part]&&p1<pcut[part+1]&&p2>pcut[part]&&p2<pcut[part+1])
          hmass->Fill(mass);
        // if (Cut(ientry) < 0) continue;
@@ -228,42 +213,22 @@ void gepep_kpi::Loop()
        //if(ngam>0) continue;
        //if(npip>1 ) continue;
        double mass;
-       double totpx,totpy,totpz,tote;
        double totp,p1,p2;
-       double e[2];
        int besidx=0;
        double tmpdeltaold=100;
        double tmpmass;
        // search for best pi+
        for(int i=0; i<npip;i++){
-         double kamp = TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
-         //if (kamp<0.63) continue;
-         totpx=pippx[i]+kampx[0];
-         totpy=pippy[i]+kampy[0];
-         totpz=pippz[i]+kampz[0];
-         e[0]=TMath::Sqrt(mparticle*mparticle + 
-      	  (pippx[i]*pippx[i]+pippy[i]*pippy[i]+pippz[i]*pippz[i]));
-         e[1]=TMath::Sqrt(mparticle2*mparticle2 + 
-      	  (kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]));
-         tote=e[0]+e[1];
-         tmpmass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+         tmpmass = CalInvMass(mpi,pippx[i],pippy[i],pippz[i],mk,kampx[0],kampy[0],kampz[0]);
          if(fabs(tmpmass-m0)<tmpdeltaold){
            tmpdeltaold = fabs(tmpmass-m0);
            besidx = i;
          }
        }
        // total invariant mass, D0 -> k- pi+
-       totpx=pippx[besidx]+kampx[0];
-       totpy=pippy[besidx]+kampy[0];
-       totpz=pippz[besidx]+kampz[0];
        p1=TMath::Sqrt(pippx[besidx]*pippx[besidx]+pippy[besidx]*pippy[besidx]+pippz[besidx]*pippz[besidx]);
        p2=TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
-       e[0]=TMath::Sqrt(mparticle*mparticle + p1*p1);
-       e[1]=TMath::Sqrt(mparticle2*mparticle2 + p2*p2);
-       tote=e[0]+e[1];
-       //totp=TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
-       //if(totp>1.0) continue;
-       mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+       mass = CalInvMass(mpi,pippx[besidx],pippy[besidx],pippz[besidx],mk,kampx[0],kampy[0],kampz[0]);
        if(p1>pcut[part]&&p1<pcut[part+1] && p2>pcut[part]&&p2<pcut[part+1] ){
          if (mass>m0-width/2. && mass<m0+width/2.){
            hp->Fill(p1);
@@ -348,24 +313,13 @@ void gepep_kpi::Loop()
        if (ientry < 0) break;
        nb = fChain->GetEntry(jentry);   nbytes += nb;
            
-       double kamp = TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
-       //if (kamp<0.63) continue;
        double mass;
-       double totpx,totpy,totpz,tote;
-       double e[2],p1,p2;
+       double p1,p2;
        int besidx=0;
        double tmpdeltaold=100;
        double tmpmass;
        for(int i=0; i<npip;i++){
-         totpx=pippx[i]+kampx[0];
-         totpy=pippy[i]+kampy[0];
-         totpz=pippz[i]+kampz[0];
-         e[0]=TMath::Sqrt(mpi*mpi + 
-              (pippx[i]*pippx[i]+pippy[i]*pippy[i]+pippz[i]*pippz[i]));
-         e[1]=TMath::Sqrt(mk*mk + 
-              (kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]));
-         tote=e[0]+e[1];
-         tmpmass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+         tmpmass = CalInvMass(mpi,pippx[i],pippy[i],pippz[i],mk,kampx[0],kampy[0],kampz[0]);
          if(fabs(tmpmass-peakvalue)<tmpdeltaold){
            tmpdeltaold = fabs(tmpmass-peakvalue);
            besidx = i;
@@ -373,15 +327,9 @@ void gepep_kpi::Loop()
        }
        //std::cout<<"best index is "<<besidx<<std::endl;
        // total invariant mass, D0 -> k- pi+
-       totpx=factor*(pippx[besidx]+kampx[0]);
-       totpy=factor*(pippy[besidx]+kampy[0]);
-       totpz=factor*(pippz[besidx]+kampz[0]);
        p1=TMath::Sqrt(pippx[besidx]*pippx[besidx]+pippy[besidx]*pippy[besidx]+pippz[besidx]*pippz[besidx]);
        p2=TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
-       e[0]=TMath::Sqrt(mpi*mpi + factor*factor*p1*p1);
-       e[1]=TMath::Sqrt(mk*mk   + factor*factor*p2*p2); 
-       tote=e[0]+e[1];
-       mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+       mass = CalInvMass(mpi,pippx[besidx],pippy[besidx],pippz[besidx],mk,kampx[0],kampy[0],kampz[0],1,&factor);
        if(p1>pcut[part]&&p1<pcut[part+1]&&p2>pcut[part]&&p2<pcut[part+1])
          hmass->Fill(mass);
        // if (Cut(ientry) < 0) continue;

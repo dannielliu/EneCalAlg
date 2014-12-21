@@ -542,3 +542,50 @@ void MultiDimFunction::ShowParameters()
   std::cout<<"par[0]: "<<pars[0]<<" , par[1]: "<<pars[1]<<std::endl;
   return;
 }
+
+double BiasCoe(const double *x,double *par)
+{ 
+  // par[0]: expected mean value, par[1]: sigma, 
+  // now it's not used here though
+  double bias=0;
+  double minv;
+  double M3;
+  double M2;
+  int vsize=px1.size();
+  for(int i=0; i<vsize; i++){
+    minv = CalInvMass(mparticle,px1.at(i),py1.at(i),pz1.at(i),
+                      mparticle,px2.at(i),py2.at(i),pz2.at(i),
+		  1,x);
+    M3 += TMath::Power(minv-par[0],3);
+    M2 += TMath::Power(minv-par[0],2);
+  }
+  M3 = M3/vsize;
+  M2 = M2/vsize;
+  bias = fabs(M3/TMath::Power(M2,3./2));
+  return bias;
+}
+
+//vector<double> p1,p2,theta;
+//par[0]: uniform constant
+//par[1]: correction factor
+//x[0]: momentum of particle 1
+//x[1]: momentum of particle 2
+//x[2]: angle between 1,2
+double distribution(double *x, double *par)
+{
+  double dis=0;
+  double minv,e1,e2;
+  double p1=par[1]*x[0];
+  double p2=par[1]*x[1];
+  double dm=0;
+  e1=TMath::Sqrt(p1*p1+mparticle*mparticle);
+  e2=TMath::Sqrt(p2*p2+mparticle*mparticle);
+  minv = TMath::Sqrt((e1+e2)*(e1+e2)-p1*p1-p2*p2-2*p1*p2*cos(x[2]));
+  dm = (-par[1]*par[1]/minv
+        +TMath::Power(par[1],4)*x[1]*x[1]/TMath::Power(minv,3)*(e1/e2-cos(x[2]))
+        +TMath::Power(par[1],4)*x[0]*x[0]/TMath::Power(minv,3)*(e2/e1-cos(x[2]))
+        +(-3./(minv*minv)+1./(e1*e2))*TMath::Power(par[1],6)*TMath::Power(x[0]*x[1],2)/TMath::Power(minv,5)*(e2/e1-cos(x[2])*(e1/e2-cos(x[2])))
+       )*sin(x[2]);
+  dis = par[0]*TMath::Gaus(minv,m0,sigma,true)*dm;
+  return dis;
+}

@@ -96,4 +96,9 @@ public:
 
 };
 
+
+double BiasCoe(const double *x,double *par);
+
+double distribution(double *x, double *p);
+
 #endif
