@@ -119,7 +119,8 @@ double maxlikelihood2(double *x,double *par)
     py=x[0]*py1.at(i)+factor2*py2.at(i);
     pz=x[0]*pz1.at(i)+factor2*pz2.at(i);
     minv = TMath::Sqrt((e1+e2)*(e1+e2)-(px*px+py*py+pz*pz));
-    logl += (minv-m0)*(minv-m0)/(sigma*sigma)+2*TMath::Log(2*TMath::Pi());//here sigma is just a const
+    logl += -2*TMath::Log(TMath::Gaus(minv,m0,sigma,true)*weight +(1.-weight)/width);//here sigma is just a const
+    //logl += (minv-m0)*(minv-m0)/(sigma*sigma)+2*TMath::Log(2*TMath::Pi());//here sigma is just a const
   }
   return logl;
 }
@@ -140,9 +141,6 @@ double maxlikelihood2_0(double *x,double *par)//two dimension
     py=x[0]*py1.at(i)+x[0]*py2.at(i);
     pz=x[0]*pz1.at(i)+x[0]*pz2.at(i);
     minv = TMath::Sqrt((e1+e2)*(e1+e2)-(px*px+py*py+pz*pz));
-    //logl += (minv-m0)*(minv-m0)/(sigma*sigma)+2*TMath::Log(2*TMath::Pi());//here sigma is just a const
-    //logl += -2*TMath::Log(TMath::Exp(-(minv-m0)*(minv-m0)/(2.*sigma*sigma))
-    //        /(TMath::Sqrt(2*TMath::Pi())*sigma)*x[1] +(1.-x[1])/width);//here sigma is just a const
     logl += -2*TMath::Log(TMath::Gaus(minv,m0,sigma,true)*x[1] +(1.-x[1])/width);//here sigma is just a const
   }
   return logl;
