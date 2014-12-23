@@ -391,6 +391,7 @@ double CalInvMass(double m1, double px1, double py1, double pz1,
   p2=TMath::Sqrt(px2*px2+py2*py2+pz2*pz2);
   if (n==0) {f1=1; f2=1;}
   else if(n==1) {f1=x[0]; f2=x[0];}
+  else if(n==-2) {f1=x[0]; f2=x[1];}
   else {
     int tmpindex;
     tmpindex=(int)((p1-par[0])/(par[1]-par[0])*n);

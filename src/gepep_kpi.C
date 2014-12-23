@@ -37,7 +37,83 @@ extern double m0;
 extern double mparticle,mparticle2,mparticle3,mparticle4;
 extern double sigma;
 extern double weight,width;
-//extern double factor2;
+extern double factor2;
+
+void FitAndSave(TH1D *hmass, 
+              int &parti,
+	    int &partj,
+              RooPlot *&xframe,
+              RooDataHist* &data_k, 
+              RooAddPdf* &sum,
+              RooGaussian &gaus,
+              RooChebychev &bkg,
+              RooRealVar &x,
+              RooRealVar &mean,
+              RooRealVar &sigma1,
+              RooRealVar &co1,
+              RooRealVar &signal,
+              RooRealVar &background,
+              double &philow,
+              double &phiup,
+              double *Ps,
+              ofstream &ofpar,
+              TFile *&f,
+	    std::string suffix=""
+              );
+void FitThisLoop(TH1D *hmass, 
+              int &parti,
+	    int &partj,
+              RooDataHist* &data_k, 
+              RooAddPdf* &sum,
+              RooGaussian &gaus,
+              RooChebychev &bkg,
+              RooRealVar &x,
+              RooRealVar &mean,
+              RooRealVar &sigma1,
+              RooRealVar &co1,
+              RooRealVar &signal,
+              RooRealVar &background,
+              double &philow,
+              double &phiup,
+              double *Ps
+              );
+void SaveThisLoop( 
+              int &parti,
+	    int &partj,
+              RooPlot *&xframe,
+              RooDataHist* &data_k, 
+              RooAddPdf* &sum,
+              RooGaussian &gaus,
+              RooChebychev &bkg,
+              RooRealVar &x,
+              RooRealVar &mean,
+              RooRealVar &sigma1,
+              RooRealVar &co1,
+              RooRealVar &signal,
+              RooRealVar &background,
+              double &philow,
+              double &phiup,
+              double *Ps,
+              ofstream &ofpar,
+              TFile *&f,
+	    std::string suffix
+              );
+void ResetVars(
+              RooRealVar &x,
+              RooRealVar &mean,
+              RooRealVar &sigma1,
+              RooRealVar &co1,
+              RooRealVar &signal,
+              RooRealVar &background)
+{
+   x.setVal(1.865);
+   mean.setVal(1.865);
+   sigma1.setVal(0.0068);
+   co1.setVal(0);
+   signal.setVal(1200);//event number
+   background.setVal(200);
+   return;
+}
 
 void gepep_kpi::Loop()
 {
@@ -76,6 +152,7 @@ void gepep_kpi::Loop()
    detail<<"k- pi+ algrithm: will give factors for pion"<<std::endl;
    ofstream purepar;
    purepar.open("par");
+   TFile *f=new TFile("plot_kpi.root","RECREATE");
    // for saving the fit result
 
    Long64_t nbytes = 0, nb = 0;
@@ -87,9 +164,9 @@ void gepep_kpi::Loop()
    TH1D *h1 = new TH1D("h1","momentum of kaon",100,0,3.0);
    TH1D *h2 = new TH1D("h2","momentum of kaon",100,0,3.0);
    h2->SetLineColor(2);
-   double D0low=1.82;
-   double D0up=1.90;
-   const int Npart=1;
+   double D0low=1.831;
+   double D0up=1.899;
+   const int Npart=3;
    double pcut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
    for(int i=0;i<Npart+1;i++){
      double start=0.0;
@@ -99,7 +176,9 @@ void gepep_kpi::Loop()
    double mk=0.493677;
    double mpi=0.13957018;
    double peakvalue=1.86486;// mD0
- 
+   std::vector<std::pair <int,double> > facmap;//it is't a c++ map, but a vector
+   std::vector<std::pair <int,int> > partmap;
+
    // try to use roofit
    RooRealVar x("x","energy",1.865,D0low,D0up,"GeV");
    RooRealVar mean("mean","mean of gaussian",1.865,D0low,D0up);
@@ -116,26 +195,37 @@ void gepep_kpi::Loop()
    TH1D *hmass = new TH1D("hmass","k- pi+ invariant mass",100,D0low,D0up);
    TH1D *hm1   = new TH1D("hm1"  ,"k- pi+ invariant mass",100,D0low,D0up);
    TH1D *hm2   = new TH1D("hm2"  ,"k- pi+ invariant mass",100,D0low,D0up);
-   TH1D *hp    = new TH1D("hp"   ,"k- pi+ momentum of pi",200,0,2);
-   TH1D *hp2   = new TH1D("hp2"  ,"k- pi+ momentum of K" ,200,0,2);
    TH2D *h2p   = new TH2D("h2p"  ,"k- pi+ momentum" ,200,0,2,200,0,2);
    h2p->GetXaxis()->SetTitle("pion momentum(GeV)");
    h2p->GetYaxis()->SetTitle("kaon momentum(GeV)");
    TH3D *hthetadis = new TH3D("hthetadis","",100,0,2,100,0,2,100,0,TMath::Pi());
+   hthetadis->GetXaxis()->SetTitle("p1");
+   hthetadis->GetYaxis()->SetTitle("p2");
+   hthetadis->GetZaxis()->SetTitle("#theta");
    TH1D *hthedis = new TH1D("hthedis","",100,0,TMath::Pi());
-   //TH1D *hmass   = new TH1D("h1","k- pi+ invariant mass",nBins,D0low,D0up);
+   hthedis->GetXaxis()->SetTitle("#theta");
+   TH1D *hthedis1 = new TH1D("hthedis1","",100,0,TMath::Pi());
+   hthedis->GetXaxis()->SetTitle("#theta");
+   TH1D *hthedis2 = new TH1D("hthedis2","",100,0,TMath::Pi());
+   hthedis->GetXaxis()->SetTitle("#theta");
    //TCanvas *c1= new TCanvas("","",800,600);
    TCanvas *c2= new TCanvas("","",800,600);
-   // ~~~~~~~~~pion part~~~~~~~~~~
 
-   m0 = 1.86486;//mD0
+   m0 = peakvalue;//mD0
    sigma=0.00687;
-   mparticle =0.13957018;//mpion
-   mparticle2=0.493677;//mkaon
-   for (int part=0;part<Npart;part++){
-     // prefit
-     hmass->Reset();
-     hp->Reset();
+   width = 10.*sigma;
+
+   // ~~~~~~~~ draw nxn histogram, m distribution in different p range
+   TH1D *hmp[Npart][Npart];
+   for (int parti=0;parti<Npart;parti++){
+   for (int partj=0;partj<Npart;partj++){
+     char name[100];
+     sprintf(name,"mass_part%d_part%d",parti,partj);
+     hmp[parti][partj] = new TH1D(name,name,100,D0low,D0up);
+   }
+   }
+   for (int parti=0;parti<Npart;parti++){
+   for (int partj=0;partj<Npart;partj++){ 
      for (Long64_t jentry=0; jentry<nentries;jentry++) {
        Long64_t ientry = LoadTree(jentry);
        if (ientry < 0) break;
@@ -158,47 +248,63 @@ void gepep_kpi::Loop()
        p1=TMath::Sqrt(pippx[besidx]*pippx[besidx]+pippy[besidx]*pippy[besidx]+pippz[besidx]*pippz[besidx]);
        p2=TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
        mass = CalInvMass(mpi,pippx[besidx],pippy[besidx],pippz[besidx],mk,kampx[0],kampy[0],kampz[0]);
-       if(p1>pcut[part]&&p1<pcut[part+1]&&p2>pcut[part]&&p2<pcut[part+1])
-         hmass->Fill(mass);
+       if(p1>pcut[parti]&&p1<pcut[parti+1]&&p2>pcut[partj]&&p2<pcut[partj+1])
+         if (mass>m0-width/2. && mass<m0+width/2.){
+           hmp[parti][partj]->Fill(mass);
+         }
        // if (Cut(ientry) < 0) continue;
      }
+     hmp[parti][partj]->Write();
+     std::cout<<"processed part "<<parti<<", part "<<partj<<std::endl;
+     if (hmp[parti][partj]->GetEntries() > 1000){
+       partmap.push_back(std::make_pair(parti,partj));
+     }
+   }
+   }
+   // ~~~~~~~~ draw end
+
+   // ~~~~~~~~~pion part~~~~~~~~~~
+   for (int loopi=0;loopi<partmap.size();loopi++){
+   for (int loopj=0;loopj<partmap.size();loopj++){
+     int parti=partmap.at(loopj).first;
+     int partj=partmap.at(loopj).second;
+     double factori=0,factorj=0;
+     for (int loopk=0;loopk<facmap.size();loopk++){
+       if (facmap.at(loopk).first == parti) factori=facmap.at(loopk).second;
+       if (facmap.at(loopk).first == partj) factorj=facmap.at(loopk).second;
+     }
+     if(factori==0 && factorj==0 && parti!=partj) continue;
+     if(parti==partj && factori!=0) continue;
+     if(factori!=0 && factorj!=0) continue;
+     if(factori==0){
+       mparticle = mpi;//mpion
+       mparticle2= mk;//mkaon
+     }
+     else {
+       mparticle = mk;//
+       mparticle2= mpi;//
+     }
+     FitThisLoop(hmp[parti][partj], parti,partj,data_kpi, sum,gaus,bkg,
+              x,mean,sigma1,co1,signal,background,D0low,D0up,pcut);
+     double sigNo=signal.getVal();
+     double bckNo=width/(D0up-D0low)*background.getVal();
+     weight = sigNo/(sigNo+bckNo);
+     ResetVars(x,mean,sigma1,co1,signal,background);
+     if (weight<0.2) continue;
+     SaveThisLoop( parti,partj,xframe,data_kpi, sum,gaus,bkg,
+              x,mean,sigma1,co1,signal,background,D0low,D0up,pcut,
+              ofpar,f,"pre");
+     
      char tmpchr[100];
-     sprintf(tmpchr,"data_kpi");
-     data_kpi = new RooDataHist(tmpchr,"data_kpi",x,hmass);
-     sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
-     mean.setVal(peakvalue);
-     //sigma1.setVal(0.035);
-     signal.setVal(60);
-     background.setVal(80);
-     co1.setVal(0);
-     sum->fitTo(*data_kpi,Range(D0low,D0up));
-     xframe = x.frame(Title("fit k pi"));
-     data_kpi->plotOn(xframe);
-     sum->plotOn(xframe);
-     sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-     sum->plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
-     xframe->Draw();
-     sprintf(tmpchr,"%s/fitkpi_pre_part%d.eps",outputdir.c_str(),part);
-     c2->Print(tmpchr);
-     ofpar<<"pre\t"<<mean.getVal()<<"\t"<<mean.getError()<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
-     //ofpar<<"pre\t"<<hmass[part]->GetMean()<<std::endl;
-     ofpar<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError();
-     ofpar<<"\t"<<signal.getVal()/(signal.getVal()+background.getVal())<<std::endl;
-     delete data_kpi;
-     delete xframe;
-     delete sum;
      
      //likelihood method
      //factor2 = 0.99751;// factor for kaon
-     width = 10.*sigma;
      px1.clear();
      px2.clear();
      py1.clear();
      py2.clear();
      pz1.clear();
      pz2.clear();
-     hp->Reset();
-     hp2->Reset();
      h2p->Reset();
      hmass->Reset();
      //nb = fChain->GetEntry(1);   nbytes += nb;
@@ -213,10 +319,11 @@ void gepep_kpi::Loop()
        //if(ngam>0) continue;
        //if(npip>1 ) continue;
        double mass;
-       double totp,p1,p2;
+       double p1,p2;
        int besidx=0;
        double tmpdeltaold=100;
        double tmpmass;
+       double theta;
        // search for best pi+
        for(int i=0; i<npip;i++){
          tmpmass = CalInvMass(mpi,pippx[i],pippy[i],pippz[i],mk,kampx[0],kampy[0],kampz[0]);
@@ -229,56 +336,42 @@ void gepep_kpi::Loop()
        p1=TMath::Sqrt(pippx[besidx]*pippx[besidx]+pippy[besidx]*pippy[besidx]+pippz[besidx]*pippz[besidx]);
        p2=TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
        mass = CalInvMass(mpi,pippx[besidx],pippy[besidx],pippz[besidx],mk,kampx[0],kampy[0],kampz[0]);
-       if(p1>pcut[part]&&p1<pcut[part+1] && p2>pcut[part]&&p2<pcut[part+1] ){
+       if(p1>pcut[parti]&&p1<pcut[parti+1] && p2>pcut[partj]&&p2<pcut[partj+1] ){
          if (mass>m0-width/2. && mass<m0+width/2.){
-           hp->Fill(p1);
-           hp2->Fill(p2);
-	 h2p->Fill(p1,p2);
+	 //h2p->Fill(p1,p2);
+           theta = acos((pippx[besidx]*kampx[0]
+	              +pippx[besidx]*kampx[0]
+		    +pippx[besidx]*kampx[0])
+		    /(p1*p2));
+	 hthetadis->Fill(p1,p2,theta);
+	 hthedis->Fill(theta);
            //h2->Fill(totp);
-           px1.push_back(pippx[besidx]);
-           px2.push_back(kampx[0]);
-           py1.push_back(pippy[besidx]);
-           py2.push_back(kampy[0]);
-           pz1.push_back(pippz[besidx]);
-           pz2.push_back(kampz[0]);
-
-	 if(1.13*p1+p2>2.0 && 1.13*p1+p2<2.08)//mean 2.04
-	   hm1->Fill(mass);
-	 else hm2->Fill(mass);
+	 if (factori==0){
+             px1.push_back(pippx[besidx]);
+             px2.push_back(kampx[0]);
+             py1.push_back(pippy[besidx]);
+             py2.push_back(kampy[0]);
+             pz1.push_back(pippz[besidx]);
+             pz2.push_back(kampz[0]);
+	 }
+	 else{
+             px2.push_back(pippx[besidx]);
+             px1.push_back(kampx[0]);
+             py2.push_back(pippy[besidx]);
+             py1.push_back(kampy[0]);
+             pz2.push_back(pippz[besidx]);
+             pz1.push_back(kampz[0]);
+	 }
 
          }
        }
      }
-     //TCanvas *c2=new TCanvas("c2","likelihood",800,600);
-     hm1->Draw();
-     sprintf(tmpchr,"%s/mass1_kpi_part%d.eps",outputdir.c_str(),part);
-     c2->Print(tmpchr);
-     hm2->Draw();
-     sprintf(tmpchr,"%s/mass2_kpi_part%d.eps",outputdir.c_str(),part);
-     c2->Print(tmpchr);
+     hthetadis->Write();
+     hthedis->Write();
 
-     hp->Draw();
-     sprintf(tmpchr,"%s/momentumpi_kpi_part%d.eps",outputdir.c_str(),part);
-     c2->Print(tmpchr);
-     hp2->Draw();
-     sprintf(tmpchr,"%s/momentumK_kpi_part%d.eps",outputdir.c_str(),part);
-     c2->Print(tmpchr);
-     h2p->Draw();
-     sprintf(tmpchr,"%s/momentum_kpi_part%d.eps",outputdir.c_str(),part);
-     c2->Print(tmpchr);
-     /*h1->Draw();
-     c2->Update();
-     double rightmax = 1.1*h2->GetMaximum();
-     h2->Scale(gPad->GetUymax()/rightmax);
-     h2->Draw("same");
-     TGaxis *axis = new TGaxis(gPad->GetUxmax(),gPad->GetUymin(),
-                              gPad->GetUxmax(),gPad->GetUymax(),
-            	        0,rightmax,510,"+L");
-     axis->SetLineColor(kRed);
-     axis->SetLabelColor(kRed);
-     axis->Draw();
-     c2->Print("momentumk.eps");
-     */
+     //h2p->Draw();
+     //sprintf(tmpchr,"%s/momentum_kpi_part%d.eps",outputdir.c_str(),part);
+     //c2->Print(tmpchr);
      std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
      //TF2 *likeli=new TF2("likeli",maxlikelihood2_0,0.95,1.05,0.01,0.99);
      //likeli->SetNpy(100);
@@ -289,80 +382,49 @@ void gepep_kpi::Loop()
      //factor=likeli->GetMinimumX(0.98,1.02);
      //likeli->GetMinimumXY(factor,miny);
      //weight = miny;
-     double sigNo=signal.getVal() ;
-     double bckNo=width/(D0up-D0low)*background.getVal();
-     weight = sigNo/(sigNo+bckNo);
-     TF1 *likeli_1=new TF1("likeli_1",maxlikelihood2_1,0.95,1.05);
+     
+     TF1 *likeli_1;
+     if (parti==partj)
+       likeli_1=new TF1("likeli_1",maxlikelihood2_1,0.95,1.05);
+     else{
+       factori==0? factor2=factorj : factor2=factori;
+       likeli_1=new TF1("likeli_1",maxlikelihood2,0.95,1.05);
+     }
      likeli_1->Draw();
-     sprintf(tmpchr,"%s/likelikpi_1D_part%d.eps",outputdir.c_str(),part);
+     sprintf(tmpchr,"%s/likelikpi_part%d_part%d.eps",outputdir.c_str(),parti,partj);
      c2->Print(tmpchr);
      minimum = likeli_1->GetMinimum(0.98,1.02);
      factor = likeli_1->GetMinimumX(0.98,1.02);
      factorlow=likeli_1->GetX(minimum+1,0.98,factor);
      factorup =likeli_1->GetX(minimum+1,factor,1.02);
+     ofpar<<"part "<<parti<<", part "<<partj<<std::endl;
      ofpar<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<"\t"<<weight<<std::endl;
      detail<<"weight is "<<miny<<", factor is "<<likeli_1->GetMinimumX(0.98,1.01)<<std::endl;
      //detail<<"minimum 2D  "<<likeli->GetMinimum()<<", minimum 1D "<<likeli_1->GetMinimum()<<std::endl;
      detail<<"best factor  "<<likeli_1->GetMinimumX(0.99,1.01)<<std::endl;
      purepar<<factor<<"\t"<<(factorup-factorlow)/2<<"\t";
 
+     double index;
+     if (parti!=partj)
+       factori==0? index=parti,factori=factor : index=partj,factorj=factor;
+     else {index = parti; factori=factor; factorj=factor;}
+     facmap.push_back(std::make_pair(index,factor));
+
      // use the factor to refit
      hmass->Reset();
-     for (Long64_t jentry=0; jentry<nentries;jentry++) {
-       Long64_t ientry = LoadTree(jentry);
-       if (ientry < 0) break;
-       nb = fChain->GetEntry(jentry);   nbytes += nb;
-           
+     double factors[2]={ factori, factorj};
+     for (int vi=0; vi<px1.size();vi++){
        double mass;
-       double p1,p2;
-       int besidx=0;
-       double tmpdeltaold=100;
-       double tmpmass;
-       for(int i=0; i<npip;i++){
-         tmpmass = CalInvMass(mpi,pippx[i],pippy[i],pippz[i],mk,kampx[0],kampy[0],kampz[0]);
-         if(fabs(tmpmass-peakvalue)<tmpdeltaold){
-           tmpdeltaold = fabs(tmpmass-peakvalue);
-           besidx = i;
-         }
-       }
-       //std::cout<<"best index is "<<besidx<<std::endl;
-       // total invariant mass, D0 -> k- pi+
-       p1=TMath::Sqrt(pippx[besidx]*pippx[besidx]+pippy[besidx]*pippy[besidx]+pippz[besidx]*pippz[besidx]);
-       p2=TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
-       mass = CalInvMass(mpi,pippx[besidx],pippy[besidx],pippz[besidx],mk,kampx[0],kampy[0],kampz[0],1,&factor);
-       if(p1>pcut[part]&&p1<pcut[part+1]&&p2>pcut[part]&&p2<pcut[part+1])
-         hmass->Fill(mass);
-       // if (Cut(ientry) < 0) continue;
+       mass = CalInvMass(mparticle,px1.at(vi),py1.at(vi),pz1.at(vi),mparticle2,px2.at(vi),py2.at(vi),pz2.at(vi),-2,factors);
+       hmass->Fill(mass);
      }
-     //char tmpchr[100];
-     sprintf(tmpchr,"data_kpi");
-     data_kpi = new RooDataHist(tmpchr,"data_kpi",x,hmass);
-     sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
-     mean.setVal(peakvalue+0.05*(factor-1.0));
-     //sigma1.setVal(0.035);
-     signal.setVal(60);
-     background.setVal(80);
-     co1.setVal(0);
-     sum->fitTo(*data_kpi,Range(D0low,D0up));
-     xframe = x.frame(Title("fit k pi"));
-     //xframe = x.frame(Title("fit k pi"));
-     data_kpi->plotOn(xframe);
-     sum->plotOn(xframe);
-     sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-     sum->plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
-     xframe->Draw();
-     sprintf(tmpchr,"%s/fitkpi_re_part%d.eps",outputdir.c_str(),part);
-     c2->Print(tmpchr);
-     ofpar<<"refit\t"<<mean.getVal()<<"\t"<<mean.getError()<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
-     //ofpar<<"pre\t"<<hmass[part]->GetMean()<<std::endl;
-     ofpar<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError();
-     ofpar<<"\t"<<signal.getVal()/(signal.getVal()+background.getVal())<<"\n"<<std::endl;
-     delete data_kpi;
-     delete xframe;
-     delete sum;
+     FitAndSave(hmass, parti, partj, 
+              xframe, data_kpi, sum, gaus, bkg,
+	    x, mean, sigma1, co1, signal, background,
+	    D0low, D0up, pcut, ofpar, f,"re");
+   }
    }
    // ~~~~~~~~~pion part end~~~~~~~~~~
-  
    //TFile f("plot.root","recreate");
    //h2p->Write();
    //f.Close();
@@ -370,6 +432,114 @@ void gepep_kpi::Loop()
    detail.close();
 
 }
+
+//#######define a fit and save function######
+void FitAndSave(TH1D *hmass, 
+              int &parti,
+	    int &partj,
+              RooPlot *&xframe,
+              RooDataHist* &data_k, 
+              RooAddPdf* &sum,
+              RooGaussian &gaus,
+              RooChebychev &bkg,
+              RooRealVar &x,
+              RooRealVar &mean,
+              RooRealVar &sigma1,
+              RooRealVar &co1,
+              RooRealVar &signal,
+              RooRealVar &background,
+              double &philow,
+              double &phiup,
+              double *Ps,
+              ofstream &ofpar,
+              TFile *&f,
+	    std::string suffix
+              )
+{
+  FitThisLoop(hmass, parti,partj,data_k, sum,gaus,bkg,
+              x,mean,sigma1,co1,signal,background,philow,phiup,Ps);
+  SaveThisLoop( parti,partj,xframe,data_k, sum,gaus,bkg,
+              x,mean,sigma1,co1,signal,background,philow,phiup,Ps,
+              ofpar,f,suffix);
+  return;
+}
+
+void FitThisLoop(TH1D *hmass, 
+              int &parti,
+	    int &partj,
+              RooDataHist* &data_k, 
+              RooAddPdf* &sum,
+              RooGaussian &gaus,
+              RooChebychev &bkg,
+              RooRealVar &x,
+              RooRealVar &mean,
+              RooRealVar &sigma1,
+              RooRealVar &co1,
+              RooRealVar &signal,
+              RooRealVar &background,
+              double &philow,
+              double &phiup,
+              double *Ps
+              )
+{
+   char name[100];
+   sprintf(name,"mass_kpi_part%d_part%d",parti,partj);
+   data_k = new RooDataHist(name,"data_k",x,hmass);
+   sum = new RooAddPdf("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+   mean.setVal(m0);
+   co1.setVal(0);
+   sum->fitTo(*data_k,Range(philow,phiup));
+
+   return;
+}
+
+void SaveThisLoop( 
+              int &parti,
+	    int &partj,
+              RooPlot *&xframe,
+              RooDataHist* &data_k, 
+              RooAddPdf* &sum,
+              RooGaussian &gaus,
+              RooChebychev &bkg,
+              RooRealVar &x,
+              RooRealVar &mean,
+              RooRealVar &sigma1,
+              RooRealVar &co1,
+              RooRealVar &signal,
+              RooRealVar &background,
+              double &philow,
+              double &phiup,
+              double *Ps,
+              ofstream &ofpar,
+              TFile *&f,
+	    std::string suffix
+              )
+{
+   char name[100];
+   TCanvas *c2=new TCanvas("c2","likelihood",800,600);
+
+   xframe = x.frame(Title("fit K pi"));
+   data_k->plotOn(xframe);
+   sum->plotOn(xframe);
+   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
+   xframe->Draw();
+   if (suffix != "") suffix = "_"+ suffix;
+   sprintf(name,"%s/masskpi_part%d_part%d%s.eps",outputdir.c_str(),parti,partj,suffix.c_str());
+   c2->Print(name);
+   ofpar<<suffix<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
+   //ofpar<<"\t"<<hmass[part]->GetMean()<<std::endl;
+   ofpar<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError();
+   ofpar<<"\t"<<signal.getVal()/(signal.getVal()+background.getVal())<<std::endl;
+   delete data_k;
+   //delete xframe;
+   delete sum;
+   delete c2;
+
+   xframe->Write();
+   return;
+}
+//########### saving function end
 
 #ifdef gepep_kpi_cxx
 gepep_kpi::gepep_kpi(TTree *tree) : fChain(0) 

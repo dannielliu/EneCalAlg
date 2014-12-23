@@ -636,7 +636,7 @@ int main(int argc,char** argv)
        double kapp,kamp,theta;
        kapp=TMath::Sqrt(pxa*pxa+pya*pya+pza*pza);
        kamp=TMath::Sqrt(pxb*pxb+pyb*pyb+pzb*pzb);
-       theta = acos((pxa*pxb+pya*pyb+pza*pzb)/(kapp*kamp)/2.);
+       theta = acos((pxa*pxb+pya*pyb+pza*pzb)/(kapp*kamp));
        hmass3D->Fill(kapp,kamp,theta);
        mass = CalInvMass(mparticle,pxa,pya,pza, mparticle,pxb,pyb,pzb);
        if(mass>m0-width/2. && mass<m0+width/2.)
