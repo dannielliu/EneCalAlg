@@ -26,6 +26,7 @@
 //#include <iostream>
 extern std::string outputdir;
 using RooFit::Title;
+using RooFit::Name;
 using RooFit::Components;
 using RooFit::LineStyle;
 using RooFit::LineColor;
@@ -289,11 +290,11 @@ void gepep_kpi::Loop()
      double sigNo=signal.getVal();
      double bckNo=width/(D0up-D0low)*background.getVal();
      weight = sigNo/(sigNo+bckNo);
-     ResetVars(x,mean,sigma1,co1,signal,background);
      if (weight<0.2) continue;
      SaveThisLoop( parti,partj,xframe,data_kpi, sum,gaus,bkg,
               x,mean,sigma1,co1,signal,background,D0low,D0up,pcut,
               ofpar,f,"pre");
+     ResetVars(x,mean,sigma1,co1,signal,background);
      
      char tmpchr[100];
      
@@ -515,20 +516,21 @@ void SaveThisLoop(
 	    std::string suffix
               )
 {
+   if (suffix != "") suffix = "_"+ suffix;
    char name[100];
    TCanvas *c2=new TCanvas("c2","likelihood",800,600);
 
+   sprintf(name,"part%d_part%d%s",parti,partj,suffix.c_str());
    xframe = x.frame(Title("fit K pi"));
+   xframe->SetName(name);
    data_k->plotOn(xframe);
    sum->plotOn(xframe);
    sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
    sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
    xframe->Draw();
-   if (suffix != "") suffix = "_"+ suffix;
    sprintf(name,"%s/masskpi_part%d_part%d%s.eps",outputdir.c_str(),parti,partj,suffix.c_str());
    c2->Print(name);
    ofpar<<suffix<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<"\t"<<sigma1.getVal()<<"\t"<<sigma1.getError()<<std::endl;
-   //ofpar<<"\t"<<hmass[part]->GetMean()<<std::endl;
    ofpar<<"\t"<<signal.getVal()<<"\t"<<signal.getError()<<"\t"<<background.getVal()<<"\t"<<background.getError();
    ofpar<<"\t"<<signal.getVal()/(signal.getVal()+background.getVal())<<std::endl;
    delete data_k;
