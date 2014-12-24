@@ -167,7 +167,7 @@ void gepep_kpi::Loop()
    h2->SetLineColor(2);
    double D0low=1.831;
    double D0up=1.899;
-   const int Npart=10;
+   const int Npart=20;
    double pcut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
    for(int i=0;i<Npart+1;i++){
      double start=0.0;
@@ -226,6 +226,7 @@ void gepep_kpi::Loop()
    }
    }
 
+   h2p->Reset();
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
      Long64_t ientry = LoadTree(jentry);
      if (ientry < 0) break;
@@ -254,32 +255,44 @@ void gepep_kpi::Loop()
      mass = CalInvMass(mpi,pippx[besidx],pippy[besidx],pippz[besidx],mk,kampx[0],kampy[0],kampz[0]);
      if(p1>pcut[parti]&&p1<pcut[parti+1]&&p2>pcut[partj]&&p2<pcut[partj+1])
        if (mass>m0-width/2. && mass<m0+width/2.){
+         h2p->Fill(p1,p2);
          hmp[parti][partj]->Fill(mass);
        }
      // if (Cut(ientry) < 0) continue;
    }
+   h2p->Write();
    for (int parti=0;parti<Npart;parti++)
    for (int partj=0;partj<Npart;partj++){
      hmp[parti][partj]->Write();
      std::cout<<"processed part "<<parti<<", part "<<partj<<std::endl;
-     if (hmp[parti][partj]->GetEntries() > 1000){
+     if (hmp[parti][partj]->GetEntries() > 200){
        partmap.push_back(std::make_pair(parti,partj));
      }
    }
    // ~~~~~~~~ draw end
 
-   // ~~~~~~~~~pion part~~~~~~~~~~
-   for (int loopi=0;loopi<partmap.size();loopi++){
-   for (int loopj=0;loopj<partmap.size();loopj++){
-     int parti=partmap.at(loopj).first;
-     int partj=partmap.at(loopj).second;
+   // ~~~~~~~~~kaon part~~~~~~~~~~
+   
+   for (int loopi=0;loopi<20;loopi++){
+     int parti;
+     int partj;
+     if (facmap.size()==0 ){
+       parti=9;
+       partj=9;
+     }
+     else {
+       parti=9;
+       partj=loopi;
+     }
+     if (hmp[parti][partj]->GetEntries()<200) continue;
+
      double factori=0,factorj=0;
      for (int loopk=0;loopk<facmap.size();loopk++){
        if (facmap.at(loopk).first == parti) factori=facmap.at(loopk).second;
-       if (facmap.at(loopk).first == partj) factorj=facmap.at(loopk).second;
+       //if (facmap.at(loopk).first == partj) factorj=facmap.at(loopk).second;
      }
      if(factori==0 && factorj==0 && parti!=partj) continue;
-     if(parti==partj && factori!=0) continue;
+     //if(parti==partj && factori!=0) continue;
      if(factori!=0 && factorj!=0) continue;
      if(factori==0){
        mparticle = mpi;//mpion
@@ -311,7 +324,6 @@ void gepep_kpi::Loop()
      py2.clear();
      pz1.clear();
      pz2.clear();
-     h2p->Reset();
      hmass->Reset();
      hthetadis->Reset();
      hthedis->Reset();
@@ -437,7 +449,178 @@ void gepep_kpi::Loop()
 	    x, mean, sigma1, co1, signal, background,
 	    D0low, D0up, pcut, ofpar, f,"re");
    }
+   
+   // ~~~~~~~~~kaon part end~~~~~~
+   // ~~~~~~~~~pion part~~~~~~~~~~~~
+   /*
+   for (int loopi=0;loopi<partmap.size();loopi++){
+   for (int loopj=0;loopj<partmap.size();loopj++){
+     int parti=partmap.at(loopj).first;
+     int partj=partmap.at(loopj).second;
+     double factori=0,factorj=0;
+     for (int loopk=0;loopk<facmap.size();loopk++){
+       if (facmap.at(loopk).first == parti) factori=facmap.at(loopk).second;
+       if (facmap.at(loopk).first == partj) factorj=facmap.at(loopk).second;
+     }
+     if(factori==0 && factorj==0 && parti!=partj) continue;
+     if(parti==partj && factori!=0) continue;
+     if(factori!=0 && factorj!=0) continue;
+     if(factori==0){
+       mparticle = mpi;//mpion
+       mparticle2= mk;//mkaon
+     }
+     else {
+       mparticle = mk;//
+       mparticle2= mpi;//
+     }
+     FitThisLoop(hmp[parti][partj], parti,partj,data_kpi, sum,gaus,bkg,
+              x,mean,sigma1,co1,signal,background,D0low,D0up,pcut);
+     double sigNo=signal.getVal();
+     double bckNo=width/(D0up-D0low)*background.getVal();
+     weight = sigNo/(sigNo+bckNo);
+     if (weight<0.2) continue;
+     ofpar<<"part "<<parti<<", part "<<partj<<std::endl;
+     SaveThisLoop( parti,partj,xframe,data_kpi, sum,gaus,bkg,
+              x,mean,sigma1,co1,signal,background,D0low,D0up,pcut,
+              ofpar,f,"pre");
+     ResetVars(x,mean,sigma1,co1,signal,background);
+     
+     char tmpchr[100];
+     
+     //likelihood method
+     //factor2 = 0.99751;// factor for kaon
+     px1.clear();
+     px2.clear();
+     py1.clear();
+     py2.clear();
+     pz1.clear();
+     pz2.clear();
+     hmass->Reset();
+     hthetadis->Reset();
+     hthedis->Reset();
+     sprintf(tmpchr,"hthetadis_part%d_part%d",parti,partj);
+     hthetadis->SetName(tmpchr);
+     sprintf(tmpchr,"hthedis_part%d_part%d",parti,partj);
+     hthedis->SetName(tmpchr);
+     //nb = fChain->GetEntry(1);   nbytes += nb;
+     for (Long64_t  jentry=0; jentry<nentries;jentry++) {
+       Long64_t ientry = LoadTree(jentry);
+       if (ientry < 0) break;
+       nb = fChain->GetEntry(jentry);   nbytes += nb;
+    
+       double mass;
+       double p1,p2;
+       int besidx=0;
+       double tmpdeltaold=100;
+       double tmpmass;
+       double theta;
+       // search for best pi+
+       for(int i=0; i<npip;i++){
+         tmpmass = CalInvMass(mpi,pippx[i],pippy[i],pippz[i],mk,kampx[0],kampy[0],kampz[0]);
+         if(fabs(tmpmass-m0)<tmpdeltaold){
+           tmpdeltaold = fabs(tmpmass-m0);
+           besidx = i;
+         }
+       }
+       // total invariant mass, D0 -> k- pi+
+       p1=TMath::Sqrt(pippx[besidx]*pippx[besidx]+pippy[besidx]*pippy[besidx]+pippz[besidx]*pippz[besidx]);
+       p2=TMath::Sqrt(kampx[0]*kampx[0]+kampy[0]*kampy[0]+kampz[0]*kampz[0]);
+       mass = CalInvMass(mpi,pippx[besidx],pippy[besidx],pippz[besidx],mk,kampx[0],kampy[0],kampz[0]);
+       if(p1>pcut[parti]&&p1<pcut[parti+1] && p2>pcut[partj]&&p2<pcut[partj+1] ){
+         if (mass>m0-width/2. && mass<m0+width/2.){
+	 //h2p->Fill(p1,p2);
+           theta = acos((pippx[besidx]*kampx[0]
+	              +pippx[besidx]*kampx[0]
+		    +pippx[besidx]*kampx[0])
+		    /(p1*p2));
+	 hthetadis->Fill(p1,p2,theta);
+	 hthedis->Fill(theta);
+	 if (parti==partj){
+             px1.push_back(pippx[besidx]);
+             px2.push_back(kampx[0]);
+             py1.push_back(pippy[besidx]);
+             py2.push_back(kampy[0]);
+             pz1.push_back(pippz[besidx]);
+             pz2.push_back(kampz[0]);
+	 }
+	 else if (factori==0){
+             px1.push_back(pippx[besidx]);
+             px2.push_back(kampx[0]*factorj);
+             py1.push_back(pippy[besidx]);
+             py2.push_back(kampy[0]*factorj);
+             pz1.push_back(pippz[besidx]);
+             pz2.push_back(kampz[0]*factorj);
+	 }
+	 else{
+             px2.push_back(pippx[besidx]*factori);
+             px1.push_back(kampx[0]);
+             py2.push_back(pippy[besidx]*factori);
+             py1.push_back(kampy[0]);
+             pz2.push_back(pippz[besidx]*factori);
+             pz1.push_back(kampz[0]);
+	 }
+         }
+       }
+     }
+     hthetadis->Write();
+     hthedis->Write();
+
+     //h2p->Draw();
+     //sprintf(tmpchr,"%s/momentum_kpi_part%d.eps",outputdir.c_str(),part);
+     //c2->Print(tmpchr);
+     std::cout<<"m0 is "<<m0<<", data size is "<<px1.size()<<std::endl;
+     //TF2 *likeli=new TF2("likeli",maxlikelihood2_0,0.95,1.05,0.01,0.99);
+     //likeli->SetNpy(100);
+     //likeli->Draw("surf1");
+     //tmpstr=outputdir+"/likelikpi_2D.eps";
+     //c2->Print(tmpstr.c_str());
+     //minimum = likeli->GetMinimum(0.98,1.02);
+     //factor=likeli->GetMinimumX(0.98,1.02);
+     //likeli->GetMinimumXY(factor,miny);
+     //weight = miny;
+     
+     TF1 *likeli_1;
+     if (parti==partj)
+       likeli_1=new TF1("likeli_1",maxlikelihood2_1,0.95,1.05);
+     else{
+       factor2=1;
+       likeli_1=new TF1("likeli_1",maxlikelihood2,0.95,1.05);
+     }
+     likeli_1->Draw();
+     sprintf(tmpchr,"%s/likelikpi_part%d_part%d.eps",outputdir.c_str(),parti,partj);
+     c2->Print(tmpchr);
+     minimum = likeli_1->GetMinimum(0.98,1.02);
+     factor = likeli_1->GetMinimumX(0.98,1.02);
+     factorlow=likeli_1->GetX(minimum+1,0.98,factor);
+     factorup =likeli_1->GetX(minimum+1,factor,1.02);
+     ofpar<<run<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<"\t"<<weight<<std::endl;
+     detail<<"weight is "<<miny<<", factor is "<<likeli_1->GetMinimumX(0.98,1.01)<<std::endl;
+     //detail<<"minimum 2D  "<<likeli->GetMinimum()<<", minimum 1D "<<likeli_1->GetMinimum()<<std::endl;
+     detail<<"best factor  "<<likeli_1->GetMinimumX(0.99,1.01)<<std::endl;
+     purepar<<factor<<"\t"<<(factorup-factorlow)/2<<"\t";
+
+     double index;
+     if (parti!=partj)
+       factori==0? index=parti : index=partj;
+     else {index = parti;}
+     facmap.push_back(std::make_pair(index,factor));
+
+     // use the factor to refit
+     hmass->Reset();
+     double factors[2]={ factor, 1};
+     if (parti==partj)
+       factors[1]=factor;
+     for (int vi=0; vi<px1.size();vi++){
+       double mass;
+       mass = CalInvMass(mparticle,px1.at(vi),py1.at(vi),pz1.at(vi),mparticle2,px2.at(vi),py2.at(vi),pz2.at(vi),-2,factors);
+       hmass->Fill(mass);
+     }
+     FitAndSave(hmass, parti, partj, 
+              xframe, data_kpi, sum, gaus, bkg,
+	    x, mean, sigma1, co1, signal, background,
+	    D0low, D0up, pcut, ofpar, f,"re");
    }
+   }*/
    // ~~~~~~~~~pion part end~~~~~~~~~~
    //TFile f("plot.root","recreate");
    f->Close();
