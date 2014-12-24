@@ -85,7 +85,7 @@ int main(int argc,char** argv)
     for(int i=0;i<sigNo;i++){
       //initial
       msig=gRandom->Gaus(mpeak,sigma);
-      cmspsig = gRandom->Gaus(cmsp,0.005);
+      cmspsig = gRandom->Gaus(cmsp,0.05);
       betac = cmspsig/TMath::Sqrt(msig*msig+cmspsig*cmspsig);
       gammac = TMath::Sqrt(msig*msig+cmspsig*cmspsig)/msig;
       //split

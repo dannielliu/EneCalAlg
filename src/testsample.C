@@ -352,6 +352,7 @@ int main(int argc,char** argv)
      //detail<<"\t"<<factor<<"\t"<<factorlow<<"\t"<<factorup<<std::endl;
      //detail<<"signal weight is "<<weight<<" best factor  "<<likeli_1->GetMinimumX(0.99,1.01)<<std::endl;
      likeli_1->Write();
+     delete c2;
 
      // using the factor to fit
      hmass[part]->Reset();
@@ -598,7 +599,7 @@ int main(int argc,char** argv)
      hp2->Write();
      //likeli->Write();
    }
-   else if ((int)runmode==4)
+   else if ((int)runmode==4)// 3 dimension p1 p2 theta
    for(int part=0;part<NP;part++){
      ofpar<<Ps[part]<<"\t"<<Ps[part+1]<<std::endl;
      // pre fit
