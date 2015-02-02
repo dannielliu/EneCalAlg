@@ -3,7 +3,7 @@ ROOTLIB = $(shell root-config --libs)
 INCDIR = -I./include
 VPATH = src
 CC = g++ $(ROOTINCLUDE) $(ROOTLIB) $(INCDIR)
-OBJS= function.o bes3plotstyle.o gepep_fastpipill.o gepep_fast4pi.o gepep_fast6pi.o gepep_kk.o gepep_kpi.o gepep_kpi2.o gepep_fkkpipi.o
+OBJS= function.o bes3plotstyle.o gepep_fastpipill.o gepep_fast4pi.o gepep_fast6pi.o gepep_4k.o gepep_kk.o gepep_kpi.o gepep_kpi2.o gepep_fkkpipi.o
 
 analysis:analysis.C $(OBJS)
 	$(CC) -lRooFitCore -lRooFit $^ -o $@
@@ -21,6 +21,9 @@ src/gepep_fast4pi.o : gepep_fast4pi.C
 	g++ $(ROOTINCLUDE) $(INCDIR) -c $^ -o $@
 
 src/gepep_fast6pi.o : gepep_fast6pi.C
+	g++ $(ROOTINCLUDE) $(INCDIR) -c $^ -o $@
+
+src/gepep_4k.o : gepep_4k.C
 	g++ $(ROOTINCLUDE) $(INCDIR) -c $^ -o $@
 
 src/gepep_kk.o : gepep_kk.C
