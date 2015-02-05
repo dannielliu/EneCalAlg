@@ -284,7 +284,7 @@ void KsAlg::Loop(double cutd)
 
        factors[fittimes]=factor;
        factorserr[fittimes]=0;
-       deltapeaks[fittimes] = mean.getValV() - peakvalue;
+       deltapeaks[fittimes] = mean.getVal() - peakvalue;
        deltapeakserr[fittimes] = mean.getError();
       
 	   factor += factorstep;
