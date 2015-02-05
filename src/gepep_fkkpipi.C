@@ -158,7 +158,7 @@ void gepep_fkkpipi::Loop()
 	  // save pars
 	  factors[i]=factor;
 	  factorserr[i]=0;
-	  deltapeaks[i] = mean.getValV() - peakvalue;
+	  deltapeaks[i] = mean.getVal() - peakvalue;
 	  deltapeakserr[i] = mean.getError();
 
 	  fittimes++;
@@ -180,7 +180,7 @@ void gepep_fkkpipi::Loop()
    //factor1err=facfit->GetParError(0);
    //ofpar<<factor1<<"\t"<<factor1err<<std::endl;
    ofpar<<facfit->GetParameter(0)<<"\t"<<facfit->GetParError(0)<<std::endl;
-   ofpar<<signal.getValV()<<"\t"<<signal.getError()<<std::endl;
+   ofpar<<signal.getVal()<<"\t"<<signal.getError()<<std::endl;
    //std::cout<<"fit factor: "<<factor1<<", error is "<<factor1err<<std::endl;
    std::string tmpstr=outputdir+"/factorkpipi.eps";
    c1->Print(tmpstr.c_str());
