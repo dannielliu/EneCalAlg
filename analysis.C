@@ -7,6 +7,7 @@
 #include "gepep_kpi.h"
 #include "gepep_kpi2.h"
 #include "gepep_fkkpipi.h"
+#include "KsAlg.h"
 //#include "TFile.h"
 #include <string>
 
@@ -40,6 +41,7 @@ int main(int argc,char **argv)
   bool usekpi=false;
   bool usekpi2=false;
   bool usefkkpipi=false;
+  bool useKsAlg=false;
   usefpipill = ( filename.find("fpipill")   != std::string::npos
               || filename.find("fastpipill")!= std::string::npos);
   usef4pi    = ( filename.find("f4pi")      != std::string::npos
@@ -52,6 +54,9 @@ int main(int argc,char **argv)
   usekpi2    = ( filename.find("_kpi2_")    != std::string::npos);
   usefkkpipi = ( filename.find("fkkpipi")   != std::string::npos
               || filename.find("fastkkpipi")!= std::string::npos);
+  useKsAlg   = ( filename.find("multipi")   != std::string::npos
+              || filename.find("Ksto2pi")      != std::string::npos);
+
 
   if( usefpipill ){
     gepep_fastpipill *a;
@@ -84,6 +89,10 @@ int main(int argc,char **argv)
   else if( usefkkpipi){
     gepep_fkkpipi *a;
 	analysis(a,filename, "gepep_fastkkpipi");
+  }
+  else if( useKsAlg){
+    KsAlg *a;
+	analysis(a,filename, "gepep_2pi");
   }
   else{
     std::cout<<"Do not know how to deal with it!"<<std::endl;

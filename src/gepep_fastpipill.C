@@ -101,7 +101,7 @@ bool gepep_fastpipill::Loop()
   RooRealVar x("x","energy",3.097,3.0,3.2,"GeV");
   RooRealVar mean("mean","mean of gaussian",3.0,3.8);
   RooRealVar mean2("mean2","mean of gaussian",3.0,3.8);
-  RooRealVar sigma("sigma","width of gaussian",0.017,0.010,0.020);
+  RooRealVar sigma("sigma","width of gaussian",0.0017,0.001,0.002);
   RooRealVar sigma2("sigma2","width of gaussian",0.0025,0.002,0.004);
   RooRealVar brewid("brewid","width of breit wigner",0.0023,0.0010,0.05);
   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
@@ -131,6 +131,7 @@ bool gepep_fastpipill::Loop()
   RooDataHist *data_e;
   RooDataHist *data_mu;
   RooDataHist *data_pi;
+  RooDataSet *dataset;
   RooPlot *xframe;  
   
   double par1[6];// for e
@@ -158,7 +159,6 @@ bool gepep_fastpipill::Loop()
   TTree *dataraw = new TTree("dataraw","dataraw");
   double mass;
   dataraw->Branch("x",&mass,"x/D");
-  RooDataSet *dataset;
   TTree *vars = new TTree("vars","vars");
   double phi,phi1,phi2;
   double costheta,costheta1,costheta2;
@@ -256,6 +256,7 @@ bool gepep_fastpipill::Loop()
        else phi1=2*TMath::Pi()-acos(pipx4[0]/sqrt(pipx4[0]*pipx4[0]+pipy4[0]*pipy4[0]));
        if (pipy4[1]>0) phi2 = acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
        else phi2=2*TMath::Pi()-acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
+       vars->Fill();
      }
      //parti = (int)(phi1/stop*Npart);
      //partj = (int)((costheta2-start)/(stop-start)*Npart);
@@ -266,7 +267,6 @@ bool gepep_fastpipill::Loop()
      {
        hmphi[partj]->Fill(mass);
      }
-     vars->Fill();
   }
   vars->Write();
   for (int partj=0;partj<Npart;partj++){

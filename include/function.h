@@ -18,7 +18,7 @@ double CalInvMass(double m1, double px1, double py1, double pz1,
                   double m2, double px2, double py2, double pz2,
                   int n=0, const double *x=0, const double *par=0);
 
-double CalMom(double px, double py, double pz);
+double CalMom(double px, double py, double pz=0);
 
 double CalEne(double m, double px,double py,double pz,double factor=1.);
 
