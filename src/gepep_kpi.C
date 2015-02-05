@@ -331,7 +331,7 @@ void gepep_kpi::Loop()
 	  // save pars
 	  factors[i]=factor;
 	  factorserr[i]=0;
-	  deltapeaks[i] = mean.getValV() - peakvalue;
+	  deltapeaks[i] = mean.getVal() - peakvalue;
 	  deltapeakserr[i] = mean.getError();
 
 	  fittimes++;
@@ -354,7 +354,7 @@ void gepep_kpi::Loop()
    //factor1err=facfit->GetParError(0);
    double factorerr=deltapeakserr[9]/facfit->GetParameter(1);
    ofpar<<factor<<"\t"<<factorerr<<"\t"<<facfit->GetParError(0)<<std::endl;
-   ofpar<<signal.getValV()<<"\t"<<signal.getError()<<std::endl;
+   ofpar<<signal.getVal()<<"\t"<<signal.getError()<<std::endl;
    purepar<<"\t"<<factor<<"\t"<<factorerr<<std::endl;
    //std::cout<<"fit factor: "<<factor1<<", error is "<<factor1err<<std::endl;
    sprintf(name,"%s/factorkpi_part%d_part%d.eps",outputdir.c_str(),parti,partj);
