@@ -449,7 +449,7 @@ bool gepep_fastpipill::Loop()
       // save pars
       factors2[i]=factor;
       factorserr2[i]=0;
-      deltapeaks2[i] = mean.getValV() - peakvalue;
+      deltapeaks2[i] = mean.getVal() - peakvalue;
       deltapeakserr2[i] = mean.getError();
       if (deltapeakserr2[i]<1e-5) deltapeakserr2[i]=5e-4;
       //c1->Print(fitepsname2.c_str());
