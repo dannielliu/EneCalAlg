@@ -76,7 +76,7 @@ void KsAlg::Loop(double cutd)
    RooRealVar mean("mean","mean of gaussian",  kslow,ksup);
    RooRealVar mean2("mean2","mean of gaussian",kslow,ksup);
    RooRealVar sigma("sigma","width of gaussian",0.0017,0.0010,0.0050);
-   RooRealVar sigma2("sigma2","width of gaussian",0.007,0.005,0.01);
+   RooRealVar sigma2("sigma2","width of gaussian",0.007,0.005,0.02);
    RooRealVar brewid("brewid","width of breit wigner",0.0023,0.0010,0.05);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
    RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
@@ -111,6 +111,11 @@ void KsAlg::Loop(double cutd)
    vars->Branch("p2",&p2,"p2/D");
 
    int Npart=10;
+   int realsize=0;
+   double partid[Npart];
+   double parter[Npart];
+   double corfac[Npart];
+   double corerr[Npart];
    double pcut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
    double start=0;
    double stop =2.0;
@@ -231,7 +236,7 @@ void KsAlg::Loop(double cutd)
        std::cout<<"factor is "<<factor<<std::endl;
 
        //for (Long64_t jentry=0; jentry<nentries;jentry++) {
-   std::cout<<"ppx size is "<<ppx.size()<<std::endl;
+       std::cout<<"ppx size is "<<ppx.size()<<std::endl;
        for (Long64_t jin=0; jin<ppx.size();jin++) {
           
           mass = CalInvMass(mpi,factori*ppx[jin],factori*ppy[jin],factori*ppz[jin],mpi,factor*mpx[jin],factor*mpy[jin],factor*mpz[jin]);
@@ -244,7 +249,7 @@ void KsAlg::Loop(double cutd)
        }// loop data end
        // fit data
 
-   std::cout<<"dataraw size is "<<dataraw->GetEntries()<<std::endl;
+       std::cout<<"dataraw size is "<<dataraw->GetEntries()<<std::endl;
 	   sprintf(name,"data_Ks_%02d",fittimes);
        dataset = new RooDataSet(name,"data",RooArgSet(x),Import(*dataraw));
        sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
@@ -377,12 +382,26 @@ void KsAlg::Loop(double cutd)
 	sprintf(name,"part%d_final_fit",partj);
 	c1->SetName(name);
 	c1->Write();
+
+	partid[partj] = pcut[partj]+(stop-start)/(2*Npart);
+	parter[partj] = 0;
+	corfac[partj] = factor;
+	corerr[partj] = factor4err;
    
 	delete sum;
     delete dataset;
     delete xframe;
  
    }// n part end
+
+   realsize = partmap.size();
+   TGraphErrors *graph = new TGraphErrors(realsize,partid,corfac,parter,corerr);
+   graph->SetTitle("compare factors");
+   graph->Draw("AP");
+   graph->SetMarkerStyle(5);
+   gStyle->SetOptFit(1111);
+   c1->SetName("compare_factors");
+   c1->Write();
 
 }
 
