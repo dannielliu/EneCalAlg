@@ -8,6 +8,7 @@
 #include "gepep_kpi2.h"
 #include "gepep_fkkpipi.h"
 #include "KsAlg.h"
+#include "Ks0Alg.h"
 //#include "TFile.h"
 #include <string>
 
@@ -21,16 +22,16 @@ int main(int argc,char **argv)
   //std::cout<<"arg number is "<<argc<<std::endl;
   if(argc>=2){ 
     filename=argv[1];
-	std::cout<<"input file name is : "<<filename<<std::endl;
+   std::cout<<"input file name is : "<<filename<<std::endl;
   }
   if(argc >=3){
     outputdir=argv[2];
-	std::cout<<"output dir is "<<outputdir<<std::endl;
+   std::cout<<"output dir is "<<outputdir<<std::endl;
   }
   if (argc==1){
-	std::cout<<"Please specify an input root file ! "<<std::endl;
+   std::cout<<"Please specify an input root file ! "<<std::endl;
     return 0;
-	//filename = "data_Rvalue_fpipill_e3850.root";
+   //filename = "data_Rvalue_fpipill_e3850.root";
   }
 
   bool usefpipill=false;
@@ -42,6 +43,7 @@ int main(int argc,char **argv)
   bool usekpi2=false;
   bool usefkkpipi=false;
   bool useKsAlg=false;
+  bool useKs0Alg=false;
   usefpipill = ( filename.find("fpipill")   != std::string::npos
               || filename.find("fastpipill")!= std::string::npos);
   usef4pi    = ( filename.find("f4pi")      != std::string::npos
@@ -55,48 +57,54 @@ int main(int argc,char **argv)
   usefkkpipi = ( filename.find("fkkpipi")   != std::string::npos
               || filename.find("fastkkpipi")!= std::string::npos);
   useKsAlg   = ( filename.find("multipi")   != std::string::npos
-              || filename.find("Ksto2pi")      != std::string::npos);
+	      || filename.find("_Ksto2pi_") != std::string::npos);
+  useKs0Alg  = ( filename.find("Ksto2pi")   != std::string::npos
+	      || filename.find("_Ks_")      != std::string::npos);
 
 
   if( usefpipill ){
     gepep_fastpipill *a;
-	analysis(a,filename, "gepep_fastpipill");
+    analysis(a,filename, "gepep_fastpipill");
   }
   else if( usef4pi ){
     gepep_fast4pi *a;
-	analysis(a,filename, "gepep_fast4pi");
+    analysis(a,filename, "gepep_fast4pi");
   }
   else if( usef6pi){
     gepep_fast6pi *a;
-	analysis(a,filename, "gepep_fast6pi");
+    analysis(a,filename, "gepep_fast6pi");
   }
   else if( use4k){
     gepep_4k *a;
-	analysis(a,filename, "gepep_4k");
+    analysis(a,filename, "gepep_4k");
   }
   else if( usekk){
     gepep_kk *a;
-	analysis(a,filename, "gepep_kk");
+    analysis(a,filename, "gepep_kk");
   }
   else if( usekpi){
     gepep_kpi *a;
-	analysis(a,filename, "gepep_kpi");
+    analysis(a,filename, "gepep_kpi");
   }
   else if( usekpi2){
     gepep_kpi2 *a;
-	analysis(a,filename, "gepep_kpi");
+    analysis(a,filename, "gepep_kpi");
   }
   else if( usefkkpipi){
     gepep_fkkpipi *a;
-	analysis(a,filename, "gepep_fastkkpipi");
+    analysis(a,filename, "gepep_fastkkpipi");
   }
   else if( useKsAlg){
     KsAlg *a;
-	analysis(a,filename, "gepep_2pi");
+    analysis(a,filename, "gepep_2pi");
+  }
+  else if( useKs0Alg){
+    Ks0Alg *a;
+    analysis(a,filename, "Ks_info");
   }
   else{
     std::cout<<"Do not know how to deal with it!"<<std::endl;
-	return 1;
+    return 1;
   }
 
   std::cout<<"done"<<std::endl;
@@ -109,13 +117,13 @@ bool analysis(T *type,std::string &filename, std::string treename)
   TFile *file=new TFile(filename.c_str());
   if(!file){
     std::cout<<"can not open file "<<filename<<std::endl;
-	return false;
+   return false;
   }
   TTree *tree = new TTree();;
   file->GetObject(treename.c_str(),tree);
   if(!tree){
     std::cout<<"can not find tree "<<treename<<std::endl;
-	return false;
+   return false;
   }
   //~~~~~~~got :-)~~~~~~~~
 
