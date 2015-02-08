@@ -14,6 +14,10 @@ int main(int argc, char** argv)
   if (argc>1) filename = argv[1];
   if (argc>2) outdir = argv[2];
   ifstream inpar(filename.c_str());
+  if (!inpar){
+    std::cout<<"can not open:"<<filename<<std::endl;
+    return -1;
+  }
 
   double p[100], fac[100], face[100];
   double pe[100]={0};
@@ -47,4 +51,5 @@ int main(int argc, char** argv)
   
   sprintf(tmpchr,"%s/Ks_factors.pdf",outdir.c_str());
   c1->Print(tmpchr);
+  return 0;
 }
