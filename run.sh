@@ -1,2 +1,2 @@
 #!/bin/bash
-./analysis $1 $2
+./analysis $1

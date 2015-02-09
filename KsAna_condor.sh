@@ -1,7 +1,7 @@
 #!/bin/bash
 #datadir="./data"
-datadir="$datadir/xyz4600_Ksto2pi_3/xyz4600_Ksto2pi_3"
-outdir="$PWD/jobs"
+datadir="$datadir/xyz4600_Ks_2/combinedroot"
+outdir="$PWD/Ks_xyz4600"
 
 for data in `ls $datadir/*.root`;do
   ene=`echo $data | awk -F "." '{print $1}' | awk -F "/" '{print $NF}'` # | awk -F "_" '{print $NF}'
@@ -11,7 +11,8 @@ for data in `ls $datadir/*.root`;do
   Notification         = Never
   GetEnv               = True
   Executable           = $PWD/run.sh
-  Arguments            = $data ${outdir}/$ene
+  Arguments            = "$data" 
+  ##${outdir}/$ene
   Output               = $outdir/$ene/${ene}.out
   Error                = $outdir/$ene/${ene}.err
   Log                  = $outdir/$ene/${ene}.log
@@ -26,9 +27,9 @@ EOF
 done
 
  for cmd in `ls $outdir`;do
-   echo $cmd
-   if [ -d $cmd ];then
-     echo $outdir/$cmd/$cmd.cmd
-     condor_submit $outdir/$cmd/$cmd.cmd
+   echo "command directory is $cmd"
+   if [ -d ${outdir}/$cmd ];then
+     echo ${outdir}/$cmd/$cmd.cmd
+     condor_submit ${outdir}/$cmd/$cmd.cmd
    fi
  done

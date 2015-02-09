@@ -6,7 +6,7 @@ VPATH = src
 CC = g++ $(ROOTINCLUDE) $(ROOTLIB) $(INCDIR)
 OBJS= function.o bes3plotstyle.o gepep_fastpipill.o gepep_fast4pi.o gepep_fast6pi.o gepep_4k.o gepep_kk.o gepep_kpi.o gepep_kpi2.o gepep_fkkpipi.o KsAlg.o Ks0Alg.o
 
-all: analysis AnaSinglePart
+all: analysis AnaSinglePart AnaSomePart
 analysis:analysis.C $(OBJS)
 	@echo "linking objects..."
 	$(CC) -lRooFitCore -lRooFit $^ -o $@
@@ -14,7 +14,7 @@ analysis:analysis.C $(OBJS)
 	@#-rm *.o
 
 $(OBJS): %.o: %.C
-	@echo "make object $@"
+	@echo "makeing object $@"
 	@g++ $(ROOTINCLUDE) $(INCDIR) -c $< -o $@
 
 #src/function.o : function.C	
@@ -51,6 +51,9 @@ AnaSinglePart:AnaSinglePart.C
 	@echo "compiling $@"
 	$(CC) $^ -o $@
 
+AnaSomePart:CombineParts.C
+	@echo "compiling $@"
+	$(CC) $^ -o $@
 
 .PHONY:clean
 clean:

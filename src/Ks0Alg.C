@@ -134,7 +134,7 @@ void Ks0Alg::Loop()
    vars->Branch("p1",&p1,"p1/D");
    vars->Branch("p2",&p2,"p2/D");
 
-   int Npart=20;
+   int Npart=1; // 20
    int realsize=0;
    double partid[Npart];
    double parter[Npart];
@@ -143,28 +143,30 @@ void Ks0Alg::Loop()
    double start=0;
    double stop =2.0;
    double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
-			  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
-   pcut[0] =0.0;
-   pcut[1] =0.05;
-   pcut[2] =0.10;
-   pcut[3] =0.15;
-   pcut[4] =0.20;
-   pcut[5] =0.25;
-   pcut[6] =0.30;
-   pcut[7] =0.35;
-   pcut[8] =0.40;
-   pcut[9] =0.45;
-   pcut[10]=0.50;
-   pcut[11]=0.60;
-   pcut[12]=0.70;
-   pcut[13]=0.80;
-   pcut[14]=0.90;
-   pcut[15]=1.00;
-   pcut[16]=1.20;
-   pcut[17]=1.40;
-   pcut[18]=1.60;
-   pcut[19]=1.80;
-   pcut[20]=2.00;
+		  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
+   pcut[0]=0.1;
+   pcut[1]=0.9;
+ //pcut[0] =0.0;
+ //pcut[1] =0.05;
+ //pcut[2] =0.10;
+ //pcut[3] =0.15;
+ //pcut[4] =0.20;
+ //pcut[5] =0.25;
+ //pcut[6] =0.30;
+ //pcut[7] =0.35;
+ //pcut[8] =0.40;
+ //pcut[9] =0.45;
+ //pcut[10]=0.50;
+ //pcut[11]=0.60;
+ //pcut[12]=0.70;
+ //pcut[13]=0.80;
+ //pcut[14]=0.90;
+ //pcut[15]=1.00;
+ //pcut[16]=1.20;
+ //pcut[17]=1.40;
+ //pcut[18]=1.60;
+ //pcut[19]=1.80;
+ //pcut[20]=2.00;
    //for(int i=0;i<Npart+1;i++){
    //  pcut[i] = (stop-start)/Npart*i+start;
    //}
@@ -229,7 +231,7 @@ void Ks0Alg::Loop()
         //partj = (int)((p2-start)/(stop-start)*Npart);
         //if ( partj>=Npart || partj<0 ) continue;
         for ( int partj=0;partj<Npart;partj++){
-          if ( p2>pcut[partj] && p2<pcut[partj+1] )
+          if (p1>pcut[partj] && p1<pcut[partj+1] && p2>pcut[partj] && p2<pcut[partj+1] )
           {
             if (mass>kslow-0.02 && mass<ksup+0.02)
               hmKs[partj]->Fill(mass);
@@ -276,6 +278,7 @@ void Ks0Alg::Loop()
      std::cout<<"part is "<<partj<<std::endl;
      double factori=1.0;
      factor = 0.995;
+     factori=factor;
      fittimes=0;
 
      for (fittimes=0; fittimes<pointNo;fittimes++){
@@ -288,9 +291,10 @@ void Ks0Alg::Loop()
        for (Long64_t jin=0; jin<ppx.size();jin++) {
           
           mass = CalInvMass(mpi,factori*ppx[jin],factori*ppy[jin],factori*ppz[jin],mpi,factor*mpx[jin],factor*mpy[jin],factor*mpz[jin]);
+          p1=CalMom(ppx[jin],ppy[jin],ppz[jin]);
           p2=CalMom(mpx[jin],mpy[jin],mpz[jin]);
           if (partj<0 || partj>Npart) continue;
-          if (p2 < pcut[partj] || p2> pcut[partj+1]) continue;
+          if (p1 < pcut[partj] || p1> pcut[partj+1] || p2 < pcut[partj] || p2> pcut[partj+1]) continue;
           if (mass>kslow && mass<ksup){
             dataraw->Fill();
           }
@@ -342,7 +346,8 @@ void Ks0Alg::Loop()
        deltapeakserr[fittimes] = mean.getError();
       
        factor += factorstep;
-       
+       factori = factor;
+
        delete sum;
        delete dataset;
        delete xframe;
@@ -359,6 +364,7 @@ void Ks0Alg::Loop()
     facfit->SetParNames("factor","slope");
     graph->Fit(facfit,"","",factors[0],factors[pointNo-1]);
     factor = facfit->GetParameter(0);
+    factori=factor;
     TPaveText *pt1 = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
     pt1->SetBorderSize(0);
     pt1->SetFillStyle(4000);
@@ -382,9 +388,10 @@ void Ks0Alg::Loop()
        
     for (Long64_t jin=0; jin<ppx.size();jin++) {
       mass = CalInvMass(mpi,factori*ppx[jin],factori*ppy[jin],factori*ppz[jin],mpi,factor*mpx[jin],factor*mpy[jin],factor*mpz[jin]);
+      p1 = CalMom(ppx[jin],ppy[jin],ppz[jin]);
       p2 = CalMom(mpx[jin],mpy[jin],mpz[jin]);
       if (partj<0 || partj>Npart) continue;
-      if (p2 < pcut[partj] || p2> pcut[partj+1]) continue;
+      if (p1 < pcut[partj] || p1> pcut[partj+1] || p2 < pcut[partj] || p2> pcut[partj+1]) continue;
       if (mass>kslow && mass<ksup){
         dataraw->Fill();
       }
