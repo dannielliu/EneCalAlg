@@ -15,4 +15,5 @@ for dir in `ls -d $datadir/*`;do
     #./AnaSinglePart ${dir}/parspur.txt $dir
   fi
 done
-./AnaSomePart $filelist
+../AnaSomePart $filelist
+mv combinedpar.txt $datadir

@@ -134,7 +134,7 @@ void Ks0Alg::Loop()
    vars->Branch("p1",&p1,"p1/D");
    vars->Branch("p2",&p2,"p2/D");
 
-   int Npart=1; // 20
+   int Npart=2; // 20
    int realsize=0;
    double partid[Npart];
    double parter[Npart];
@@ -145,7 +145,8 @@ void Ks0Alg::Loop()
    double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
 		  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
    pcut[0]=0.1;
-   pcut[1]=0.9;
+   pcut[1]=0.4;
+   pcut[2]=0.9;
  //pcut[0] =0.0;
  //pcut[1] =0.05;
  //pcut[2] =0.10;
@@ -199,7 +200,7 @@ void Ks0Alg::Loop()
         double chi2 = m_chisq0[ipip*npim+ipim]+m_chisqvtxnd[ipip*npim+ipim];
         if (chi2 > 100) continue;
         double ratio = m_decayL[ipip*npim+ipim]/m_decayLerr[ipip*npim+ipim];
-        if (ratio<10) continue;
+        if (ratio<3) continue;
         if (Ks_id[ipip*npim+ipim]==0){
           hmassU->Fill(mass);
           continue;

@@ -27,6 +27,7 @@
 #include "RooAddPdf.h"
 #include "RooArgList.h"
 #include "RooPlot.h"
+#include "RooMsgService.h"
 extern std::string outputdir;
 using namespace RooFit;
 namespace PIPILL{
@@ -134,6 +135,8 @@ bool gepep_fastpipill::Loop()
   RooDataSet *dataset;
   RooPlot *xframe;  
   
+  RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
+  
   double par1[6];// for e
   double parerr1[6];
   double par2[6];// for mu
@@ -175,7 +178,7 @@ bool gepep_fastpipill::Loop()
   // for initial spectrum
   Long64_t nbytes = 0, nb = 0;
 
-  int Npart=10;
+  int Npart=1;
   // cut phi
   //double phicut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
   //double start=0.0;
@@ -193,8 +196,8 @@ bool gepep_fastpipill::Loop()
   //}
   // cut p
   double pcut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
-  double start=0;
-  double stop =0.5;
+  double start=0.1;
+  double stop =0.4;
   for(int i=0;i<Npart+1;i++){
     pcut[i] = (stop-start)/Npart*i+start;
   }
@@ -247,25 +250,28 @@ bool gepep_fastpipill::Loop()
      mass = mass-massjpsi+3.096916;
      // if (Cut(ientry) < 0) continue;
      int parti, partj;
-     if ( mass>psiplow && mass<psipup ) {
-       p1 = CalMom(pipx4[0],pipy4[0],pipz4[0]);
-       p2 = CalMom(pipx4[1],pipy4[1],pipz4[1]);
-       costheta1 = pipz4[0]/p1;
-       costheta2 = pipz4[1]/p2;
-       if (pipy4[0]>0) phi1 = acos(pipx4[0]/sqrt(pipx4[0]*pipx4[0]+pipy4[0]*pipy4[0]));
-       else phi1=2*TMath::Pi()-acos(pipx4[0]/sqrt(pipx4[0]*pipx4[0]+pipy4[0]*pipy4[0]));
-       if (pipy4[1]>0) phi2 = acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
-       else phi2=2*TMath::Pi()-acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
-       vars->Fill();
-     }
+     p1 = CalMom(pipx4[0],pipy4[0],pipz4[0]);
+     p2 = CalMom(pipx4[1],pipy4[1],pipz4[1]);
+     costheta1 = pipz4[0]/p1;
+     costheta2 = pipz4[1]/p2;
+     if (pipy4[0]>0) phi1 = acos(pipx4[0]/sqrt(pipx4[0]*pipx4[0]+pipy4[0]*pipy4[0]));
+     else phi1=2*TMath::Pi()-acos(pipx4[0]/sqrt(pipx4[0]*pipx4[0]+pipy4[0]*pipy4[0]));
+     if (pipy4[1]>0) phi2 = acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
+     else phi2=2*TMath::Pi()-acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
+     vars->Fill();
      //parti = (int)(phi1/stop*Npart);
      //partj = (int)((costheta2-start)/(stop-start)*Npart);
-     partj = (int)((p2-start)/(stop-start)*Npart);
+     //parti = (int)((p1-start)/(stop-start)*Npart);
+     //partj = (int)((p2-start)/(stop-start)*Npart);
      if ( partj>=Npart || partj<0 ) continue;
      //if ( costheta2>costhecut[partj] && costheta2<costhecut[partj+1] )
-     if ( p2>pcut[partj] && p2<pcut[partj+1] )
-     {
-       hmphi[partj]->Fill(mass);
+     for (int partj=0;partj<Npart;partj++){
+       if ( p1>pcut[partj] && p1<pcut[partj+1] && p2>pcut[partj] && p2<pcut[partj+1] )
+       {
+         if ( mass>psiplow-0.02 && mass<psipup+0.02 ) {
+           hmphi[partj]->Fill(mass);
+         }
+       }
      }
   }
   vars->Write();
@@ -323,6 +329,7 @@ bool gepep_fastpipill::Loop()
     //double factori=1.00090;
     double factori=1.0000;
     factor=factorstart;
+    factori=factor;
     //folder = new TFolder(name,name);
     
 	sprintf(name,"part%d",partj);
@@ -378,9 +385,11 @@ bool gepep_fastpipill::Loop()
         } 
         //if (pipy4[1]>0) phi2 = acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
         //else phi2=2*TMath::Pi()-acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
+        p1 = CalMom(pipx4[0],pipy4[0],pipz4[0]);
         p2 = CalMom(pipx4[1],pipy4[1],pipz4[1]);
         //costheta2 = pipz4[1]/p2;
         //if (!(costheta2>costhecut[partj] && costheta2<costhecut[partj+1])) continue;
+        if (!(p1>pcut[partj] && p1<pcut[partj+1])) continue;
         if (!(p2>pcut[partj] && p2<pcut[partj+1])) continue;
         totpx=(lepx4[0]+lepx4[1])+factori*pipx4[0]+factor*pipx4[1];
         totpy=(lepy4[0]+lepy4[1])+factori*pipy4[0]+factor*pipy4[1];
@@ -465,6 +474,7 @@ bool gepep_fastpipill::Loop()
  
       fittimes++;
       factor += factorstep;
+      factori = factor;
     }
     //c1->Print(fiteps2_stop.c_str());
  
@@ -489,6 +499,7 @@ bool gepep_fastpipill::Loop()
     xframe = x.frame(Title("fit pi"));
     dataraw->Reset();
     factor = factor4;
+    factori = factor;
     //factor = 1;
     std::cout<<"factor is "<<factor<<std::endl;
     for (Long64_t jentry=0; jentry<nentries;jentry++) {
@@ -513,9 +524,11 @@ bool gepep_fastpipill::Loop()
        //if (pipy4[1]>0) phi2 = acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
        //else phi2=2*TMath::Pi()-acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
        //if (!(phi2>phicut[partj] && phi2<phicut[partj+1])) continue;
+       p1 = CalMom(pipx4[0],pipy4[0],pipz4[0]);
        p2 = CalMom(pipx4[1],pipy4[1],pipz4[1]);
        //costheta2 = pipz4[1]/p2;
        //if (!(costheta2>costhecut[partj] && costheta2<costhecut[partj+1])) continue;
+       if (!(p1>pcut[partj] && p1<pcut[partj+1])) continue;
        if (!(p2>pcut[partj] && p2<pcut[partj+1])) continue;
        totpx=(lepx4[0]+lepx4[1])+factori*pipx4[0]+factor*pipx4[1];
        totpy=(lepy4[0]+lepy4[1])+factori*pipy4[0]+factor*pipy4[1];
