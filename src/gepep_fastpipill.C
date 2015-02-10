@@ -263,7 +263,7 @@ bool gepep_fastpipill::Loop()
      //partj = (int)((costheta2-start)/(stop-start)*Npart);
      //parti = (int)((p1-start)/(stop-start)*Npart);
      //partj = (int)((p2-start)/(stop-start)*Npart);
-     if ( partj>=Npart || partj<0 ) continue;
+     //if ( partj>=Npart || partj<0 ) continue;
      //if ( costheta2>costhecut[partj] && costheta2<costhecut[partj+1] )
      for (int partj=0;partj<Npart;partj++){
        if ( p1>pcut[partj] && p1<pcut[partj+1] && p2>pcut[partj] && p2<pcut[partj+1] )
