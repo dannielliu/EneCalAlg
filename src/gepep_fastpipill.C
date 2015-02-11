@@ -252,6 +252,7 @@ bool gepep_fastpipill::Loop()
      int parti, partj;
      p1 = CalMom(pipx4[0],pipy4[0],pipz4[0]);
      p2 = CalMom(pipx4[1],pipy4[1],pipz4[1]);
+	 if (p1+p2<0.4 || p1+p2>0.6) continue;
      costheta1 = pipz4[0]/p1;
      costheta2 = pipz4[1]/p2;
      if (pipy4[0]>0) phi1 = acos(pipx4[0]/sqrt(pipx4[0]*pipx4[0]+pipy4[0]*pipy4[0]));
@@ -387,6 +388,7 @@ bool gepep_fastpipill::Loop()
         //else phi2=2*TMath::Pi()-acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
         p1 = CalMom(pipx4[0],pipy4[0],pipz4[0]);
         p2 = CalMom(pipx4[1],pipy4[1],pipz4[1]);
+	    if (p1+p2<0.4 || p1+p2>0.6) continue;
         //costheta2 = pipz4[1]/p2;
         //if (!(costheta2>costhecut[partj] && costheta2<costhecut[partj+1])) continue;
         if (!(p1>pcut[partj] && p1<pcut[partj+1])) continue;
@@ -526,6 +528,7 @@ bool gepep_fastpipill::Loop()
        //if (!(phi2>phicut[partj] && phi2<phicut[partj+1])) continue;
        p1 = CalMom(pipx4[0],pipy4[0],pipz4[0]);
        p2 = CalMom(pipx4[1],pipy4[1],pipz4[1]);
+	   if (p1+p2<0.4 || p1+p2>0.6) continue;
        //costheta2 = pipz4[1]/p2;
        //if (!(costheta2>costhecut[partj] && costheta2<costhecut[partj+1])) continue;
        if (!(p1>pcut[partj] && p1<pcut[partj+1])) continue;
