@@ -1,8 +1,12 @@
 #!/bin/bash
 #datadir="./data"
-dataset="xyz4600"
-datadir="$datadir/${dataset}_Ks_2/combinedroot"
-outdir="$PWD/Ks_${dataset}_cutBothp_2range4"
+dataset="xyz4230"
+echo "there are $# input arguements"
+if (( $# >= 1 ));then
+  dataset=$1
+fi
+datadir="$datadir/${dataset}_Ks_2"
+outdir="$PWD/Ks_${dataset}_cut1p_20range1"
 mkdir -p $outdir
 
 for data in `ls $datadir/*.root`;do

@@ -129,7 +129,7 @@ int main(int argc, char** argv)
   TCanvas *c1 = new TCanvas();
   TGraphErrors *graph = new TGraphErrors(cp,fp,ffac,fpe,fface);
   graph->SetTitle("factors");
-  graph->GetYaxis()->SetRangeUser(0.99,1.01);
+  graph->GetYaxis()->SetRangeUser(0.995,1.005);
   graph->SetMarkerStyle(5);
   gStyle->SetOptFit(1111);
   graph->Draw("AP");
