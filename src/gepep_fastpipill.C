@@ -258,7 +258,7 @@ bool gepep_fastpipill::Loop()
      else phi1=2*TMath::Pi()-acos(pipx4[0]/sqrt(pipx4[0]*pipx4[0]+pipy4[0]*pipy4[0]));
      if (pipy4[1]>0) phi2 = acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
      else phi2=2*TMath::Pi()-acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
-     vars->Fill();
+     if ( mass>psiplow-0.02 && mass<psipup+0.02 ) vars->Fill();
      //parti = (int)(phi1/stop*Npart);
      //partj = (int)((costheta2-start)/(stop-start)*Npart);
      //parti = (int)((p1-start)/(stop-start)*Npart);
