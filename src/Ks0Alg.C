@@ -134,7 +134,7 @@ void Ks0Alg::Loop()
    vars->Branch("p1",&p1,"p1/D");
    vars->Branch("p2",&p2,"p2/D");
 
-   int Npart=2; // 20
+   int Npart=1; // 20
    int realsize=0;
    double partid[Npart];
    double parter[Npart];
@@ -146,7 +146,7 @@ void Ks0Alg::Loop()
 		  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
    pcut[0]=0.1;
    pcut[1]=0.4;
-   pcut[2]=0.9;
+   //pcut[2]=0.9;
  //pcut[0] =0.0;
  //pcut[1] =0.05;
  //pcut[2] =0.10;
@@ -209,6 +209,7 @@ void Ks0Alg::Loop()
         hmassc->Fill(mass);
         p1=CalMom(pippx[ipip],pippy[ipip],pippz[ipip]);
         p2=CalMom(pimpx[ipim],pimpy[ipim],pimpz[ipim]);
+        if (p1+p2<0.4 || p1+p2 > 0.6) continue;
         costheta1 = pippz[ipip]/p1;
         costheta2 = pimpz[ipim]/p2;
         if (pippy[ipip]>0)  phi1 = acos(pippx[ipip]/CalMom(pippx[ipip],pippy[ipip]));

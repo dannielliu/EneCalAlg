@@ -1,7 +1,8 @@
 #!/bin/bash
 #datadir="./data"
-datadir="$datadir/Rvalue_Ks_2/combinedroot"
-outdir="$PWD/Ks_Rvalue_cutBothp_2range3"
+dataset="xyz4600"
+datadir="$datadir/${dataset}_Ks_2/combinedroot"
+outdir="$PWD/Ks_${dataset}_cutBothp_2range4"
 mkdir -p $outdir
 
 for data in `ls $datadir/*.root`;do
