@@ -210,7 +210,7 @@ void Ks0Alg::Loop()
         hmassc->Fill(mass);
         p1=CalMom(pippx[ipip],pippy[ipip],pippz[ipip]);
         p2=CalMom(pimpx[ipim],pimpy[ipim],pimpz[ipim]);
-        if (p1<0.1||p1>0.4) continue;
+        //if (p1<0.1||p1>0.4) continue;
         //if (p1+p2<0.4 || p1+p2 > 0.6) continue;
         costheta1 = pippz[ipip]/p1;
         costheta2 = pimpz[ipim]/p2;
@@ -222,23 +222,30 @@ void Ks0Alg::Loop()
           vars->Fill();
         }
 
-        if (mass>kslow-0.02 && mass<ksup+0.02){
-          ppx.push_back(pippx[ipip]);
-          ppy.push_back(pippy[ipip]);
-          ppz.push_back(pippz[ipip]);
-          mpx.push_back(pimpx[ipim]);
-          mpy.push_back(pimpy[ipim]);
-          mpz.push_back(pimpz[ipim]);
-        }
+        //if (mass>kslow-0.02 && mass<ksup+0.02){
+        //ppx.push_back(pippx[ipip]);
+        //ppy.push_back(pippy[ipip]);
+        //ppz.push_back(pippz[ipip]);
+        //mpx.push_back(pimpx[ipim]);
+        //mpy.push_back(pimpy[ipim]);
+        //mpz.push_back(pimpz[ipim]);
+        //}
         //if (fabs(p1-p2)<0.0001) continue;
         //int parti,partj;
         //partj = (int)((p2-start)/(stop-start)*Npart);
         //if ( partj>=Npart || partj<0 ) continue;
         for ( int partj=0;partj<Npart;partj++){
-          //if (p1<pcut[partj] || p1>pcut[partj+1]) continue;
+          if (p1<pcut[partj] || p1>pcut[partj+1]) continue;
           if (p2<pcut[partj] || p2>pcut[partj+1]) continue;
-          if (mass>kslow-0.02 && mass<ksup+0.02)
+          if (mass>kslow-0.02 && mass<ksup+0.02){
             hmKs[partj]->Fill(mass);
+            ppx.push_back(pippx[ipip]);
+            ppy.push_back(pippy[ipip]);
+            ppz.push_back(pippz[ipip]);
+            mpx.push_back(pimpx[ipim]);
+            mpy.push_back(pimpy[ipim]);
+            mpz.push_back(pimpz[ipim]);
+		  }
           break;
           
         }
@@ -282,8 +289,8 @@ void Ks0Alg::Loop()
      std::cout<<"part is "<<partj<<std::endl;
      double factori=1.0;
      factor = 0.995;
-     factori=1.000815;
-     //factori=factor;
+     //factori=1.000815;
+     factori=factor;
      fittimes=0;
 
      for (fittimes=0; fittimes<pointNo;fittimes++){
@@ -299,7 +306,7 @@ void Ks0Alg::Loop()
           p1=CalMom(ppx[jin],ppy[jin],ppz[jin]);
           p2=CalMom(mpx[jin],mpy[jin],mpz[jin]);
           if (partj<0 || partj>Npart) continue;
-          //if (p1 < pcut[partj] || p1> pcut[partj+1]) continue;
+          if (p1 < pcut[partj] || p1> pcut[partj+1]) continue;
           if (p2 < pcut[partj] || p2> pcut[partj+1]) continue;
           if (mass>kslow && mass<ksup){
             dataraw->Fill();
@@ -352,7 +359,7 @@ void Ks0Alg::Loop()
        deltapeakserr[fittimes] = mean.getError();
       
        factor += factorstep;
-       //factori = factor;
+       factori = factor;
 
        delete sum;
        delete dataset;
@@ -370,7 +377,7 @@ void Ks0Alg::Loop()
     facfit->SetParNames("factor","slope");
     graph->Fit(facfit,"","",factors[0],factors[pointNo-1]);
     factor = facfit->GetParameter(0);
-    //factori=factor;
+    factori=factor;
     TPaveText *pt1 = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
     pt1->SetBorderSize(0);
     pt1->SetFillStyle(4000);
@@ -397,7 +404,7 @@ void Ks0Alg::Loop()
       p1 = CalMom(ppx[jin],ppy[jin],ppz[jin]);
       p2 = CalMom(mpx[jin],mpy[jin],mpz[jin]);
       if (partj<0 || partj>Npart) continue;
-      //if (p1 < pcut[partj] || p1> pcut[partj+1]) continue;
+      if (p1 < pcut[partj] || p1> pcut[partj+1]) continue;
       if (p2 < pcut[partj] || p2> pcut[partj+1]) continue;
       if (mass>kslow && mass<ksup){
         dataraw->Fill();
@@ -470,9 +477,6 @@ void Ks0Alg::Loop()
     ofpar<<"p="<<partid[i]<<"\tfactor: "<<corfac[i]<<"\t +/- \t"<< corerr[i]<<std::endl;
     ofparpur<<partid[i]<<"\t"<<corfac[i]<<"\t"<< corerr[i]<<std::endl;
   }
-
-
-
 
 
 }
