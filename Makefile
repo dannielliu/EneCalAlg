@@ -4,17 +4,23 @@ INCDIR = -I./include
 vpath %.h ./include
 VPATH = src
 CC = g++ $(ROOTINCLUDE) $(ROOTLIB) $(INCDIR)
-OBJS= function.o bes3plotstyle.o gepep_fastpipill.o gepep_fast4pi.o gepep_fast6pi.o gepep_4k.o gepep_kk.o gepep_kpi.o gepep_kpi2.o gepep_fkkpipi.o KsAlg.o Ks0Alg.o
+OBJS= function.o bes3plotstyle.o gepep_fastpipill.o gepep_fast4pi.o gepep_fast6pi.o gepep_4k.o gepep_kk.o gepep_kpi.o gepep_kpi2.o gepep_fkkpipi.o Ks0Alg.o
+OBJS2= function.o gepep_fastpipill.o gepep_fast4pi.o gepep_fast6pi.o Ks0Alg_check.o
 
-all: analysis AnaSinglePart AnaSomePart CompareSets
+all: analysis checkf AnaSinglePart AnaSomePart CompareSets
 analysis:analysis.C $(OBJS)
-	@echo "linking objects..."
+	@echo "compling analysis algorithm, linking objects..."
 	$(CC) -lRooFitCore -lRooFit $^ -o $@
-	@echo "cleaning trash ..."
+	@#echo "cleaning trash ..."
 	@#-rm *.o
 
-$(OBJS): %.o: %.C
-	@echo "makeing object $@"
+checkf:checkf.C ${OBJS2}
+	@echo "compling check algorithm..."
+	$(CC) -lRooFitCore -lRooFit $^ -o $@
+
+#$(OBJS): %.o: %.C
+%.o: %.C
+	@echo "making object $@"
 	@g++ $(ROOTINCLUDE) $(INCDIR) -c $< -o $@
 
 #src/function.o : function.C	

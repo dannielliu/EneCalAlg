@@ -2,12 +2,6 @@
 #include "gepep_fastpipill.h"
 #include "gepep_fast4pi.h"
 #include "gepep_fast6pi.h"
-#include "gepep_4k.h"
-#include "gepep_kk.h"
-#include "gepep_kpi.h"
-#include "gepep_kpi2.h"
-#include "gepep_fkkpipi.h"
-//#include "KsAlg.h"
 #include "Ks0Alg.h"
 //#include "TFile.h"
 #include <string>
@@ -37,12 +31,6 @@ int main(int argc,char **argv)
   bool usefpipill=false;
   bool usef4pi=false;
   bool usef6pi=false;
-  bool use4k=false;
-  bool usekk=false;
-  bool usekpi=false;
-  bool usekpi2=false;
-  bool usefkkpipi=false;
-  //bool useKsAlg=false;
   bool useKs0Alg=false;
   usefpipill = ( filename.find("fpipill")   != std::string::npos
               || filename.find("fastpipill")!= std::string::npos);
@@ -50,14 +38,6 @@ int main(int argc,char **argv)
               || filename.find("fast4pi")   != std::string::npos);
   usef6pi    = ( filename.find("f6pi")      != std::string::npos
               || filename.find("fast6pi")   != std::string::npos);
-  use4k      = ( filename.find("4k")        != std::string::npos);
-  usekk      = ( filename.find("_kk_")      != std::string::npos);
-  usekpi     = ( filename.find("_kpi_")     != std::string::npos);
-  usekpi2    = ( filename.find("_kpi2_")    != std::string::npos);
-  usefkkpipi = ( filename.find("fkkpipi")   != std::string::npos
-              || filename.find("fastkkpipi")!= std::string::npos);
-  //useKsAlg   = ( filename.find("multipi")   != std::string::npos
-//	      || filename.find("_Ksto2pi_") != std::string::npos);
   useKs0Alg  = ( filename.find("Ksto2pi")   != std::string::npos
 	      || filename.find("_Ks_")      != std::string::npos);
 
@@ -74,30 +54,6 @@ int main(int argc,char **argv)
     gepep_fast6pi *a;
     analysis(a,filename, "gepep_fast6pi");
   }
-  else if( use4k){
-    gepep_4k *a;
-    analysis(a,filename, "gepep_4k");
-  }
-  else if( usekk){
-    gepep_kk *a;
-    analysis(a,filename, "gepep_kk");
-  }
-  else if( usekpi){
-    gepep_kpi *a;
-    analysis(a,filename, "gepep_kpi");
-  }
-  else if( usekpi2){
-    gepep_kpi2 *a;
-    analysis(a,filename, "gepep_kpi");
-  }
-  else if( usefkkpipi){
-    gepep_fkkpipi *a;
-    analysis(a,filename, "gepep_fastkkpipi");
-  }
-  //else if( useKsAlg){
-  //  KsAlg *a;
-  //  analysis(a,filename, "gepep_2pi");
-  //}
   else if( useKs0Alg){
     Ks0Alg *a;
     analysis(a,filename, "Ks_info");
