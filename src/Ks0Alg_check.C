@@ -67,9 +67,6 @@ void Ks0Alg::Loop()
 
    std::cout<<"loop"<<std::endl;
 
-   std::vector<double> ppx,ppy,ppz;
-   std::vector<double> mpx,mpy,mpz;
-
    TH1D *hmass  = new TH1D("hmass" ,"Ks mass",200,0.45,0.55);
    TH1D *hmassU = new TH1D("hmassU","Ks mass",200,0.45,0.55);
    TH1D *hmassc = new TH1D("hmassc","Ks mass",200,0.45,0.55);
@@ -85,31 +82,31 @@ void Ks0Alg::Loop()
    sprintf(fname,"%s/plot_ks.root",outputdir.c_str());
    TFile *f=new TFile(fname,"RECREATE");
    
-   sprintf(fname,"%s/pars.txt",outputdir.c_str());
-   ofstream ofpar(fname,std::ios::app);
-   sprintf(fname,"%s/parspur.txt",outputdir.c_str());
-   ofstream ofparpur(fname,std::ios::app);
+   //sprintf(fname,"%s/pars.txt",outputdir.c_str());
+   //ofstream ofpar(fname,std::ios::app);
+   //sprintf(fname,"%s/parspur.txt",outputdir.c_str());
+   //ofstream ofparpur(fname,std::ios::app);
 
    TCanvas *c1 = new TCanvas();
    int Npar;
 
    // roofit variables and functions
    RooRealVar x("x","energy",mparticle,kslow,ksup,"GeV");
-   RooRealVar mean("mean","mean of gaussian",  kslow,ksup);
-   RooRealVar mean2("mean2","mean of gaussian",kslow,ksup);
+   RooRealVar mean("mean","mean of gaussian",mparticle,  kslow,ksup);
+   //RooRealVar mean2("mean2","mean of gaussian",kslow,ksup);
    RooRealVar sigma("sigma","width of gaussian",0.0017,0.0010,0.0050);
    RooRealVar sigma2("sigma2","width of gaussian",0.007,0.005,0.02);
    RooRealVar brewid("brewid","width of breit wigner",0.0023,0.0010,0.05);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
    RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
  
-   RooRealVar a0("a0","coefficient #0",100,-100000,100000);
-   RooRealVar a1("a1","coefficient #1",-1,-100000,100000);
+   RooRealVar a0("a0","coefficient #0",100,-1000000,1000000);
+   RooRealVar a1("a1","coefficient #1",-1,-1000000,1000000);
    RooPolynomial ground("ground","ground",x,RooArgList(a0,a1));
  
-   RooRealVar signal("signal"," ",500,10,1000000);//event number
-   RooRealVar signal2("signal2"," ",100,1,1000000);//event number
-   RooRealVar background("background"," ",10,0,1000000);
+   RooRealVar signal("signal"," ",500,10,10000000);//event number
+   RooRealVar signal2("signal2"," ",100,1,10000000);//event number
+   RooRealVar background("background"," ",10,0,10000000);
  
    RooAddPdf *sum;
    RooDataHist *datahist;
@@ -118,9 +115,13 @@ void Ks0Alg::Loop()
   
    RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
 
-   TTree *dataraw = new TTree("dataraw","dataraw");
+   TTree *dataraw = new TTree("dataraw" ,"dataraw");
+   TTree *datarawl= new TTree("datarawl" ,"dataraw");
+   TTree *datarawu= new TTree("datarawu" ,"dataraw");
    double mass;
    dataraw->Branch("x",&mass,"x/D");
+   datarawl->Branch("x",&mass,"x/D");
+   datarawu->Branch("x",&mass,"x/D");
    TTree *vars = new TTree("vars","vars");
    double phi,phi1,phi2;
    double costheta,costheta1,costheta2;
@@ -135,54 +136,71 @@ void Ks0Alg::Loop()
    vars->Branch("p2",&p2,"p2/D");
    vars->Branch("mass",&mass,"mass/D");
 
-   int Npart= 20;
-   int realsize=0;
-   double partid[Npart];
-   double parter[Npart];
-   double corfac[Npart];
-   double corerr[Npart];
-   double start=0;
-   double stop =2.0;
+   int Npart=20;
+   double start=0.1;
+   double stop =1.0;
    double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
 		  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
    //pcut[0]=0.1;
    //pcut[1]=0.4;
    //pcut[2]=0.9;
-   pcut[0] =0.0;
-   pcut[1] =0.05;
-   pcut[2] =0.10;
-   pcut[3] =0.15;
-   pcut[4] =0.20;
-   pcut[5] =0.25;
-   pcut[6] =0.30;
-   pcut[7] =0.35;
-   pcut[8] =0.40;
-   pcut[9] =0.45;
-   pcut[10]=0.50;
-   pcut[11]=0.60;
-   pcut[12]=0.70;
-   pcut[13]=0.80;
-   pcut[14]=0.90;
-   pcut[15]=1.00;
-   pcut[16]=1.20;
-   pcut[17]=1.40;
-   pcut[18]=1.60;
-   pcut[19]=1.80;
-   pcut[20]=2.00;
+   double facmap[Npart];
+   double facemap[Npart];
+
+//  set normal factor in (0.1, 0.4) to 1.00082, get factor in different range
+/*
+   pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
+   pcut[1] =0.05;  facmap[1] =1.0;       facemap[1] =1.0;     
+   pcut[2] =0.10;  facmap[2] =1.00263 ;  facemap[2] =0.000106524;
+   pcut[3] =0.15;  facmap[3] =1.00126 ;  facemap[3] =5.65503e-05;
+   pcut[4] =0.20;  facmap[4] =1.00087 ;  facemap[4] =5.36283e-05;
+   pcut[5] =0.25;  facmap[5] =1.00060 ;  facemap[5] =4.96854e-05;
+   pcut[6] =0.30;  facmap[6] =1.00063 ;  facemap[6] =5.4565e-05 ;
+   pcut[7] =0.35;  facmap[7] =1.00034 ;  facemap[7] =6.70578e-05;
+   pcut[8] =0.40;  facmap[8] =0.999913;  facemap[8] =8.50691e-05;
+   pcut[9] =0.45;  facmap[9] =0.999925;  facemap[9] =0.000103853;
+   pcut[10]=0.50;  facmap[10]=0.999614;  facemap[10]=0.000101297;
+   pcut[11]=0.60;  facmap[11]=0.999918;  facemap[11]=9.75854e-05;
+   pcut[12]=0.70;  facmap[12]=1.000260;  facemap[12]=0.000228099;
+   pcut[13]=0.80;  facmap[13]=1.000340;  facemap[13]=0.000356495;
+   pcut[14]=0.90;  facmap[14]=1.00056 ;  facemap[14]=0.000554875;
+   pcut[15]=1.00;  facmap[15]=1.00185 ;  facemap[15]=0.000650392;
+   pcut[16]=1.20;  facmap[16]=0.994443;  facemap[16]=0.00288715 ;
+   pcut[17]=1.40;  facmap[17]=0.994232;  facemap[17]=0.00301238 ;
+   pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
+   pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
+   pcut[20]=2.00;  //facmap[20]=2.00;
+*/
+   pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
+   pcut[1] =0.05;  facmap[1] =1.0;       facemap[1] =1.0;     
+   pcut[2] =0.10;  facmap[2] =1.00263 ;  facemap[2] =0.000104711;
+   pcut[3] =0.15;  facmap[3] =1.00127 ;  facemap[3] =5.66523e-05;
+   pcut[4] =0.20;  facmap[4] =1.00089 ;  facemap[4] =5.40327e-05;
+   pcut[5] =0.25;  facmap[5] =1.00061 ;  facemap[5] =4.96881e-05;
+   pcut[6] =0.30;  facmap[6] =1.00063 ;  facemap[6] =5.45699e-05;
+   pcut[7] =0.35;  facmap[7] =1.00034 ;  facemap[7] =6.70568e-05;
+   pcut[8] =0.40;  facmap[8] =0.999916;  facemap[8] =8.51944e-05;
+   pcut[9] =0.45;  facmap[9] =0.999916;  facemap[9] =0.00010567 ;
+   pcut[10]=0.50;  facmap[10]=0.99955 ;  facemap[10]=8.6275e-05 ;
+   pcut[11]=0.60;  facmap[11]=0.999922;  facemap[11]=0.000112065;
+   pcut[12]=0.70;  facmap[12]=1.00024 ;  facemap[12]=0.000229724;
+   pcut[13]=0.80;  facmap[13]=1.00037 ;  facemap[13]=0.000353896;
+   pcut[14]=0.90;  facmap[14]=1.00057 ;  facemap[14]=0.000551636;
+   pcut[15]=1.00;  facmap[15]=1.00208 ;  facemap[15]=0.000718673;
+   pcut[16]=1.20;  facmap[16]=0.994435;  facemap[16]=0.00286605 ;
+   pcut[17]=1.40;  facmap[17]=0.98542 ;  facemap[17]=0.00410906 ;
+   pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
+   pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
+   pcut[20]=2.00;  //facmap[20]=2.00;
+
    //for(int i=0;i<Npart+1;i++){
    //  pcut[i] = (stop-start)/Npart*i+start;
    //}
-
-   std::vector<int> partmap;
-   std::vector<std::pair<int,double> > facmap;
-  
+ 
    char name[100];
+   double factori=1;
+   double factorj=1;
    // ~~~~~~~~ draw nxn histogram, m distribution in different range
-   TH1D *hmKs[Npart];
-   for (int partj=0;partj<Npart;partj++){
-     sprintf(name,"mass_part%d",partj);
-     hmKs[partj] = new TH1D(name,name,100,kslow,ksup);
-   }
  
    // loop data
    Long64_t nbytes = 0, nb = 0;
@@ -193,8 +211,6 @@ void Ks0Alg::Loop()
       // if (Cut(ientry) < 0) continue;
      
       int ipip=0,ipim=0;
-      //double chi2=10000000;
-      //if (npip+npim<3) continue;
       for (int ipip=0; ipip<npip;ipip++)
       for (int ipim=0; ipim<npim;ipim++){
         mass = CalInvMass(mpi,pippx[ipip],pippy[ipip],pippz[ipip],mpi,pimpx[ipim],pimpy[ipim],pimpz[ipim]);
@@ -210,8 +226,8 @@ void Ks0Alg::Loop()
         hmassc->Fill(mass);
         p1=CalMom(pippx[ipip],pippy[ipip],pippz[ipip]);
         p2=CalMom(pimpx[ipim],pimpy[ipim],pimpz[ipim]);
-        if (p1<0.1||p1>0.4) continue;
-        //if (p1+p2<0.4 || p1+p2 > 0.6) continue;
+        if (p1<0.1 || p1>1.0) continue;
+        if (p2<0.1 || p2>1.0) continue;
         costheta1 = pippz[ipip]/p1;
         costheta2 = pimpz[ipim]/p2;
         if (pippy[ipip]>0)  phi1 = acos(pippx[ipip]/CalMom(pippx[ipip],pippy[ipip]));
@@ -221,257 +237,217 @@ void Ks0Alg::Loop()
         if (mass>kslow && mass<ksup){
           vars->Fill();
         }
+        // allocate factor according to p, average factor
+        for (int i=0;i<Npart;i++){
+          if (p1>=pcut[i]&&p1<pcut[i+1]){
+            factori = facmap[i];
+            break;
+          }
+        }
 
-        if (mass>kslow-0.02 && mass<ksup+0.02){
-          ppx.push_back(pippx[ipip]);
-          ppy.push_back(pippy[ipip]);
-          ppz.push_back(pippz[ipip]);
-          mpx.push_back(pimpx[ipim]);
-          mpy.push_back(pimpy[ipim]);
-          mpz.push_back(pimpz[ipim]);
+        for (int i=0;i<Npart;i++){
+          if (p1>=pcut[i]&&p1<pcut[i+1]){
+            factorj = facmap[i];
+            break;
+          }
         }
-        //if (fabs(p1-p2)<0.0001) continue;
-        //int parti,partj;
+        mass = CalInvMass(mpi,factori*pippx[ipip],factori*pippy[ipip],factori*pippz[ipip],
+			  mpi,factorj*pimpx[ipim],factorj*pimpy[ipim],factorj*pimpz[ipim]);
+        if (mass>kslow && mass<ksup){
+          dataraw->Fill();
+        }
+ 
+        // allocate factor according to p, factor at low edge
+        for (int i=0;i<Npart;i++){
+          if (p1>=pcut[i]&&p1<pcut[i+1]){
+            factori = facmap[i]-facemap[i];
+            break;
+          }
+        }
+
+       for (int i=0;i<Npart;i++){
+          if (p1>=pcut[i]&&p1<pcut[i+1]){
+            factorj = facmap[i]-facemap[i];
+            break;
+          }
+        }
+        mass = CalInvMass(mpi,factori*pippx[ipip],factori*pippy[ipip],factori*pippz[ipip],
+			  mpi,factorj*pimpx[ipim],factorj*pimpy[ipim],factorj*pimpz[ipim]);
+        if (mass>kslow && mass<ksup){
+          datarawl->Fill();
+        }
+
+        // allocate factor according to p, factor at up edge
+        for (int i=0;i<Npart;i++){
+          if (p1>=pcut[i]&&p1<pcut[i+1]){
+            factori = facmap[i]+facemap[i];
+            break;
+          }
+        }
+
+       for (int i=0;i<Npart;i++){
+          if (p1>=pcut[i]&&p1<pcut[i+1]){
+            factorj = facmap[i]+facemap[i];
+            break;
+          }
+        }
+        mass = CalInvMass(mpi,factori*pippx[ipip],factori*pippy[ipip],factori*pippz[ipip],
+			  mpi,factorj*pimpx[ipim],factorj*pimpy[ipim],factorj*pimpz[ipim]);
+        if (mass>kslow && mass<ksup){
+          datarawu->Fill();
+        }
+       //int parti,partj;
         //partj = (int)((p2-start)/(stop-start)*Npart);
-        //if ( partj>=Npart || partj<0 ) continue;
-        for ( int partj=0;partj<Npart;partj++){
-          //if (p1<pcut[partj] || p1>pcut[partj+1]) continue;
-          if (p2<pcut[partj] || p2>pcut[partj+1]) continue;
-          if (mass>kslow-0.02 && mass<ksup+0.02)
-            hmKs[partj]->Fill(mass);
-          break;
-          
-        }
 
       }
       
-   }
+   }// loop data end
    std::cout<<"fffffffffffffffff"<<std::endl;
    vars->Write();
-   for (int partj=0;partj<Npart;partj++){
-     hmKs[partj]->Write();
-     if (hmKs[partj]->GetEntries() > 100
-       &&hmKs[partj]->GetMaximumBin()> 30 //check the the peak position,
-       &&hmKs[partj]->GetMaximumBin()< 70 
-       ){
-       partmap.push_back(partj);
-     }
-   }
-
+   
    hmass->Write();
    hmassU->Write();
    hmassc->Write();
    //return hmass;
-   //TCanvas *c2 = new TCanvas();
-   //h2p->Draw();
-   //h2pos->Draw();
-  
-   const int pointNo=10;
-   double factor=0.995;
-   double factorstep=(1.-factor)*2/pointNo;
-   int fittimes=0;
-   double factors[pointNo];
-   double factorserr[pointNo];
-   double deltapeaks[pointNo];
-   double deltapeakserr[pointNo];
-   double peakvalue = mparticle;
-
-   std::cout<<"part map size is "<<partmap.size()<<std::endl;
-   for (int loopj=0;loopj<partmap.size();loopj++){
-     int partj = partmap.at(loopj);
-     std::cout<<"part is "<<partj<<std::endl;
-     double factori=1.0;
-     factor = 0.995;
-     factori=1.00082;
-     //factori=factor;
-     fittimes=0;
-
-     for (fittimes=0; fittimes<pointNo;fittimes++){
-       xframe = x.frame(Title("fit Ks"));
-       dataraw->Reset();
-       std::cout<<"factor is "<<factor<<std::endl;
-
-       //for (Long64_t jentry=0; jentry<nentries;jentry++) {
-       std::cout<<"ppx size is "<<ppx.size()<<std::endl;
-       for (Long64_t jin=0; jin<ppx.size();jin++) {
-          
-          mass = CalInvMass(mpi,factori*ppx[jin],factori*ppy[jin],factori*ppz[jin],mpi,factor*mpx[jin],factor*mpy[jin],factor*mpz[jin]);
-          p1=CalMom(ppx[jin],ppy[jin],ppz[jin]);
-          p2=CalMom(mpx[jin],mpy[jin],mpz[jin]);
-          if (partj<0 || partj>Npart) continue;
-          //if (p1 < pcut[partj] || p1> pcut[partj+1]) continue;
-          if (p2 < pcut[partj] || p2> pcut[partj+1]) continue;
-          if (mass>kslow && mass<ksup){
-            dataraw->Fill();
-          }
-       }// loop data end
-       // fit data
-
-       std::cout<<"dataraw size is "<<dataraw->GetEntries()<<std::endl;
-       sprintf(name,"data_Ks_%02d",fittimes);
-       dataset = new RooDataSet(name,"data",RooArgSet(x),Import(*dataraw));
-       sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
-       Npar=8;
-       mean.setVal(peakvalue+0.165*(factor-1));
-       sum->fitTo(*dataset,Range(kslow,ksup));
-       dataset->plotOn(xframe,Binning(nBins));
-       sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-       sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
-       sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
-       sum->plotOn(xframe);
-       xframe->Draw();
-       TPaveText *pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
-       pt->SetBorderSize(0);
-       pt->SetFillStyle(4000);
-       pt->SetTextAlign(12);
-       pt->SetTextFont(42);
-       pt->SetTextSize(0.035);
-       sprintf(name,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
-       pt->AddText(name);
-       sprintf(name,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
-       pt->AddText(name);
-       sprintf(name,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
-       pt->AddText(name);
-       sprintf(name,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
-       pt->AddText(name);
-       sprintf(name,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
-       pt->AddText(name);
-       sprintf(name,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
-       pt->AddText(name);
-       sprintf(name,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
-       pt->AddText(name);
-       pt->Draw();
-       //c1->Update();
-       sprintf(name,"part%d_fitFor_%dth_time",partj,fittimes);
-       c1->SetName(name);
-       c1->Write();
-
-       factors[fittimes]=factor;
-       factorserr[fittimes]=0;
-       deltapeaks[fittimes] = mean.getVal() - peakvalue;
-       deltapeakserr[fittimes] = mean.getError();
-      
-       factor += factorstep;
-       //factori = factor;
-
-       delete sum;
-       delete dataset;
-       delete xframe;
- 
-    }// n point end
-    //will fit linear, get factor needed
-    c1->Clear();
-    TGraphErrors *graph = new TGraphErrors(pointNo,factors,deltapeaks,factorserr,deltapeakserr);
-    graph->SetTitle("delta peak");
-    graph->Draw("AP");
-    graph->SetMarkerStyle(5);
-    gStyle->SetOptFit(1111);
-    facfit->SetParameters(1,0.4);
-    facfit->SetParNames("factor","slope");
-    graph->Fit(facfit,"","",factors[0],factors[pointNo-1]);
-    factor = facfit->GetParameter(0);
-    //factori=factor;
-    TPaveText *pt1 = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
-    pt1->SetBorderSize(0);
-    pt1->SetFillStyle(4000);
-    pt1->SetTextAlign(12);
-    pt1->SetTextFont(42);
-    pt1->SetTextSize(0.035);
-    sprintf(name,"factor = %1.6f #pm %1.6f",facfit->GetParameter(0),facfit->GetParError(0));
-    pt1->AddText(name);
-    sprintf(name,"slope = %1.6f #pm %1.6f",facfit->GetParameter(1),facfit->GetParError(1));
-    pt1->AddText(name);
-    pt1->Draw();
- 
-    sprintf(name,"part%d_factors",partj);
-    c1->SetName(name);
-    c1->Write();
-
-    // try to use the best factor to fit
-    xframe = x.frame(Title("fit Ks"));
-    dataraw->Reset();
-    std::cout<<"factor is "<<factor<<std::endl;
-       
-    for (Long64_t jin=0; jin<ppx.size();jin++) {
-      mass = CalInvMass(mpi,factori*ppx[jin],factori*ppy[jin],factori*ppz[jin],mpi,factor*mpx[jin],factor*mpy[jin],factor*mpz[jin]);
-      p1 = CalMom(ppx[jin],ppy[jin],ppz[jin]);
-      p2 = CalMom(mpx[jin],mpy[jin],mpz[jin]);
-      if (partj<0 || partj>Npart) continue;
-      //if (p1 < pcut[partj] || p1> pcut[partj+1]) continue;
-      if (p2 < pcut[partj] || p2> pcut[partj+1]) continue;
-      if (mass>kslow && mass<ksup){
-        dataraw->Fill();
-      }
-    }// loop data end
-
-    // fit data
-    sprintf(name,"data_Ks_part%d",partj);
-    dataset = new RooDataSet(name,"data",RooArgSet(x),Import(*dataraw));
-    sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
-    Npar=8;
-    sum->fitTo(*dataset,Range(kslow,ksup));
-    dataset->plotOn(xframe,Binning(nBins));
-    sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-    sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
-    sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
-    sum->plotOn(xframe);
-    xframe->Draw();
-    TPaveText *pt = new TPaveText(0.65,0.50,0.95,0.95,"BRNDC");
-    pt->SetBorderSize(0);
-    pt->SetFillStyle(4000);
-    pt->SetTextAlign(12);
-    pt->SetTextFont(42);
-    pt->SetTextSize(0.035);
-    sprintf(name,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
-    pt->AddText(name);
-    sprintf(name,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
-    pt->AddText(name);
-    sprintf(name,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
-    pt->AddText(name);
-    sprintf(name,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
-    pt->AddText(name);
-    sprintf(name,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
-    pt->AddText(name);
-    sprintf(name,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
-    pt->AddText(name);
-    sprintf(name,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
-    pt->AddText(name);
-    double factor4err=TMath::Sqrt(TMath::Power(mean.getError()/facfit->GetParameter(1),2) + TMath::Power(facfit->GetParError(0),2));
-    sprintf(name,"factor = %.6f #pm %.6f",factor,factor4err);
-    pt->AddText(name);
-
-    pt->Draw();
-    c1->Update();
-    sprintf(name,"part%d_final_fit",partj);
-    c1->SetName(name);
-    c1->Write();
-
-    partid[loopj] = pcut[partj]+(pcut[partj+1]-pcut[partj])/2;
-    parter[loopj] = 0;
-    corfac[loopj] = factor;
-    corerr[loopj] = factor4err;
    
-    delete sum;
-    delete dataset;
-    delete xframe;
+   // average factor part
+   xframe = x.frame(Title("fit Ks"));
+   // fit data
+   sprintf(name,"data_Ks");
+   dataset = new RooDataSet(name,"data",RooArgSet(x),Import(*dataraw));
+   sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
+   Npar=8;
+   sum->fitTo(*dataset,Range(kslow,ksup));
+   dataset->plotOn(xframe,Binning(nBins));
+   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
+   sum->plotOn(xframe);
+   xframe->Draw();
+   TPaveText *pt = new TPaveText(0.65,0.50,0.95,0.95,"BRNDC");
+   pt->SetBorderSize(0);
+   pt->SetFillStyle(4000);
+   pt->SetTextAlign(12);
+   pt->SetTextFont(42);
+   pt->SetTextSize(0.035);
+   sprintf(name,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+   pt->AddText(name);
+   sprintf(name,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+   pt->AddText(name);
+   sprintf(name,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
+   pt->AddText(name);
+   sprintf(name,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+   pt->AddText(name);
+   sprintf(name,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+   pt->AddText(name);
+   sprintf(name,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+   pt->AddText(name);
+   sprintf(name,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
+   pt->AddText(name);
+
+   pt->Draw();
+   c1->Update();
+   sprintf(name,"final_fit");
+   c1->SetName(name);
+   c1->Write();
+
+   delete sum;
+   delete dataset;
+   delete xframe;
+   //average part end
  
-  }// n part end
+   // low edge part
+   xframe = x.frame(Title("fit Ks"));
+   // fit data
+   sprintf(name,"data_Ks_low");
+   dataset = new RooDataSet(name,"data",RooArgSet(x),Import(*datarawl));
+   sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
+   Npar=8;
+   sum->fitTo(*dataset,Range(kslow,ksup));
+   dataset->plotOn(xframe,Binning(nBins));
+   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
+   sum->plotOn(xframe);
+   xframe->Draw();
+   pt = new TPaveText(0.65,0.50,0.95,0.95,"BRNDC");
+   pt->SetBorderSize(0);
+   pt->SetFillStyle(4000);
+   pt->SetTextAlign(12);
+   pt->SetTextFont(42);
+   pt->SetTextSize(0.035);
+   sprintf(name,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+   pt->AddText(name);
+   sprintf(name,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+   pt->AddText(name);
+   sprintf(name,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
+   pt->AddText(name);
+   sprintf(name,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+   pt->AddText(name);
+   sprintf(name,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+   pt->AddText(name);
+   sprintf(name,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+   pt->AddText(name);
+   sprintf(name,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
+   pt->AddText(name);
 
-  realsize = partmap.size();
-  TGraphErrors *graph = new TGraphErrors(realsize,partid,corfac,parter,corerr);
-  graph->SetTitle("compare factors");
-  graph->Draw("AP");
-  graph->SetMarkerStyle(5);
-  gStyle->SetOptFit(1111);
-  c1->SetName("compare_factors");
-  c1->Write();
+   pt->Draw();
+   c1->Update();
+   sprintf(name,"final_fit_low");
+   c1->SetName(name);
+   c1->Write();
 
-  for (int i=0;i<realsize;i++){
-    ofpar<<"p="<<partid[i]<<"\tfactor: "<<corfac[i]<<"\t +/- \t"<< corerr[i]<<std::endl;
-    ofparpur<<partid[i]<<"\t"<<corfac[i]<<"\t"<< corerr[i]<<std::endl;
-  }
+   delete sum;
+   delete dataset;
+   delete xframe;
+   // low part end
 
+//  up part 
+ 
+   xframe = x.frame(Title("fit Ks"));
+   // fit data
+   sprintf(name,"data_Ks_up");
+   dataset = new RooDataSet(name,"data",RooArgSet(x),Import(*datarawu));
+   sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
+   Npar=8;
+   sum->fitTo(*dataset,Range(kslow,ksup));
+   dataset->plotOn(xframe,Binning(nBins));
+   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
+   sum->plotOn(xframe);
+   xframe->Draw();
+   pt = new TPaveText(0.65,0.50,0.95,0.95,"BRNDC");
+   pt->SetBorderSize(0);
+   pt->SetFillStyle(4000);
+   pt->SetTextAlign(12);
+   pt->SetTextFont(42);
+   pt->SetTextSize(0.035);
+   sprintf(name,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+   pt->AddText(name);
+   sprintf(name,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+   pt->AddText(name);
+   sprintf(name,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
+   pt->AddText(name);
+   sprintf(name,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+   pt->AddText(name);
+   sprintf(name,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+   pt->AddText(name);
+   sprintf(name,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+   pt->AddText(name);
+   sprintf(name,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
+   pt->AddText(name);
 
+   pt->Draw();
+   c1->Update();
+   sprintf(name,"final_fit_up");
+   c1->SetName(name);
+   c1->Write();
+
+   delete sum;
+   delete dataset;
+   delete xframe;
+// up part end
 
 
 

@@ -282,7 +282,7 @@ void Ks0Alg::Loop()
      std::cout<<"part is "<<partj<<std::endl;
      double factori=1.0;
      factor = 0.995;
-     factori=1.00082;
+     factori=1.000815;
      //factori=factor;
      fittimes=0;
 

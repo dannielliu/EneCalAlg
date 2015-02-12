@@ -67,7 +67,7 @@ CompareSets:CompareSets.C
 
 .PHONY:clean
 clean:
-	-rm -f analysis *.o src/*.o
+	-rm -f *.o src/*.o
 
 cleanall:
 	-rm -f analysis *.o src/*.o *.eps *.pdf *.ps
