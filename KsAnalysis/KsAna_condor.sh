@@ -6,7 +6,14 @@ if (( $# >= 1 ));then
   dataset=$1
 fi
 datadir="$datadir/${dataset}_Ks_2"
-outdir="$PWD/Ks_${dataset}_cut1p_nrange"
+outdir="$PWD/Ks_${dataset}_cut1p_20range3"
+dirc_exist(){
+  if [ -d $1 ] ; then
+     echo "The directory : $1 exist, please remove it"
+     exit 1
+  fi
+}
+dirc_exist $outdir
 mkdir -p $outdir
 
 for data in `ls $datadir/*.root`;do

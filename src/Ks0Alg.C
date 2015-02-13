@@ -145,32 +145,34 @@ void Ks0Alg::Loop()
    double stop =2.0;
    double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
 		  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
-   double facv[Npart];
-   double facev[Npart];
-   //pcut[0]=0.1;
-   //pcut[1]=0.4;
+   //double facv[Npart];
+   //double facev[Npart];
+ //pcut[0]=0.1;
+ //pcut[1]=0.4;
    //pcut[2]=0.9;
-   pcut[0] =0.0 ;  facv[0] =1.0;       facev[0] =1.0;  
-   pcut[1] =0.05;  facv[1] =1.0;       facev[1] =1.0;  
-   pcut[2] =0.10;  facv[2] =1.0;       facev[2] =1.0;
-   pcut[3] =0.15;  facv[3] =1.0;       facev[3] =1.0;
-   pcut[4] =0.20;  facv[4] =1.00099;   facev[4] =3.55949e-05;
-   pcut[5] =0.25;  facv[5] =1.00036;   facev[5] =7.29196e-05;
-   pcut[6] =0.30;  facv[6] =1.00023;   facev[6] =0.000111066;
-   pcut[7] =0.35;  facv[7] =1.00009;   facev[7] =0.00016114 ;
-   pcut[8] =0.40;  facv[8] =1.00035;   facev[8] =0.000214354;
-   pcut[9] =0.45;  facv[9] =1.0002 ;   facev[9] =0.000285659;
-   pcut[10]=0.50;  facv[10]=1.00054;   facev[10]=0.000236946;
-   pcut[11]=0.60;  facv[11]=1.00114;   facev[11]=0.000467622;
-   pcut[12]=0.70;  facv[12]=1.00004;   facev[12]=0.000794358;
-   pcut[13]=0.80;  facv[13]=1.0005 ;   facev[13]=0.00162137 ;
-   pcut[14]=0.90;  facv[14]=1.0;       facev[14]=1.0;
-   pcut[15]=1.00;  facv[15]=1.0;       facev[15]=1.0;
-   pcut[16]=1.20;  facv[16]=1.0;       facev[16]=1.0;
-   pcut[17]=1.40;  facv[17]=1.0;       facev[17]=1.0;
-   pcut[18]=1.60;  facv[18]=1.0;       facev[18]=1.0;  
-   pcut[19]=1.80;  facv[19]=1.0;       facev[19]=1.0;  
+
+   pcut[0] =0.0 ;  //facv[0] =1.0;       facev[0] =1.0;  
+   pcut[1] =0.05;  //facv[1] =1.0;       facev[1] =1.0;  
+   pcut[2] =0.10;  //facv[2] =1.0;       facev[2] =1.0;
+   pcut[3] =0.15;  //facv[3] =1.0;       facev[3] =1.0;
+   pcut[4] =0.20;  //facv[4] =1.00099;   facev[4] =3.55949e-05;
+   pcut[5] =0.25;  //facv[5] =1.00036;   facev[5] =7.29196e-05;
+   pcut[6] =0.30;  //facv[6] =1.00023;   facev[6] =0.000111066;
+   pcut[7] =0.35;  //facv[7] =1.00009;   facev[7] =0.00016114 ;
+   pcut[8] =0.40;  //facv[8] =1.00035;   facev[8] =0.000214354;
+   pcut[9] =0.45;  //facv[9] =1.0002 ;   facev[9] =0.000285659;
+   pcut[10]=0.50;  //facv[10]=1.00054;   facev[10]=0.000236946;
+   pcut[11]=0.60;  //facv[11]=1.00114;   facev[11]=0.000467622;
+   pcut[12]=0.70;  //facv[12]=1.00004;   facev[12]=0.000794358;
+   pcut[13]=0.80;  //facv[13]=1.0005 ;   facev[13]=0.00162137 ;
+   pcut[14]=0.90;  //facv[14]=1.0;       facev[14]=1.0;
+   pcut[15]=1.00;  //facv[15]=1.0;       facev[15]=1.0;
+   pcut[16]=1.20;  //facv[16]=1.0;       facev[16]=1.0;
+   pcut[17]=1.40;  //facv[17]=1.0;       facev[17]=1.0;
+   pcut[18]=1.60;  //facv[18]=1.0;       facev[18]=1.0;  
+   pcut[19]=1.80;  //facv[19]=1.0;       facev[19]=1.0;  
    pcut[20]=2.00;           
+
    //for(int i=0;i<Npart+1;i++){
    //  pcut[i] = (stop-start)/Npart*i+start;
    //}
@@ -212,7 +214,8 @@ void Ks0Alg::Loop()
         hmassc->Fill(mass);
         p1=CalMom(pippx[ipip],pippy[ipip],pippz[ipip]);
         p2=CalMom(pimpx[ipim],pimpy[ipim],pimpz[ipim]);
-        if (p1<0.2||p1>0.6) continue;
+        if (p1<0.2||p1>0.3) continue;
+        //if (p2<0.2||p2>0.3) continue;
         //if (p1+p2<0.4 || p1+p2 > 0.6) continue;
         costheta1 = pippz[ipip]/p1;
         costheta2 = pimpz[ipim]/p2;
@@ -288,7 +291,7 @@ void Ks0Alg::Loop()
      std::cout<<"part is "<<partj<<std::endl;
      double factori=1.0;
      factor = 0.995;
-     //factori=1.000815;
+     factori=1.00061;
      //factori=factor;
      fittimes=0;
 
@@ -300,17 +303,17 @@ void Ks0Alg::Loop()
        //for (Long64_t jentry=0; jentry<nentries;jentry++) {
        std::cout<<"ppx size is "<<ppx.size()<<std::endl;
        for (Long64_t jin=0; jin<ppx.size();jin++) {
-          p1=CalMom(ppx[jin],ppy[jin],ppz[jin]);
+          //p1=CalMom(ppx[jin],ppy[jin],ppz[jin]);
           p2=CalMom(mpx[jin],mpy[jin],mpz[jin]);
           if (partj<0 || partj>Npart) continue;
           //if (p1 < pcut[partj] || p1> pcut[partj+1]) continue;
           if (p2 < pcut[partj] || p2> pcut[partj+1]) continue;
-          for (int i=0;i<Npart;i++){
-            if (p1>=pcut[i]&&p1<pcut[i+1]){
-              factori = facv[i];
-              break;
-            }
-          }         
+        //for (int i=0;i<Npart;i++){
+        //  if (p1>=pcut[i]&&p1<pcut[i+1]){
+        //    factori = facv[i];
+        //    break;
+        //  }
+        //}         
           mass = CalInvMass(mpi,factori*ppx[jin],factori*ppy[jin],factori*ppz[jin],mpi,factor*mpx[jin],factor*mpy[jin],factor*mpz[jin]);
           if (mass>kslow && mass<ksup){
             dataraw->Fill();
@@ -381,7 +384,7 @@ void Ks0Alg::Loop()
     facfit->SetParNames("factor","slope");
     graph->Fit(facfit,"","",factors[0],factors[pointNo-1]);
     factor = facfit->GetParameter(0);
-    factori=factor;
+    //factori=factor;
     TPaveText *pt1 = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
     pt1->SetBorderSize(0);
     pt1->SetFillStyle(4000);
@@ -405,17 +408,17 @@ void Ks0Alg::Loop()
        
     for (Long64_t jin=0; jin<ppx.size();jin++) {
       //mass = CalInvMass(mpi,factori*ppx[jin],factori*ppy[jin],factori*ppz[jin],mpi,factor*mpx[jin],factor*mpy[jin],factor*mpz[jin]);
-      p1 = CalMom(ppx[jin],ppy[jin],ppz[jin]);
+      //p1 = CalMom(ppx[jin],ppy[jin],ppz[jin]);
       p2 = CalMom(mpx[jin],mpy[jin],mpz[jin]);
       if (partj<0 || partj>Npart) continue;
       //if (p1 < pcut[partj] || p1> pcut[partj+1]) continue;
       if (p2 < pcut[partj] || p2> pcut[partj+1]) continue;
-      for (int i=0;i<Npart;i++){
-        if (p1>=pcut[i]&&p1<pcut[i+1]){
-          factori = facv[i];
-          break;
-        }
-      }         
+    //for (int i=0;i<Npart;i++){
+    //  if (p1>=pcut[i]&&p1<pcut[i+1]){
+    //    factori = facv[i];
+    //    break;
+    //  }
+    //}         
       mass = CalInvMass(mpi,factori*ppx[jin],factori*ppy[jin],factori*ppz[jin],mpi,factor*mpx[jin],factor*mpy[jin],factor*mpz[jin]);
       if (mass>kslow && mass<ksup){
         dataraw->Fill();
