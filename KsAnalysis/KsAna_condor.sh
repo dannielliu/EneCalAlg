@@ -6,7 +6,7 @@ if (( $# >= 1 ));then
   dataset=$1
 fi
 datadir="$datadir/${dataset}_Ks_2"
-outdir="$PWD/Ks_${dataset}_checkf2"
+outdir="$PWD/Ks_${dataset}_cut1p_nrange"
 mkdir -p $outdir
 
 for data in `ls $datadir/*.root`;do
@@ -16,7 +16,7 @@ for data in `ls $datadir/*.root`;do
   Universe             = vanilla
   Notification         = Never
   GetEnv               = True
-  Executable           = $PWD/run.sh
+  Executable           = $PWD/runana.sh
   Arguments            = $data ${outdir}/$ene
   Output               = $outdir/$ene/${ene}.out
   Error                = $outdir/$ene/${ene}.err
