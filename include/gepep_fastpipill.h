@@ -15,6 +15,7 @@
 // Header file for the classes stored in the TTree if any.
 
 // Fixed size dimensions of array or collections stored in the TTree if any.
+struct Psip;
 
 class gepep_fastpipill {
 public :
@@ -232,6 +233,8 @@ public :
    bool     Loop();
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
+
+   void FitSpe(std::vector<Psip> &evts, const char* namesfx);
 };
 
 #endif

@@ -81,7 +81,7 @@ void Ks0Alg::Loop()
    double kslow=0.45;
    double ksup =0.55;
    TF1 *facfit = new TF1("facfit",line2,kslow,ksup,2);
-   char fname[100];
+   char fname[1000];
    sprintf(fname,"%s/plot_ks.root",outputdir.c_str());
    TFile *f=new TFile(fname,"RECREATE");
    
@@ -107,8 +107,8 @@ void Ks0Alg::Loop()
    RooRealVar a1("a1","coefficient #1",-1,-100000,100000);
    RooPolynomial ground("ground","ground",x,RooArgList(a0,a1));
  
-   RooRealVar signal("signal"," ",500,10,1000000);//event number
-   RooRealVar signal2("signal2"," ",100,1,1000000);//event number
+   RooRealVar signal("signal"," ",500,0,1000000);//event number
+   RooRealVar signal2("signal2"," ",100,0,1000000);//event number
    RooRealVar background("background"," ",10,0,1000000);
  
    RooAddPdf *sum;
@@ -214,8 +214,8 @@ void Ks0Alg::Loop()
         hmassc->Fill(mass);
         p1=CalMom(pippx[ipip],pippy[ipip],pippz[ipip]);
         p2=CalMom(pimpx[ipim],pimpy[ipim],pimpz[ipim]);
-        if (p1<0.2||p1>0.3) continue;
-        //if (p2<0.2||p2>0.3) continue;
+        if (p2<0.1||p2>0.4) continue;
+        //if (p2<0.1) continue;
         //if (p1+p2<0.4 || p1+p2 > 0.6) continue;
         costheta1 = pippz[ipip]/p1;
         costheta2 = pimpz[ipim]/p2;
@@ -240,17 +240,17 @@ void Ks0Alg::Loop()
         //partj = (int)((p2-start)/(stop-start)*Npart);
         //if ( partj>=Npart || partj<0 ) continue;
         for ( int partj=0;partj<Npart;partj++){
-          //if (p1<pcut[partj] || p1>pcut[partj+1]) continue;
-          if (p2<pcut[partj] || p2>pcut[partj+1]) continue;
+          if (p1<pcut[partj] || p1>pcut[partj+1]) continue;
+          //if (p2<pcut[partj] || p2>pcut[partj+1]) continue;
           if (mass>kslow-0.02 && mass<ksup+0.02){
             hmKs[partj]->Fill(mass);
-            ppx.push_back(pippx[ipip]);
-            ppy.push_back(pippy[ipip]);
-            ppz.push_back(pippz[ipip]);
-            mpx.push_back(pimpx[ipim]);
-            mpy.push_back(pimpy[ipim]);
-            mpz.push_back(pimpz[ipim]);
-	  }
+            mpx.push_back(pippx[ipip]);
+            mpy.push_back(pippy[ipip]);
+            mpz.push_back(pippz[ipip]);
+            ppx.push_back(pimpx[ipim]);
+            ppy.push_back(pimpy[ipim]);
+            ppz.push_back(pimpz[ipim]);
+	      }
           break;
         }
       }
@@ -291,7 +291,7 @@ void Ks0Alg::Loop()
      std::cout<<"part is "<<partj<<std::endl;
      double factori=1.0;
      factor = 0.995;
-     factori=1.00061;
+     factori=1.000815;
      //factori=factor;
      fittimes=0;
 
@@ -374,14 +374,18 @@ void Ks0Alg::Loop()
  
     }// n point end
     //will fit linear, get factor needed
+	std::cout<<"after loop, aaaaaaaaaaaaa"<<std::endl;
     c1->Clear();
     TGraphErrors *graph = new TGraphErrors(pointNo,factors,deltapeaks,factorserr,deltapeakserr);
     graph->SetTitle("delta peak");
     graph->Draw("AP");
     graph->SetMarkerStyle(5);
     gStyle->SetOptFit(1111);
-    facfit->SetParameters(1,0.4);
+	std::cout<<"after loop, dddddddddddda"<<std::endl;
+    facfit->SetParameters(1.0,0.4);
+	std::cout<<"after loop, cccccccccccca"<<std::endl;
     facfit->SetParNames("factor","slope");
+	std::cout<<"after loop, bbbbbbbbbbbba"<<std::endl;
     graph->Fit(facfit,"","",factors[0],factors[pointNo-1]);
     factor = facfit->GetParameter(0);
     //factori=factor;

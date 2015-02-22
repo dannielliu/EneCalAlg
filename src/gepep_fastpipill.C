@@ -94,7 +94,7 @@ bool gepep_fastpipill::Loop()
   double factorstart=0.995;
   // for factor fit
   TF1 *facfit = new TF1("facfit",line2,3.0,3.2,2);
-  char fname[100];
+  char fname[1000];
   sprintf(fname,"%s/plot_pipill.root",outputdir.c_str());
   TFile *f=new TFile(fname,"RECREATE");
 
@@ -248,6 +248,8 @@ bool gepep_fastpipill::Loop()
      tote=lee[0]+lee[1]+pie[0]+pie[1];
      mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
      mass = mass-massjpsi+3.096916;
+     //std::cout<<"jentry "<< jentry <<", mass "<<mass<<std::endl;
+     //std::cout<<pipx4[0]<<" "<<pipy4[0]<<" "<<pipz4[0]<<" "<<mlepton<<std::endl;
      // if (Cut(ientry) < 0) continue;
      int parti, partj;
      p1 = CalMom(pipx4[0],pipy4[0],pipz4[0]);
@@ -404,7 +406,7 @@ bool gepep_fastpipill::Loop()
         tote=lee[0]+lee[1]+pie[0]+pie[1];
         mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
         mass = mass-massjpsi+3.096916;
-        //h5->Fill(mass);
+		//h5->Fill(mass);
 
         if (mass>psiplow && mass<psipup){
           dataraw->Fill();

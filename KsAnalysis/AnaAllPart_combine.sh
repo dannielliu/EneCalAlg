@@ -17,3 +17,5 @@ for dir in `ls -d $datadir/*`;do
 done
 ../AnaSomePart $filelist
 mv combinedpar.txt $datadir
+echo "moving Ks_factors_sum.pdf to $datadir"
+mv Ks_factors_sum.pdf $datadir

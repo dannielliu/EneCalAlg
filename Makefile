@@ -5,7 +5,7 @@ vpath %.h ./include
 VPATH = src
 CC = g++ $(ROOTINCLUDE) $(ROOTLIB) $(INCDIR)
 OBJS= function.o bes3plotstyle.o gepep_fastpipill.o gepep_fast4pi.o gepep_fast6pi.o gepep_4k.o gepep_kk.o gepep_kpi.o gepep_kpi2.o gepep_fkkpipi.o Ks0Alg.o
-OBJS2= function.o gepep_fastpipill.o gepep_fast4pi.o gepep_fast6pi.o Ks0Alg_check.o
+OBJS2= function.o gepep_fastpipill_check.o gepep_fast4pi.o gepep_fast6pi.o Ks0Alg_check.o
 
 all: analysis checkf AnaSinglePart AnaSomePart CompareSets
 analysis:analysis.C $(OBJS)

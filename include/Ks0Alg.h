@@ -12,6 +12,8 @@
 #include <TChain.h>
 #include <TFile.h>
 
+struct Event;
+
 class Ks0Alg {
 public :
    TTree          *fChain;   //!pointer to the analyzed TTree or TChain
@@ -98,6 +100,8 @@ public :
    virtual void     Loop();
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
+   
+   void FitSpe(std::vector<Event> &evts, const char* namesfx);
 };
 
 #endif

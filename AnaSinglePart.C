@@ -6,6 +6,7 @@
 #include "TPaveText.h"
 #include "TStyle.h"
 #include "TAxis.h"
+using namespace std;
 
 int main(int argc, char** argv)
 {

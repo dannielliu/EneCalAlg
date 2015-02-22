@@ -145,7 +145,7 @@ int main(int argc, char** argv)
   pt1->AddText(tmpchr);
   pt1->Draw();
   
-  sprintf(tmpchr,"./Ks_factors_%d.pdf",cp);
+  sprintf(tmpchr,"./Ks_factors_sum.pdf");
   c1->Print(tmpchr);
   return 0;
 

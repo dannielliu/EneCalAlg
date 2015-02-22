@@ -16,7 +16,7 @@ using namespace std;
 int main(int argc, char** argv)
 {
 
-  char filenames[200][100];
+  char filenames[200][500];
   int fileNo = 0;
   if (argc<2){
     cout<<"no input file"<<endl;
@@ -93,7 +93,8 @@ int main(int argc, char** argv)
 
   TCanvas *c1 = new TCanvas();
   TFile *f = new TFile("aaa.root","RECREATE");
-  char lname[200][100]={"Rvalue","xyz4230","xyz4260","xyz4360","xyz4420","xyz4600"};
+  //char lname[200][100]={"Rvalue","xyz4230","xyz4260","xyz4360","xyz4420","xyz4600"};
+  char lname[200][100]={"cut2p","cut1p_pi-","cut1p_pi+","xyz4360","xyz4420","xyz4600"};
   TLegend *legend = new TLegend(0.7,0.7,0.9,0.9);
   for (fid=0;fid<validNo;fid++){
     std::cout<<"file "<<fid<<" have "<<np[fid]<<" parts."<<std::endl;
