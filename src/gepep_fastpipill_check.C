@@ -1,19 +1,21 @@
-#define Ks0Alg_cxx
-#include "Ks0Alg.h"
+#define gepep_fastpipill_cxx
+#include "gepep_fastpipill.h"
+#include <TH1D.h>
 #include <TH2.h>
-#include <TF1.h>
 #include <TStyle.h>
 #include <TCanvas.h>
 #include <TMath.h>
-#include "function.h"
+#include <TF1.h>
 #include "TPaveText.h"
+#include "function.h"
 #include "TLegend.h"
 #include "TGraphErrors.h"
 #include <fstream>
 #include "RooFit.h"
 #include "RooRealVar.h"
-#include "RooAbsReal.h"
 #include "RooGaussian.h"
+#include "RooCBShape.h"
+#include "RooBreitWigner.h"
 #include "RooPolynomial.h"
 #include "RooDataHist.h"
 #include "RooDataSet.h"
@@ -22,18 +24,17 @@
 #include "RooPlot.h"
 #include "RooMsgService.h"
 #include <vector>
-#include <fstream>
 extern std::string outputdir;
 using namespace RooFit;
-namespace KS{
-  void FitSpectrum(TTree *&dataraw, char* namesfx, bool output = false);
+namespace PSIP{
+  void FitSpectrum(TTree *&dataraw, char* namesfx, bool out=false);
 }
 
-void Ks0Alg::Loop()
+bool gepep_fastpipill::Loop()
 {
 //   In a ROOT session, you can do:
-//      Root > .L Ks0Alg.C
-//      Root > Ks0Alg t
+//      Root > .L gepep_fastpipill.C
+//      Root > gepep_fastpipill t
 //      Root > t.GetEntry(12); // Fill t data members with entry number 12
 //      Root > t.Show();       // Show values of entry 12
 //      Root > t.Show(16);     // Read and show values of entry 16
@@ -54,241 +55,202 @@ void Ks0Alg::Loop()
 // METHOD2: replace line
 //    fChain->GetEntry(jentry);       //read all branches
 //by  b_branchname->GetEntry(ientry); //read only this branch
-   if (fChain == 0) return;
+  //ofstream logfile("log.txt");
+  //std::cout.rdbuf(logfile.rdbuf());
+  //std::clog.rdbuf(logfile.rdbuf());
+  // std::cerr.rdbuf(logfile.rdbuf());
+  std::cout<<"Use algorithm: fastpipill_check"<<std::endl;
+  if (fChain == 0) return false;
+  Long64_t nentries = fChain->GetEntriesFast();
 
-   Long64_t nentries = fChain->GetEntriesFast();
+  std::cout<<"Total entry is "<<nentries<<std::endl;
+  //int nBins=12;
+  double me=0.000511;
+  double mmu=0.105658;
+  double mpi=0.13957;
+  double psiplow=3.665;
+  double psipup=3.705;
 
-   std::cout<<"loop"<<std::endl;
+  // for factor fit
+  char fname[1000];
+  std::cout<<"0 mass window ("<<psiplow<<", "<<psipup<<")"<<std::endl;
+  sprintf(fname,"%s/plot_psip.root",outputdir.c_str());
+  std::cout<<"0 mass window ("<<psiplow<<", "<<psipup<<")"<<std::endl;
+  TFile *f=new TFile(fname,"RECREATE");
 
-   char fname[100];
-   sprintf(fname,"%s/plot_ks.root",outputdir.c_str());
-   TFile *f=new TFile(fname,"RECREATE");
-   double mpi=0.13957;
-   double kslow=0.45;
-   double ksup =0.55;
-   
-   TTree *vars = new TTree("vars","vars");
-   double mass;
-   double phi,phi1,phi2;
-   double costheta,costheta1,costheta2;
-   double p1,p2;
-   vars->Branch("phi",&phi,"phi/D");
-   vars->Branch("phi1",&phi1,"phi1/D");
-   vars->Branch("phi2",&phi2,"phi2/D");
-   vars->Branch("costheta",&costheta,"costheta/D");
-   vars->Branch("costheta1",&costheta1,"costheta1/D");
-   vars->Branch("costheta2",&costheta2,"costheta2/D");
-   vars->Branch("p1",&p1,"p1/D");
-   vars->Branch("p2",&p2,"p2/D");
-   vars->Branch("mass",&mass,"mass/D");
-   
-   TH1D *hmass  = new TH1D("hmass" ,"Ks mass",200,0.45,0.55);
-   TH1D *hmassU = new TH1D("hmassU","Ks mass",200,0.45,0.55);
-   TH1D *hmassc = new TH1D("hmassc","Ks mass",200,0.45,0.55);
-   //TH2D *h2pos = new TH2D("h2pos","pos",10, 0,5, 10,0,5);
-   TH2D *h2p = new TH2D("h2p","P",200, 0,2, 200,0,2);
+  TCanvas *c1=new TCanvas("c1","",800,600);
+  TTree *vars = new TTree("vars","vars");
+  double mass;
+  double phi,phi1,phi2;
+  double costheta,costheta1,costheta2;
+  double p1,p2;
+  vars->Branch("phi",&phi,"phi/D");
+  vars->Branch("phi1",&phi1,"phi1/D");
+  vars->Branch("phi2",&phi2,"phi2/D");
+  vars->Branch("costheta",&costheta,"costheta/D");
+  vars->Branch("costheta1",&costheta1,"costheta1/D");
+  vars->Branch("costheta2",&costheta2,"costheta2/D");
+  vars->Branch("p1",&p1,"p1/D");
+  vars->Branch("p2",&p2,"p2/D");
+  vars->Branch("mass",&mass,"mass/D");
 
-   const int Npart=10;
-   double start=0.1;
-   double stop =1.0;
-   double pcut[Npart+1]={0,0.10,0.20,0.30,0.40,0.50,
-		                   0.60,0.70,0.80,0.90,1.00};//={0.0,0.5,1.0,1.5,2.0};
-//  set normal factor in (0.2, 0.3) to 1.00061, get factor in different range
-   //pcut[0] = start;
-   //pcut[1] = stop;
- //pcut[0] =0.0 ;  
- //pcut[1] =0.05;  
- //pcut[2] =0.10;  
- //pcut[3] =0.15;  
- //pcut[4] =0.20;  
- //pcut[5] =0.25;  
- //pcut[6] =0.30;  
- //pcut[7] =0.35;  
- //pcut[8] =0.40;  
- //pcut[9] =0.45;  
- //pcut[10]=0.50;  
- //pcut[11]=0.60;  
- //pcut[12]=0.70;  
- //pcut[13]=0.80;  
- //pcut[14]=0.90;  
- //pcut[15]=1.00;  
- //pcut[16]=1.20;  
- //pcut[17]=1.40;  
- //pcut[18]=1.60;       
- //pcut[19]=1.80;       
- //pcut[20]=2.00;  //facmap[20]=2.00;
+  // for initial spectrum
+  Long64_t nbytes = 0, nb = 0;
 
-   Event evt;
-   std::vector<Event> evts[Npart][Npart];
-   
-   Long64_t nbytes = 0, nb = 0;
-   for (Long64_t jentry=0; jentry<nentries;jentry++) {
-      Long64_t ientry = LoadTree(jentry);
-      if (ientry < 0) break;
-      nb = fChain->GetEntry(jentry);   nbytes += nb;
-      // if (Cut(ientry) < 0) continue;
-     
-      int ipip=0,ipim=0;
-      for (int ipip=0; ipip<npip;ipip++)
-      for (int ipim=0; ipim<npim;ipim++){
-		evt.SetVal(pippx[ipip],pippy[ipip],pippz[ipip],
-		           pimpx[ipim],pimpy[ipim],pimpz[ipim]);
-        mass = evt.InvMass();
-        double chi2 = m_chisq0[ipip*npim+ipim]+m_chisqvtxnd[ipip*npim+ipim];
-        if (chi2 > 100) continue;
-        double ratio = m_decayL[ipip*npim+ipim]/m_decayLerr[ipip*npim+ipim];
-        if (ratio<2) continue;
-        if (Ks_id[ipip*npim+ipim]==0){
-          hmassU->Fill(mass);
-          continue;
-        }
-        hmass->Fill(Mpippim[ipip*npim+ipim]);
-        hmassc->Fill(mass);
-        p1 = evt.GetP1();
-        p2 = evt.GetP2();
-        if (p1<0.1  || p1>1.0) continue;
-        if (p2<0.1  || p2>1.0) continue;
-        costheta1 = evt.GetCostheta1();
-        costheta2 = evt.GetCostheta2();
-		phi1 = evt.GetPhi1();
-		phi2 = evt.GetPhi2();
-        int parti=-1,partj=-1;
-		for (int i=0;i<Npart;i++){
-           if (p1>=pcut[i]&&p1<pcut[i+1]){
-            parti=i;
-            break;
-          }
-        }
-        for (int i=0;i<Npart;i++){
-          if (p2>=pcut[i]&&p2<pcut[i+1]){
-            partj = i;
-            break;
-          }
-        }
-        if(parti==-1 || partj==-1) continue;
-        if (mass>kslow && mass<ksup){
-          vars->Fill();
-		  evts[parti][partj].push_back(evt);
-         }
+  const int Npart=1;
+  // cut phi
+  //double phicut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
+  //double start=0.0;
+  //double stop =2*TMath::Pi();
+  //for(int i=0;i<Npart+1;i++){
+  //  phicut[i] = (stop-start)/Npart*i+start;
+  //}
+  //
+  // cut cos theta
+  //double costhecut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
+  //double start=-1;
+  //double stop =1;
+  //for(int i=0;i<Npart+1;i++){
+  //  costhecut[i] = (stop-start)/Npart*i+start;
+  //}
+  // cut p
+  double pcut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
+  double start=0.1;
+  double stop =0.4;
+  for(int i=0;i<Npart+1;i++){
+    pcut[i] = (stop-start)/Npart*i+start;
+  }
 
-      } 
-      
-   }// loop data end 
-   vars->Write();
+  char name[100];
+  // ~~~~~~~~ draw nxn histogram, m distribution in different range
+ 
+  Psip evt;
+  std::vector<Psip> evts[Npart][Npart];
 
+  // loop the data
+  for (Long64_t jentry=0; jentry<nentries;jentry++) {
+     Long64_t ientry = LoadTree(jentry);
+     if (ientry < 0) break;
+     nb = fChain->GetEntry(jentry);   nbytes += nb;
+
+     evt.Setval(pipx4[0],pipy4[0],pipz4[0],
+	            pipx4[1],pipy4[1],pipz4[1],
+	            lepx4[0],lepy4[0],lepz4[0],
+	            lepx4[1],lepy4[1],lepz4[1]
+	           );
+
+     // total invariant mass
+     if(cos(angle4)>0.90) continue; // cut bhabha 
+     if (decay_ee == 0) evt.SetLeptonM(mmu);
+     else if (decay_ee==1) evt.SetLeptonM(me);
+     else {
+       std::cout<<"can not identify lepton. "<<std::endl;
+       continue;;
+     } 
+     // if (Cut(ientry) < 0) continue;
+	 //int parti, partj;
+	 mass = evt.InvMass();
+     //std::cout<<"jentry "<< jentry <<", mass "<<mass<<std::endl;
+     //std::cout<<evt.pipx1<<" "<<evt.pipy1<<" "<<evt.pipz1<<" "<<evt.ml<<std::endl;
+     p1 = evt.GetP1();
+     p2 = evt.GetP2();
+	 if (p1<0.10 || p1>0.4) continue;
+	 if (p2<0.10 || p2>0.4) continue;
+	 //if (p1+p2<0.4 || p1+p2>0.6) continue;
+     costheta1 = evt.GetCostheta1();
+     costheta2 = evt.GetCostheta2();
+     phi1 = evt.GetPhi1();
+     phi2 = evt.GetPhi2();
+     if ( mass>psiplow && mass<psipup ) {
+	   vars->Fill();
+	 }
+	 int parti=-1,partj=-1;
+	 for (int i=0;i<Npart;i++){
+       if (p1>=pcut[i]&&p1<pcut[i+1]){
+         parti=i;
+         break;
+       }
+     }
+
+     for (int i=0;i<Npart;i++){
+       if (p2>=pcut[i]&&p2<pcut[i+1]){
+         partj = i;
+         break;
+       }
+     }
+     if(parti==-1 || partj==-1) continue;
+     if (mass>psiplow-0.002 && mass<psipup+0.002){
+	   evts[parti][partj].push_back(evt);
+     }
+
+  }
+  vars->Write();
    for (int parti=0; parti<Npart;parti++)
-   for (int partj=0;  partj<Npart;partj++){
+   for (int partj=0; partj<Npart;partj++){
      sprintf(fname,"part%02d%02d",parti,partj);
 	 if(evts[parti][partj].size()<200) continue;
 	 FitSpe(evts[parti][partj],fname);
    }
 
-   return;
+  //FitSpe(evts,"all");
+  return true;
 }
 
-void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
+void gepep_fastpipill::FitSpe(std::vector<Psip> &evts,const char *namesfx)
 {
-   double mpi=0.13957;
-   double kslow=0.45;
-   double ksup =0.55;
-   //TF1 *facfit = new TF1("facfit",line2,kslow,ksup,2);
-   TTree *datarawo= new TTree("datarawo" ,"dataraw");
-   TTree *dataraw = new TTree("dataraw" ,"dataraw");
-   TTree *datarawl= new TTree("datarawl" ,"dataraw");
-   TTree *datarawu= new TTree("datarawu" ,"dataraw");
-   double mass;
-   datarawo->Branch("x",&mass,"x/D");
-   dataraw->Branch("x",&mass,"x/D");
-   datarawl->Branch("x",&mass,"x/D");
-   datarawu->Branch("x",&mass,"x/D");
-   double p1,p2;
-   double costheta1,costheta2;
-
-   const int Npart=30;
-   const int Ncos=10;
-   double start=0.1;
-   double stop =1.0;
-   double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
+  double psiplow=3.665;
+  double psipup=3.705;
+  // for factor fit
+ 
+  TTree *datarawo = new TTree("datarawo","dataraw");
+  TTree *dataraw = new TTree("dataraw","dataraw");
+  TTree *datarawl = new TTree("datarawl","dataraw");
+  TTree *datarawu = new TTree("datarawu","dataraw");
+  double mass;
+  datarawo->Branch("x",&mass,"x/D");
+  dataraw->Branch("x",&mass,"x/D");
+  datarawl->Branch("x",&mass,"x/D");
+  datarawu->Branch("x",&mass,"x/D");
+ 
+  // try to correct the spectrum
+  // iniialize the fit function
+  //double factor4,factor4err;// for pi
+ 
+  int Npart=30;
+  int Ncos=10;
+  double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
 		  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
    //pcut[0]=0.1;
    //pcut[1]=0.4;
    //pcut[2]=0.9;
    double coscut[Ncos+1];
-   double facmap[Npart][Ncos]; // for pi+
+   double facmap[Npart][Ncos];
    double facemap[Npart][Ncos];
-   //double facmapm[Npart]; // for pi-
-   //double facemapm[Npart];
 
-//  set normal factor in (0.1, 0.4) to 1.000815, get factor in different range
+//  set normal factor in (0.2, 0.3) to 1.00061, get factor in different range
 /*
    pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
    pcut[1] =0.05;  facmap[1] =1.0;       facemap[1] =1.0;     
-   pcut[2] =0.10;  facmap[2] =1.00263 ;  facemap[2] =0.000104711;
-   pcut[3] =0.15;  facmap[3] =1.00127 ;  facemap[3] =5.66523e-05;
-   pcut[4] =0.20;  facmap[4] =1.00089 ;  facemap[4] =5.40327e-05;
-   pcut[5] =0.25;  facmap[5] =1.00061 ;  facemap[5] =4.96881e-05;
-   pcut[6] =0.30;  facmap[6] =1.00063 ;  facemap[6] =5.45699e-05;
-   pcut[7] =0.35;  facmap[7] =1.00034 ;  facemap[7] =6.70568e-05;
-   pcut[8] =0.40;  facmap[8] =0.999916;  facemap[8] =8.51944e-05;
-   pcut[9] =0.45;  facmap[9] =0.999916;  facemap[9] =0.00010567 ;
-   pcut[10]=0.50;  facmap[10]=0.99955 ;  facemap[10]=8.6275e-05 ;
-   pcut[11]=0.60;  facmap[11]=0.999922;  facemap[11]=0.000112065;
-   pcut[12]=0.70;  facmap[12]=1.00024 ;  facemap[12]=0.000229724;
-   pcut[13]=0.80;  facmap[13]=1.00037 ;  facemap[13]=0.000353896;
-   pcut[14]=0.90;  facmap[14]=1.00057 ;  facemap[14]=0.000551636;
-   pcut[15]=1.00;  facmap[15]=1.00208 ;  facemap[15]=0.000718673;
-   pcut[16]=1.20;  facmap[16]=0.994435;  facemap[16]=0.00286605 ;
-   pcut[17]=1.40;  facmap[17]=0.98542 ;  facemap[17]=0.00410906 ;
+   pcut[2] =0.10;  facmap[2] =1.0;       facemap[2] =1.0;
+   pcut[3] =0.15;  facmap[3] =1.00196 ;  facemap[3] =6.16454e-05;
+   pcut[4] =0.20;  facmap[4] =1.00103 ;  facemap[4] =6.03674e-05;
+   pcut[5] =0.25;  facmap[5] =1.00037 ;  facemap[5] =7.83072e-05;
+   pcut[6] =0.30;  facmap[6] =1.00029 ;  facemap[6] =0.000100928;
+   pcut[7] =0.35;  facmap[7] =1.00006 ;  facemap[7] =0.000131676;
+   pcut[8] =0.40;  facmap[8] =0.999687;  facemap[8] =0.000174975;
+   pcut[9] =0.45;  facmap[9] =0.999197;  facemap[9] =0.000210539;
+   pcut[10]=0.50;  facmap[10]=0.999238;  facemap[10]=0.000194209;
+   pcut[11]=0.60;  facmap[11]=0.999154;  facemap[11]=0.00028029 ;
+   pcut[12]=0.70;  facmap[12]=0.999249;  facemap[12]=0.00044126 ;
+   pcut[13]=0.80;  facmap[13]=0.999974;  facemap[13]=0.000672389;
+   pcut[14]=0.90;  facmap[14]=1.00274 ;  facemap[14]=0.00108137 ;
+   pcut[15]=1.00;  facmap[15]=0.999595;  facemap[15]=0.00119913 ;
+   pcut[16]=1.20;  facmap[16]=1.00089 ;  facemap[16]=0.00206829 ;
+   pcut[17]=1.40;  facmap[17]=0.988005;  facemap[17]=0.00665777 ;
    pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
    pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
    pcut[20]=2.00;  //facmap[20]=2.00;
 */
-//  set normal factor in (0.2, 0.3) to 1.00061, get factor in different range for pi-
-/* 
- //pcut[0] =0.0 ;//facmapm[0] =1.0;       facemapm[0] =1.0;     
- //pcut[1] =0.05;//facmapm[1] =1.0;       facemapm[1] =1.0;     
- //pcut[2] =0.10;//facmapm[2] =1.0;       facemapm[2] =1.0;
- //pcut[3] =0.15;//facmapm[3] =1.00196 ;  facemapm[3] =6.16454e-05;
- //pcut[4] =0.20;//facmapm[4] =1.00103 ;  facemapm[4] =6.03674e-05;
- //pcut[5] =0.25;//facmapm[5] =1.00037 ;  facemapm[5] =7.83072e-05;
- //pcut[6] =0.30;//facmapm[6] =1.00029 ;  facemapm[6] =0.000100928;
- //pcut[7] =0.35;//facmapm[7] =1.00006 ;  facemapm[7] =0.000131676;
- //pcut[8] =0.40;//facmapm[8] =0.999687;  facemapm[8] =0.000174975;
- //pcut[9] =0.45;//facmapm[9] =0.999197;  facemapm[9] =0.000210539;
- //pcut[10]=0.50;//facmapm[10]=0.999238;  facemapm[10]=0.000194209;
- //pcut[11]=0.60;//facmapm[11]=0.999154;  facemapm[11]=0.00028029 ;
- //pcut[12]=0.70;//facmapm[12]=0.999249;  facemapm[12]=0.00044126 ;
- //pcut[13]=0.80;//facmapm[13]=0.999974;  facemapm[13]=0.000672389;
- //pcut[14]=0.90;//facmapm[14]=1.00274 ;  facemapm[14]=0.00108137 ;
- //pcut[15]=1.00;//facmapm[15]=0.999595;  facemapm[15]=0.00119913 ;
- //pcut[16]=1.20;//facmapm[16]=1.00089 ;  facemapm[16]=0.00206829 ;
- //pcut[17]=1.40;//facmapm[17]=0.988005;  facemapm[17]=0.00665777 ;
- //pcut[18]=1.60;//facmapm[18]=1.0;       facemapm[18]=1.0;     
- //pcut[19]=1.80;//facmapm[19]=1.0;       facemapm[19]=1.0;     
- //pcut[20]=2.00;////facmap[20]=2.00;
-
-                 //facmapp[0] =1.0;       facemapp[0] =1.0;     
-                 //facmapp[1] =1.0;       facemapp[1] =1.0;     
-                 //facmapp[2] =1.0;       facemapp[2] =1.0;
-                 //facmapp[3] =1.00187 ;  facemapp[3] =6.54054e-05;
-                 //facmapp[4] =1.00108 ;  facemapp[4] =6.1776e-05 ;
-                 //facmapp[5] =1.00033 ;  facemapp[5] =8.0688e-05 ;
-                 //facmapp[6] =1.00034 ;  facemapp[6] =8.32413e-05;
-                 //facmapp[7] =0.999868;  facemapp[7] =0.000105336;
-                 //facmapp[8] =0.999483;  facemapp[8] =0.000156073;
-                 //facmapp[9] =0.999932;  facemapp[9] =0.000191548;
-                 //facmapp[10]=0.999581;  facemapp[10]=0.000181117;
-                 //facmapp[11]=1.00036 ;  facemapp[11]=0.000271994;
-                 //facmapp[12]=1.00085 ;  facemapp[12]=0.000409303;
-                 //facmapp[13]=1.00128 ;  facemapp[13]=0.000622945;
-                 //facmapp[14]=1.00197 ;  facemapp[14]=0.000878579;
-                 //facmapp[15]=1.00456 ;  facemapp[15]=0.00127855 ;
-                 //facmapp[16]=0.999691;  facemapp[16]=0.000841315;
-                 //facmapp[17]=1.01137 ;  facemapp[17]=0.0145154  ;
-                 //facmapp[18]=1.0;       facemapp[18]=1.0;     
-                 //facmapp[19]=1.0;       facemapp[19]=1.0;     
-*/
-
 //  set normal factor in (0.1, 0.4) to 1.000815, get factor in different range
 //  only for r value data, limit pi+ split pi-
 /*
@@ -314,7 +276,7 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
    pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
    pcut[20]=2.00;  //facmap[20]=2.00;
 */
-//  set normal factor in (0.1, 0.4) to 1.000815, get factor in different range
+  //  set normal factor in (0.1, 0.4) to 1.000815, get factor in different range
 //  only for r value data, limit pi- split pi+
 /*
    pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
@@ -338,7 +300,7 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
    pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
    pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
    pcut[20]=2.00;  //facmap[20]=2.00;
-*/   
+*/
    //  set normal factor in (0.1, 0.4) to 1.000815, get factor in different range
 //  only for r value data, combine both part
 /*
@@ -415,7 +377,7 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
    pcut[20]=2.00;  //facmap[20]=2.00;
 */
    //  set factors in (0.15, 0.6) to up values, get factor in different range
-//  only for r value data
+//  only for r value data, combine both part
 /*
    pcut[0] = 0.0  ;  facmap[0] = 1.0     ;  facemap[0] = 1.0     ;
    pcut[1] = 0.025;  facmap[1] = 1.0     ;  facemap[1] = 1.0     ;
@@ -449,8 +411,6 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
    pcut[29]= 1.80 ;  facmap[29]= 1.0     ;  facemap[29]= 1.0     ;
    pcut[30]= 2.00 ;
 */
-   //  set factors in (0.15, 0.6) to up values, get factor in different range
-//  only for r value data, cut p 30 parts, cut cos 10 parts
    pcut[0] = 0.0  ;   coscut[0] = -1.0;
    pcut[1] = 0.025;   coscut[1] = -0.8;   
    pcut[2] = 0.05 ;   coscut[2] = -0.6;
@@ -734,27 +694,30 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
   facmap[24][8] = 1.00672   ;  facemap[24][8] = 0.00353916 ;
   facmap[24][9] = 1.0069    ;  facemap[24][9] = 0.00417591 ;
 
-   char name[200];
-   double factori=1;
-   double factorj=1;
-   // ~~~~~~~~ draw nxn histogram, m distribution in different range
+
+  char tmpchr[100];
+
+//~~~~~~~~~~pion part start~~~~~~~~
+
+  for (Long64_t jentry=0; jentry<evts.size();jentry++) {
+     
+     double p1,p2;
+     double costheta1,costheta2;
+     // total invariant mass
+     p1 = evts.at(jentry).GetP1();
+     p2 = evts.at(jentry).GetP2();
+	 costheta1 = evts.at(jentry).GetCostheta1();
+	 costheta2 = evts.at(jentry).GetCostheta2();
+     if (p1<0.10 || p1>1.0) continue;
+     if (p2<0.10 || p2>1.0) continue;
+	 // without correction
+     mass = evts.at(jentry).InvMass();
+     if (mass>psiplow-0.001 && mass<psipup+0.001)
+       datarawo->Fill();
  
-   // loop data
-   for (Long64_t jentry=0; jentry<evts.size();jentry++) {
-      p1 = evts.at(jentry).GetP1();
-      p2 = evts.at(jentry).GetP2();
-	  costheta1 = evts.at(jentry).GetCostheta1();
-	  costheta2 = evts.at(jentry).GetCostheta2();
-      if (p1<0.1  || p1>1.0) continue;
-      if (p2<0.1  || p2>1.0) continue;
-      
-      mass = evts.at(jentry).InvMass();
-      if (mass>kslow && mass<ksup){
-        datarawo->Fill();
-      }
-	  
-	  // allocate factor according to p, average factor
-      for (int i=0;i<Npart;i++){
+	 double factori=0,factorj=0;
+	 // for average correction factor
+     for (int i=0;i<Npart;i++){
         if (p1>=pcut[i]&&p1<pcut[i+1]){
 		  for (int j=0; j<Ncos;j++){
 		    if (costheta1>=coscut[j]&&costheta1<coscut[j+1]){
@@ -776,13 +739,19 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
           break;
         }
       }
-      mass = evts.at(jentry).InvMass(factori,factorj);
-	  if (mass>kslow && mass<ksup){
-        dataraw->Fill();
-      }
- 
-      // allocate factor according to p, factor at low edge
-      for (int i=0;i<Npart;i++){
+	 if (factori==0 || factorj==0){
+	   std::cout<<"Waring: factor is 0, id "<<jentry<<", factori "<<factori<<", factorj "<<factorj<<std::endl;
+	   std::cout<<"p1 "<<p1<<", p2 "<<p2<<", cos1 "<<costheta1<<std::endl;
+	   continue;
+	 }
+     mass = evts.at(jentry).InvMass(factori,factorj);
+     //mass = evts.at(jentry).InvMass(1.001,1.001);
+     if (mass>psiplow-0.001 && mass<psipup+0.001)
+       dataraw->Fill();
+	 // average factor end
+	 //
+	 // factor at low edge
+     for (int i=0;i<Npart;i++){
         if (p1>=pcut[i]&&p1<pcut[i+1]){
 		  for (int j=0; j<Ncos;j++){
 		    if (costheta1>=coscut[j]&&costheta1<coscut[j+1]){
@@ -804,13 +773,18 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
           break;
         }
       }
-      mass = evts.at(jentry).InvMass(factori,factorj);
-      if (mass>kslow && mass<ksup){
-        datarawl->Fill();
-      }
-
-      // allocate factor according to p, factor at up edge
-      for (int i=0;i<Npart;i++){
+     if (factori==0 || factorj==0){
+	   std::cout<<"Waring: factor is 0, id "<<jentry<<std::endl;
+	   continue;
+	 }
+     mass = evts.at(jentry).InvMass(factori,factorj);
+     //mass = evts.at(jentry).InvMass(1.0005,1.0005);
+     if (mass>psiplow-0.001 && mass<psipup+0.001)
+       datarawl->Fill();
+	 // factor at low edge end
+	 //
+	 // factor at up edge
+     for (int i=0;i<Npart;i++){
         if (p1>=pcut[i]&&p1<pcut[i+1]){
 		  for (int j=0; j<Ncos;j++){
 		    if (costheta1>=coscut[j]&&costheta1<coscut[j+1]){
@@ -832,176 +806,175 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
           break;
         }
       }
-      mass = evts.at(jentry).InvMass(factori,factorj);
-      if (mass>kslow && mass<ksup){
-        datarawu->Fill();
-      }
-      
-   }// loop data end
-   std::cout<<"fffffffffffffffff"<<std::endl;
-   
-   // no correction
-   sprintf(name,"raw_%s",namesfx);
-   KS::FitSpectrum(datarawo,name,true);
+     if (factori==0 || factorj==0){
+	   std::cout<<"Waring: factor is 0, id "<<jentry<<std::endl;
+	   continue;
+	 }
+     mass = evts.at(jentry).InvMass(factori,factorj);
+     //mass = evts.at(jentry).InvMass(1.002,1.002);
+     if (mass>psiplow-0.001 && mass<psipup+0.001)
+       datarawu->Fill();
+  }
+  //dataraw->Write();
+  // no correction
+  sprintf(tmpchr,"raw_%s",namesfx);
+  PSIP::FitSpectrum(datarawo,tmpchr,true);
+  std::cout<<"cccccccccca"<<std::endl;
 
-   // average factor part
-   sprintf(name,"nom_%s",namesfx);
-   KS::FitSpectrum(dataraw,name,true);
+  // factor at average
+  sprintf(tmpchr,"nom_%s",namesfx);
+  PSIP::FitSpectrum(dataraw,tmpchr,true);
+  std::cout<<"dddddddddda"<<std::endl;
+ 
+  // factor at low edge
+  sprintf(tmpchr,"low_%s",namesfx);
+  PSIP::FitSpectrum(datarawl,tmpchr,true);
 
-   // low edge part
-   sprintf(name,"low_%s",namesfx);
-   KS::FitSpectrum(datarawl,name);
-   // low part end
+  // factor at up edge
+  sprintf(tmpchr,"up_%s",namesfx);
+  PSIP::FitSpectrum(datarawu,tmpchr,true);
 
-   //  up part 
-   sprintf(name,"up_%s",namesfx);
-   KS::FitSpectrum(datarawu,name);
-   // up part end
-   return;
+//~~~~~~~~~~pion part end~~~~~~~~
+  return;
 }
 
-void KS::FitSpectrum(TTree *&dataraw, char* namesfx, bool output)
-{  
-   TCanvas *c1 = new TCanvas();
-   int Npar;
-   char name[200];
-   int nBins=100;
-   double mparticle=0.497614;
-   double kslow=0.45;
-   double ksup =0.55;
-
-   // roofit variables and functions
-   RooRealVar x("x","energy",mparticle,kslow,ksup,"GeV");
-   RooRealVar mean("mean","mean of gaussian",mparticle,kslow,ksup);
-   RooRealVar sigma("sigma","width of gaussian",0.0030,0.0010,0.0050);
-   RooRealVar sigma2("sigma2","width of gaussian",0.009,0.005,0.02);
-   RooRealVar brewid("brewid","width of breit wigner",0.0023,0.0010,0.05);
-   mean.setError(0.000014);
-   sigma.setError(0.000032);
-   sigma2.setError(0.000078);
-   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
-   RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
- 
-   RooRealVar a0("a0","coefficient #0",1000,-1000000,1000000);
-   RooRealVar a1("a1","coefficient #1",-1000,-1000000,1000000);
-   RooPolynomial ground("ground","ground",x,RooArgList(a0,a1));
- 
-   RooRealVar signal("signal"," ",100000,0,10000000);//event number
-   RooRealVar signal2("signal2"," ",100000,0,10000000);//event number
-   RooRealVar background("background"," ",300000,0,10000000);
-   signal.setError(sqrt(signal.getVal()));
-   signal2.setError(sqrt(signal2.getVal()));
-   background.setError(sqrt(background.getVal()));
-
-   RooAddPdf *sum;
-   RooDataHist *datahist;
-   RooDataSet *dataset;
-   RooPlot *xframe;  
+void PSIP::FitSpectrum(TTree *&dataraw, char* namesfx, bool out)
+{
+  int nBins=100;
+  double mparticle = 3.686109;
+  double psiplow=3.665;
+  double psipup=3.705;
+  int Npar;
+  char tmpchr[100];
+  TCanvas *c1=new TCanvas("c1_1","",800,600);
+  // try to use roofit
+  RooRealVar x("x","energy",mparticle,psiplow,psipup,"GeV");
+  RooRealVar mean("mean","mean of gaussian",mparticle,psiplow,psipup);
+  RooRealVar sigma("sigma","width of gaussian",0.0017,0.001,0.0025);
+  RooRealVar sigma2("sigma2","width of gaussian",0.0025,0.002,0.004);
+  RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
+  RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
   
-   RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
-   
-   if (dataraw->GetEntries("x>0.49 && x<0.51")<50) return;
-   xframe = x.frame(Title("fit Ks"));
-   // fit data
-   sprintf(name,"data_Ks_%s",namesfx);
-   dataset = new RooDataSet(name,"data",RooArgSet(x),Import(*dataraw));
-   sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
-   Npar=8;
-   sum->fitTo(*dataset,Range(kslow,ksup));
-   dataset->plotOn(xframe,Binning(nBins));
-   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-   sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
-   sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
-   sum->plotOn(xframe);
-   xframe->Draw();
-   TPaveText *pt = new TPaveText(0.65,0.50,0.95,0.95,"BRNDC");
-   pt->SetBorderSize(0);
-   pt->SetFillStyle(4000);
-   pt->SetTextAlign(12);
-   pt->SetTextFont(42);
-   pt->SetTextSize(0.035);
-   sprintf(name,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
-   pt->AddText(name);
-   sprintf(name,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
-   pt->AddText(name);
-   sprintf(name,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
-   pt->AddText(name);
-   sprintf(name,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
-   pt->AddText(name);
-   sprintf(name,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
-   pt->AddText(name);
-   sprintf(name,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
-   pt->AddText(name);
-   sprintf(name,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
-   pt->AddText(name);
+  RooRealVar signal("signal"," ",3800,0,1000000);//event number
+  RooRealVar signal2("signal2"," ",3000,0,1000000);//event number
+  RooRealVar background("background"," ",2000,0,1000000);
+  
+  RooRealVar a0("a0","coefficient #0",100,-100000,100000);
+  RooRealVar a1("a1","coefficient #1",-1,-100000,100000);
+  RooPolynomial ground("ground","ground",x,RooArgList(a0,a1));
+ 
+  mean.setVal(3.68611);
+  mean.setError(0.000035);
+  sigma.setError(0.000048);
+  sigma2.setError(0.000034);
+  signal.setError(sqrt(signal.getVal()));
+  signal2.setError(sqrt(signal2.getVal()));
+  background.setError(sqrt(background.getVal()));
+  // Roofit part
+  RooAddPdf *sum;
+  RooDataSet *dataset;
+  RooPlot *xframe;  
+  
+  RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
+  
+  // factor at average
+  xframe = x.frame(Title("fit #psi'"));
+  sprintf(tmpchr,"data_pi_%s",namesfx);
+  dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
+  sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
+  Npar=8;
+  sum->fitTo(*dataset,Range(psiplow,psipup));
+  dataset->plotOn(xframe,Binning(nBins));
+  sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+  sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
+  sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
+  sum->plotOn(xframe);
+  xframe->Draw();
+  TPaveText *pt = new TPaveText(0.60,0.5,0.90,0.90,"BRNDC");
+  pt->SetBorderSize(0);
+  pt->SetFillStyle(4000);
+  pt->SetTextAlign(12);
+  pt->SetTextFont(42);
+  pt->SetTextSize(0.035);
+  sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
+  pt->AddText(tmpchr);
+  pt->Draw();
+  //c1->Update();
+  //xframe->SetName("mass_pi_best");
+  sprintf(tmpchr,"mass_spectrum_%s",namesfx);
+  c1->SetName(tmpchr);
+  c1->Write();
+  if (out){
+    char name[500];
+    sprintf(name,"%s/result.txt",outputdir.c_str());
+    ofstream ofresult(name,std::ios::app);
+    ofresult<<namesfx<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+    ofresult.close();
+  }
+  std::cout<<"aaaaaaaaaaa"<<std::endl;
+  delete sum;
+  delete dataset;
+  delete xframe;
+  delete pt;
+  delete c1;
+  std::cout<<"bbbbbbbbbba"<<std::endl;
 
-   pt->Draw();
-   c1->Update();
-   sprintf(name,"final_fit_%s",namesfx);
-   c1->SetName(name);
-   c1->Write();
-   
-   if (output){
-     sprintf(name,"%s/result.txt",outputdir.c_str());
-     ofstream ofresult(name,std::ios::app);
-	 ofresult<<namesfx<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
-	 ofresult.close();
-   }
-
-   delete sum;
-   delete dataset;
-   delete xframe;
-   delete pt;
-   delete c1;
-   //average part end
-
-   return;
+  return;
 }
 
-#ifdef Ks0Alg_cxx
-Ks0Alg::Ks0Alg(TTree *tree)
+gepep_fastpipill::gepep_fastpipill(TTree *tree) : fChain(0) 
 {
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
    if (tree == 0) {
-      TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("Ksto2pi_583_140226_0035862.root");
-      if (!f) {
-         f = new TFile("Ksto2pi_583_140226_0035862.root");
+      TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("data_Rvalue_pipill_1.root");
+      if (!f || !f->IsOpen()) {
+         f = new TFile("data_Rvalue_pipill_1.root");
       }
-      tree = (TTree*)gDirectory->Get("Ks_info");
+      f->GetObject("gepep_fastpipill",tree);
 
    }
    Init(tree);
 }
 
-Ks0Alg::~Ks0Alg()
+gepep_fastpipill::~gepep_fastpipill()
 {
    if (!fChain) return;
    delete fChain->GetCurrentFile();
 }
 
-Int_t Ks0Alg::GetEntry(Long64_t entry)
+Int_t gepep_fastpipill::GetEntry(Long64_t entry)
 {
 // Read contents of entry.
    if (!fChain) return 0;
    return fChain->GetEntry(entry);
 }
-Long64_t Ks0Alg::LoadTree(Long64_t entry)
+Long64_t gepep_fastpipill::LoadTree(Long64_t entry)
 {
 // Set the environment to read one entry
    if (!fChain) return -5;
    Long64_t centry = fChain->LoadTree(entry);
    if (centry < 0) return centry;
-   if (!fChain->InheritsFrom(TChain::Class()))  return centry;
-   TChain *chain = (TChain*)fChain;
-   if (chain->GetTreeNumber() != fCurrent) {
-      fCurrent = chain->GetTreeNumber();
+   if (fChain->GetTreeNumber() != fCurrent) {
+      fCurrent = fChain->GetTreeNumber();
       Notify();
    }
    return centry;
 }
 
-void Ks0Alg::Init(TTree *tree)
+void gepep_fastpipill::Init(TTree *tree)
 {
    // The Init() function is called when the selector needs to initialize
    // a new tree or chain. Typically here the branch addresses and branch
@@ -1017,44 +990,109 @@ void Ks0Alg::Init(TTree *tree)
    fCurrent = -1;
    fChain->SetMakeClass(1);
 
-   fChain->SetBranchAddress("rec_truth_Mks", &rec_truth_Mks, &b_rec_truth_Mks);
-   fChain->SetBranchAddress("rec_truth_Pks", &rec_truth_Pks, &b_rec_truth_Pks);
-   fChain->SetBranchAddress("rec_truth_Eks", &rec_truth_Eks, &b_rec_truth_Eks);
+   fChain->SetBranchAddress("run", &run, &b_run);
+   fChain->SetBranchAddress("rec", &rec, &b_rec);
+   fChain->SetBranchAddress("evttag", &evttag, &b_evttag);
    fChain->SetBranchAddress("indexmc", &indexmc, &b_indexmc);
    fChain->SetBranchAddress("pdgid", pdgid, &b_pdgid);
    fChain->SetBranchAddress("motheridx", motheridx, &b_motheridx);
-   fChain->SetBranchAddress("npip", &npip, &b_npip);
-   fChain->SetBranchAddress("npim", &npim, &b_npim);
-   fChain->SetBranchAddress("nKsCan", &nKsCan, &b_nKsCan);
-   fChain->SetBranchAddress("m_chisq0", m_chisq0, &b_m_chisq0);
-   fChain->SetBranchAddress("m_chisqvtxnd", m_chisqvtxnd, &b_m_chisqvtxnd);
-   fChain->SetBranchAddress("m_decayL", m_decayL, &b_m_decayL);
-   fChain->SetBranchAddress("m_decayLerr", m_decayLerr, &b_m_decayLerr);
-   fChain->SetBranchAddress("m_ctau", m_ctau, &b_m_ctau);
-   fChain->SetBranchAddress("Ks_id", Ks_id, &b_Ks_id);
-   fChain->SetBranchAddress("Mpippim", Mpippim, &b_Mpippim);
-   fChain->SetBranchAddress("Ppippim", Ppippim, &b_Ppippim);
-   fChain->SetBranchAddress("Epippim", Epippim, &b_Epippim);
-   fChain->SetBranchAddress("Thepippim", Thepippim, &b_Thepippim);
-   fChain->SetBranchAddress("Phipippim", Phipippim, &b_Phipippim);
-   fChain->SetBranchAddress("Ppip", Ppip, &b_Ppip);
-   fChain->SetBranchAddress("Ppim", Ppim, &b_Ppim);
-   fChain->SetBranchAddress("Thepip", Thepip, &b_Thepip);
-   fChain->SetBranchAddress("Thepim", Thepim, &b_Thepim);
-   fChain->SetBranchAddress("Phipip", Phipip, &b_Phipip);
-   fChain->SetBranchAddress("Phipim", Phipim, &b_Phipim);
-   fChain->SetBranchAddress("pippx", pippx, &b_pippx);
-   fChain->SetBranchAddress("pippy", pippy, &b_pippy);
-   fChain->SetBranchAddress("pippz", pippz, &b_pippz);
-   fChain->SetBranchAddress("pipe", pipe, &b_pipe);
-   fChain->SetBranchAddress("pimpx", pimpx, &b_pimpx);
-   fChain->SetBranchAddress("pimpy", pimpy, &b_pimpy);
-   fChain->SetBranchAddress("pimpz", pimpz, &b_pimpz);
-   fChain->SetBranchAddress("pime", pime, &b_pime);
+   fChain->SetBranchAddress("mcgpx", mcgpx, &b_mcgpx);
+   fChain->SetBranchAddress("mcgpy", mcgpy, &b_mcgpy);
+   fChain->SetBranchAddress("mcgpz", mcgpz, &b_mcgpz);
+   fChain->SetBranchAddress("mcge", mcge, &b_mcge);
+   fChain->SetBranchAddress("mcgid", mcgid, &b_mcgid);
+   fChain->SetBranchAddress("nGammatch", &nGammatch, &b_nGammatch);
+   fChain->SetBranchAddress("ncharg", &ncharg, &b_ncharg);
+   fChain->SetBranchAddress("ntot", &ntot, &b_ntot);
+   fChain->SetBranchAddress("nneu", &nneu, &b_nneu);
+   fChain->SetBranchAddress("ngch", &ngch, &b_ngch);
+   fChain->SetBranchAddress("ngam", &ngam, &b_ngam);
+   fChain->SetBranchAddress("npi0", &npi0, &b_npi0);
+   fChain->SetBranchAddress("netap2", &netap2, &b_netap2);
+   fChain->SetBranchAddress("delang", delang, &b_delang);
+   fChain->SetBranchAddress("delphi", delphi, &b_delphi);
+   fChain->SetBranchAddress("delthe", delthe, &b_delthe);
+   fChain->SetBranchAddress("npart", npart, &b_npart);
+   fChain->SetBranchAddress("nemchits", nemchits, &b_nemchits);
+   fChain->SetBranchAddress("module", module, &b_module);
+   fChain->SetBranchAddress("x", x, &b_x);
+   fChain->SetBranchAddress("y", y, &b_y);
+   fChain->SetBranchAddress("z", z, &b_z);
+   fChain->SetBranchAddress("px", px, &b_px);
+   fChain->SetBranchAddress("py", py, &b_py);
+   fChain->SetBranchAddress("pz", pz, &b_pz);
+   fChain->SetBranchAddress("theta", theta, &b_theta);
+   fChain->SetBranchAddress("phi", phi, &b_phi);
+   fChain->SetBranchAddress("dx", dx, &b_dx);
+   fChain->SetBranchAddress("dy", dy, &b_dy);
+   fChain->SetBranchAddress("dz", dz, &b_dz);
+   fChain->SetBranchAddress("dtheta", dtheta, &b_dtheta);
+   fChain->SetBranchAddress("dphi", dphi, &b_dphi);
+   fChain->SetBranchAddress("energy", energy, &b_energy);
+   fChain->SetBranchAddress("dE", dE, &b_dE);
+   fChain->SetBranchAddress("eSeed", eSeed, &b_eSeed);
+   fChain->SetBranchAddress("nSeed", nSeed, &b_nSeed);
+   fChain->SetBranchAddress("e3x3", e3x3, &b_e3x3);
+   fChain->SetBranchAddress("e5x5", e5x5, &b_e5x5);
+   fChain->SetBranchAddress("secondMoment", secondMoment, &b_secondMoment);
+   fChain->SetBranchAddress("latMoment", latMoment, &b_latMoment);
+   fChain->SetBranchAddress("a20Moment", a20Moment, &b_a20Moment);
+   fChain->SetBranchAddress("a42Moment", a42Moment, &b_a42Moment);
+   fChain->SetBranchAddress("getTime", getTime, &b_getTime);
+   fChain->SetBranchAddress("getEAll", getEAll, &b_getEAll);
+   fChain->SetBranchAddress("mpi0", mpi0, &b_mpi0);
+   fChain->SetBranchAddress("chisq1cpi0", chisq1cpi0, &b_chisq1cpi0);
+   fChain->SetBranchAddress("ig1pi0", ig1pi0, &b_ig1pi0);
+   fChain->SetBranchAddress("ig2pi0", ig2pi0, &b_ig2pi0);
+   fChain->SetBranchAddress("chisq6c", &chisq6c, &b_chisq6c);
+   fChain->SetBranchAddress("chisq4c", &chisq4c, &b_chisq4c);
+   fChain->SetBranchAddress("chisq3c", &chisq3c, &b_chisq3c);
+   fChain->SetBranchAddress("gpx4", gpx4, &b_gpx4);
+   fChain->SetBranchAddress("gpy4", gpy4, &b_gpy4);
+   fChain->SetBranchAddress("gpz4", gpz4, &b_gpz4);
+   fChain->SetBranchAddress("ge4", ge4, &b_ge4);
+   fChain->SetBranchAddress("lepx4", lepx4, &b_lepx4);
+   fChain->SetBranchAddress("lepy4", lepy4, &b_lepy4);
+   fChain->SetBranchAddress("lepz4", lepz4, &b_lepz4);
+   fChain->SetBranchAddress("lee4", lee4, &b_lee4);
+   fChain->SetBranchAddress("pipx4", pipx4, &b_pipx4);
+   fChain->SetBranchAddress("pipy4", pipy4, &b_pipy4);
+   fChain->SetBranchAddress("pipz4", pipz4, &b_pipz4);
+   fChain->SetBranchAddress("pie4", pie4, &b_pie4);
+   fChain->SetBranchAddress("ggm4", &ggm4, &b_ggm4);
+   fChain->SetBranchAddress("kkm4", &kkm4, &b_kkm4);
+   fChain->SetBranchAddress("kpi01m4", &kpi01m4, &b_kpi01m4);
+   fChain->SetBranchAddress("kpi02m4", &kpi02m4, &b_kpi02m4);
+   fChain->SetBranchAddress("kkpi0m4", &kkpi0m4, &b_kkpi0m4);
+   fChain->SetBranchAddress("kkpipim4", &kkpipim4, &b_kkpipim4);
+   fChain->SetBranchAddress("kkpipipi0m4", &kkpipipi0m4, &b_kkpipipi0m4);
+   fChain->SetBranchAddress("Recoilmass", &Recoilmass, &b_Recoilmass);
+   fChain->SetBranchAddress("llm4", &llm4, &b_llm4);
+   fChain->SetBranchAddress("pipim4", &pipim4, &b_pipim4);
+   fChain->SetBranchAddress("llpipi1m4", &llpipi1m4, &b_llpipi1m4);
+   fChain->SetBranchAddress("llpipi2m4", &llpipi2m4, &b_llpipi2m4);
+   fChain->SetBranchAddress("llpipi3m4", &llpipi3m4, &b_llpipi3m4);
+   fChain->SetBranchAddress("llpipi4m4", &llpipi4m4, &b_llpipi4m4);
+   fChain->SetBranchAddress("gpipim4", &gpipim4, &b_gpipim4);
+   fChain->SetBranchAddress("decay_ee", &decay_ee, &b_decay_ee);
+   fChain->SetBranchAddress("hepp", &hepp, &b_hepp);
+   fChain->SetBranchAddress("hepm", &hepm, &b_hepm);
+   fChain->SetBranchAddress("emcp", &emcp, &b_emcp);
+   fChain->SetBranchAddress("emcm", &emcm, &b_emcm);
+   fChain->SetBranchAddress("mucp", &mucp, &b_mucp);
+   fChain->SetBranchAddress("mucm", &mucm, &b_mucm);
+   fChain->SetBranchAddress("zcpm4", &zcpm4, &b_zcpm4);
+   fChain->SetBranchAddress("zcmm4", &zcmm4, &b_zcmm4);
+   fChain->SetBranchAddress("ecms", &ecms, &b_ecms);
+   fChain->SetBranchAddress("angle1", &angle1, &b_angle1);
+   fChain->SetBranchAddress("angle2", &angle2, &b_angle2);
+   fChain->SetBranchAddress("angle3", &angle3, &b_angle3);
+   fChain->SetBranchAddress("angle4", &angle4, &b_angle4);
+   fChain->SetBranchAddress("psipm4", &psipm4, &b_psipm4);
    Notify();
 }
 
-Bool_t Ks0Alg::Notify()
+Bool_t gepep_fastpipill::Notify()
 {
    // The Notify() function is called when a new file is opened. This
    // can be either for a new TTree in a TChain or when when a new TTree
@@ -1065,18 +1103,17 @@ Bool_t Ks0Alg::Notify()
    return kTRUE;
 }
 
-void Ks0Alg::Show(Long64_t entry)
+void gepep_fastpipill::Show(Long64_t entry)
 {
 // Print contents of entry.
 // If entry is not specified, print current entry
    if (!fChain) return;
    fChain->Show(entry);
 }
-Int_t Ks0Alg::Cut(Long64_t entry)
+Int_t gepep_fastpipill::Cut(Long64_t entry)
 {
 // This function may be called from Loop.
 // returns  1 if entry is accepted.
 // returns -1 otherwise.
    return 1;
 }
-#endif // #ifdef Ks0Alg_cxx

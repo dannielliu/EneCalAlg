@@ -67,9 +67,6 @@ void Ks0Alg::Loop()
 
    std::cout<<"loop"<<std::endl;
 
-   std::vector<double> ppx,ppy,ppz;
-   std::vector<double> mpx,mpy,mpz;
-
    TH1D *hmass  = new TH1D("hmass" ,"Ks mass",200,0.45,0.55);
    TH1D *hmassU = new TH1D("hmassU","Ks mass",200,0.45,0.55);
    TH1D *hmassc = new TH1D("hmassc","Ks mass",200,0.45,0.55);
@@ -96,10 +93,10 @@ void Ks0Alg::Loop()
    // roofit variables and functions
    RooRealVar x("x","energy",mparticle,kslow,ksup,"GeV");
    RooRealVar mean("mean","mean of gaussian",  kslow,ksup);
-   RooRealVar mean2("mean2","mean of gaussian",kslow,ksup);
+   //RooRealVar mean2("mean2","mean of gaussian",kslow,ksup);
    RooRealVar sigma("sigma","width of gaussian",0.0017,0.0010,0.0050);
    RooRealVar sigma2("sigma2","width of gaussian",0.007,0.005,0.02);
-   RooRealVar brewid("brewid","width of breit wigner",0.0023,0.0010,0.05);
+   //RooRealVar brewid("brewid","width of breit wigner",0.0023,0.0010,0.05);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
    RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
  
@@ -107,12 +104,12 @@ void Ks0Alg::Loop()
    RooRealVar a1("a1","coefficient #1",-1,-100000,100000);
    RooPolynomial ground("ground","ground",x,RooArgList(a0,a1));
  
-   RooRealVar signal("signal"," ",500,0,1000000);//event number
-   RooRealVar signal2("signal2"," ",100,0,1000000);//event number
-   RooRealVar background("background"," ",10,0,1000000);
+   RooRealVar signal("signal"," ",1000,0,1000000);//event number
+   RooRealVar signal2("signal2"," ",1000,0,1000000);//event number
+   RooRealVar background("background"," ",1000,0,1000000);
  
    RooAddPdf *sum;
-   RooDataHist *datahist;
+   //RooDataHist *datahist;
    RooDataSet *dataset;
    RooPlot *xframe;  
   
@@ -136,59 +133,104 @@ void Ks0Alg::Loop()
    vars->Branch("mass",&mass,"mass/D");
 
    int Npart= 20;
+   int Npart1 = 20;
+   int Npartcos = 10;
    int realsize=0;
-   double partid[Npart];
-   double parter[Npart];
-   double corfac[Npart];
-   double corerr[Npart];
+   double partid[Npart1*Npartcos];
+   double partjd[Npart1*Npartcos];
+   double parter[Npart1*Npartcos];
+   double partje[Npart1*Npartcos];
+   double corfac[Npart1*Npartcos];
+   double corerr[Npart1*Npartcos];
    double start=0;
    double stop =2.0;
    double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
 		  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
-   //double facv[Npart];
-   //double facev[Npart];
+   double facv[Npart];
+   double facev[Npart];
  //pcut[0]=0.1;
  //pcut[1]=0.4;
    //pcut[2]=0.9;
-
-   pcut[0] =0.0 ;  //facv[0] =1.0;       facev[0] =1.0;  
-   pcut[1] =0.05;  //facv[1] =1.0;       facev[1] =1.0;  
-   pcut[2] =0.10;  //facv[2] =1.0;       facev[2] =1.0;
-   pcut[3] =0.15;  //facv[3] =1.0;       facev[3] =1.0;
-   pcut[4] =0.20;  //facv[4] =1.00099;   facev[4] =3.55949e-05;
-   pcut[5] =0.25;  //facv[5] =1.00036;   facev[5] =7.29196e-05;
-   pcut[6] =0.30;  //facv[6] =1.00023;   facev[6] =0.000111066;
-   pcut[7] =0.35;  //facv[7] =1.00009;   facev[7] =0.00016114 ;
-   pcut[8] =0.40;  //facv[8] =1.00035;   facev[8] =0.000214354;
-   pcut[9] =0.45;  //facv[9] =1.0002 ;   facev[9] =0.000285659;
-   pcut[10]=0.50;  //facv[10]=1.00054;   facev[10]=0.000236946;
-   pcut[11]=0.60;  //facv[11]=1.00114;   facev[11]=0.000467622;
-   pcut[12]=0.70;  //facv[12]=1.00004;   facev[12]=0.000794358;
-   pcut[13]=0.80;  //facv[13]=1.0005 ;   facev[13]=0.00162137 ;
-   pcut[14]=0.90;  //facv[14]=1.0;       facev[14]=1.0;
-   pcut[15]=1.00;  //facv[15]=1.0;       facev[15]=1.0;
-   pcut[16]=1.20;  //facv[16]=1.0;       facev[16]=1.0;
-   pcut[17]=1.40;  //facv[17]=1.0;       facev[17]=1.0;
-   pcut[18]=1.60;  //facv[18]=1.0;       facev[18]=1.0;  
-   pcut[19]=1.80;  //facv[19]=1.0;       facev[19]=1.0;  
+// rvalue combine pi+ and pi-, factor in (0.2, 0.3) to 1.00061
+   pcut[0] =0.0 ;    facv[0] =1.0;       facev[0] =1.0;  
+   pcut[1] =0.05;    facv[1] =1.0;       facev[1] =1.0;  
+   pcut[2] =0.10;    facv[2] =1.0;       facev[2] =1.0;
+   pcut[3] =0.15;    facv[3] =1.00193 ;  facev[3] =0.000106581;
+   pcut[4] =0.20;    facv[4] =1.00098 ;  facev[4] =0.000101675;
+   pcut[5] =0.25;    facv[5] =1.00022 ;  facev[5] =0.000126633;
+   pcut[6] =0.30;    facv[6] =1.00044 ;  facev[6] =0.000161073;
+   pcut[7] =0.35;    facv[7] =0.999762;  facev[7] =0.000207559;
+   pcut[8] =0.40;    facv[8] =0.999283;  facev[8] =0.000267949;
+   pcut[9] =0.45;    facv[9] =0.998738;  facev[9] =0.000330506;
+   pcut[10]=0.50;    facv[10]=0.999366;  facev[10]=0.000304463;
+   pcut[11]=0.60;    facv[11]=0.99998 ;  facev[11]=0.00047057 ;
+   pcut[12]=0.70;    facv[12]=0.999412;  facev[12]=0.000784932;
+   pcut[13]=0.80;    facv[13]=1.00178 ;  facev[13]=0.00128409 ;
+   pcut[14]=0.90;    facv[14]=1.00106 ;  facev[14]=0.00184841 ;
+   pcut[15]=1.00;    facv[15]=1.00191 ;  facev[15]=0.00265179 ;
+   pcut[16]=1.20;    facv[16]=0.998991;  facev[16]=0.00107981 ;
+   pcut[17]=1.40;    facv[17]=1.0;       facev[17]=1.0;
+   pcut[18]=1.60;    facv[18]=1.0;       facev[18]=1.0;  
+   pcut[19]=1.80;    facv[19]=1.0;       facev[19]=1.0;  
    pcut[20]=2.00;           
+   
+   double pcut1[Npart1+1];
+   pcut1[0] = 0.0  ;
+   pcut1[1] = 0.05 ;
+   pcut1[2] = 0.10 ;
+   pcut1[3] = 0.15 ;
+   pcut1[4] = 0.20 ;
+   pcut1[5] = 0.25 ;
+   pcut1[6] = 0.30 ;
+   pcut1[7] = 0.35 ;
+   pcut1[8] = 0.40 ;
+   pcut1[9] = 0.45 ;
+   pcut1[10]= 0.50 ;
+   pcut1[11]= 0.60 ;
+   pcut1[12]= 0.70 ;
+   pcut1[13]= 0.80 ;
+   pcut1[14]= 0.90 ;
+   pcut1[15]= 1.00 ;
+   pcut1[16]= 1.20 ;
+   pcut1[17]= 1.40 ;
+   pcut1[18]= 1.60 ;
+   pcut1[19]= 1.80 ;
+   pcut1[20]= 2.00 ;
+
+   double coscut[Npartcos+1];
+   coscut[0] = -1.0;
+   coscut[1] = -0.8;
+   coscut[2] = -0.6;
+   coscut[3] = -0.4;
+   coscut[4] = -0.2;
+   coscut[5] =  0.0;
+   coscut[6] =  0.2;
+   coscut[7] =  0.4;
+   coscut[8] =  0.6;
+   coscut[9] =  0.8;
+   coscut[10]=  1.0;
 
    //for(int i=0;i<Npart+1;i++){
    //  pcut[i] = (stop-start)/Npart*i+start;
    //}
 
-   std::vector<int> partmap;
+   std::vector<std::pair<int,int> > partmap;
    std::vector<std::pair<int,double> > facmap;
   
    char name[100];
    // ~~~~~~~~ draw nxn histogram, m distribution in different range
-   TH1D *hmKs[Npart];
-   for (int partj=0;partj<Npart;partj++){
-     sprintf(name,"mass_part%d",partj);
-     hmKs[partj] = new TH1D(name,name,100,kslow,ksup);
+   TH1D *hmKs[Npart1][Npartcos];
+   for (int partj=0;partj<Npart1;partj++){
+   for (int partcos=0;partcos<Npartcos;partcos++){
+     sprintf(name,"mass_part%0dpart%02d",partj,partcos);
+     hmKs[partj][partcos] = new TH1D(name,name,100,kslow,ksup);
+   }
    }
  
    // loop data
+   std::cout<<"aaaaaaaaaaaaaaaaf"<<std::endl;
+   Event evt;
+   std::vector<Event> evts;
    Long64_t nbytes = 0, nb = 0;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
@@ -197,11 +239,10 @@ void Ks0Alg::Loop()
       // if (Cut(ientry) < 0) continue;
      
       int ipip=0,ipim=0;
-      //double chi2=10000000;
-      //if (npip+npim<3) continue;
       for (int ipip=0; ipip<npip;ipip++)
       for (int ipim=0; ipim<npim;ipim++){
-        mass = CalInvMass(mpi,pippx[ipip],pippy[ipip],pippz[ipip],mpi,pimpx[ipim],pimpy[ipim],pimpz[ipim]);
+	    evt.SetVal(pippx[ipip],pippy[ipip],pippz[ipip],pimpx[ipim],pimpy[ipim],pimpz[ipim]);
+        mass = evt.InvMass();
         double chi2 = m_chisq0[ipip*npim+ipim]+m_chisqvtxnd[ipip*npim+ipim];
         if (chi2 > 100) continue;
         double ratio = m_decayL[ipip*npim+ipim]/m_decayLerr[ipip*npim+ipim];
@@ -212,68 +253,51 @@ void Ks0Alg::Loop()
         }
         hmass->Fill(Mpippim[ipip*npim+ipim]);
         hmassc->Fill(mass);
-        p1=CalMom(pippx[ipip],pippy[ipip],pippz[ipip]);
-        p2=CalMom(pimpx[ipim],pimpy[ipim],pimpz[ipim]);
-        if (p2<0.1||p2>0.4) continue;
+        p1 = evt.GetP1();
+        p2 = evt.GetP2();
+        if (p1<0.15||p1>0.6) continue;
         //if (p2<0.1) continue;
         //if (p1+p2<0.4 || p1+p2 > 0.6) continue;
-        costheta1 = pippz[ipip]/p1;
-        costheta2 = pimpz[ipim]/p2;
-        if (pippy[ipip]>0)  phi1 = acos(pippx[ipip]/CalMom(pippx[ipip],pippy[ipip]));
-        else  phi1 = 2*TMath::Pi()-acos(pippx[ipip]/CalMom(pippx[ipip],pippy[ipip]));
-        if (pimpy[ipim]>0)  phi2 = acos(pimpx[ipim]/CalMom(pimpx[ipim],pimpy[ipim]));
-        else  phi2 = 2*TMath::Pi()-acos(pimpx[ipim]/CalMom(pimpx[ipim],pimpy[ipim]));
+        costheta1 = evt.GetCostheta1();
+        costheta2 = evt.GetCostheta2();
+        phi1 = evt.GetPhi1();
+        phi2 = evt.GetPhi2();
         if (mass>kslow && mass<ksup){
           vars->Fill();
         }
 
-        //if (mass>kslow-0.02 && mass<ksup+0.02){
-        //ppx.push_back(pippx[ipip]);
-        //ppy.push_back(pippy[ipip]);
-        //ppz.push_back(pippz[ipip]);
-        //mpx.push_back(pimpx[ipim]);
-        //mpy.push_back(pimpy[ipim]);
-        //mpz.push_back(pimpz[ipim]);
-        //}
-        //if (fabs(p1-p2)<0.0001) continue;
-        //int parti,partj;
-        //partj = (int)((p2-start)/(stop-start)*Npart);
         //if ( partj>=Npart || partj<0 ) continue;
-        for ( int partj=0;partj<Npart;partj++){
-          if (p1<pcut[partj] || p1>pcut[partj+1]) continue;
+        for (int partj=0;partj<Npart1;partj++){
+        for (int partcos=0;partcos<Npartcos;partcos++){
+          if (p2<pcut1[partj] || p2>pcut1[partj+1]) continue;
+		  if (costheta2<coscut[partcos] || costheta2>coscut[partcos+1]) continue;
           //if (p2<pcut[partj] || p2>pcut[partj+1]) continue;
           if (mass>kslow-0.02 && mass<ksup+0.02){
-            hmKs[partj]->Fill(mass);
-            mpx.push_back(pippx[ipip]);
-            mpy.push_back(pippy[ipip]);
-            mpz.push_back(pippz[ipip]);
-            ppx.push_back(pimpx[ipim]);
-            ppy.push_back(pimpy[ipim]);
-            ppz.push_back(pimpz[ipim]);
+            hmKs[partj][partcos]->Fill(mass);
+			evts.push_back(evt);
 	      }
           break;
         }
+		}
       }
    }
    std::cout<<"fffffffffffffffff"<<std::endl;
    vars->Write();
-   for (int partj=0;partj<Npart;partj++){
-     hmKs[partj]->Write();
-     if (hmKs[partj]->GetEntries() > 100
-       &&hmKs[partj]->GetMaximumBin()> 30 //check the the peak position,
-       &&hmKs[partj]->GetMaximumBin()< 70 
+   for (int partj=0;partj<Npart1;partj++){
+   for (int cosi=0;cosi<Npartcos;cosi++){
+     hmKs[partj][cosi]->Write();
+     if (hmKs[partj][cosi]->GetEntries() > 100
+       &&hmKs[partj][cosi]->GetMaximumBin()> 30 //check the the peak position,
+       &&hmKs[partj][cosi]->GetMaximumBin()< 70 
        ){
-       partmap.push_back(partj);
+       partmap.push_back(std::make_pair(partj,cosi));
      }
+   }
    }
 
    hmass->Write();
    hmassU->Write();
    hmassc->Write();
-   //return hmass;
-   //TCanvas *c2 = new TCanvas();
-   //h2p->Draw();
-   //h2pos->Draw();
   
    const int pointNo=10;
    double factor=0.995;
@@ -287,13 +311,20 @@ void Ks0Alg::Loop()
 
    std::cout<<"part map size is "<<partmap.size()<<std::endl;
    for (int loopj=0;loopj<partmap.size();loopj++){
-     int partj = partmap.at(loopj);
-     std::cout<<"part is "<<partj<<std::endl;
+     int partj = partmap.at(loopj).first;
+	 int cosj  = partmap.at(loopj).second;
+     std::cout<<"part is "<<partj<<" "<<cosj<<std::endl;
      double factori=1.0;
      factor = 0.995;
-     factori=1.000815;
+     //factori=1.000815;
      //factori=factor;
      fittimes=0;
+
+	 signal.setVal(1000);
+	 signal2.setVal(1000);
+	 background.setVal(1000);
+	 a0.setVal(100);
+	 a1.setVal(-1);
 
      for (fittimes=0; fittimes<pointNo;fittimes++){
        xframe = x.frame(Title("fit Ks"));
@@ -301,21 +332,24 @@ void Ks0Alg::Loop()
        std::cout<<"factor is "<<factor<<std::endl;
 
        //for (Long64_t jentry=0; jentry<nentries;jentry++) {
-       std::cout<<"ppx size is "<<ppx.size()<<std::endl;
-       for (Long64_t jin=0; jin<ppx.size();jin++) {
-          //p1=CalMom(ppx[jin],ppy[jin],ppz[jin]);
-          p2=CalMom(mpx[jin],mpy[jin],mpz[jin]);
-          if (partj<0 || partj>Npart) continue;
+       std::cout<<"ppx size is "<<evts.size()<<std::endl;
+       for (Long64_t jin=0; jin<evts.size();jin++) {
+		  p1 = evts.at(jin).GetP1();
+		  p2 = evts.at(jin).GetP2();
+		  costheta2 = evts.at(jin).GetCostheta2();
+          if (p1<0.15||p1>0.6) continue;
+          for (int i=0;i<Npart;i++){
+            if (p1>=pcut[i]&&p1<pcut[i+1]){
+              factori = facv[i];
+              break;
+            }
+          }
+          //if (partj<0 || partj>Npart) continue;
           //if (p1 < pcut[partj] || p1> pcut[partj+1]) continue;
-          if (p2 < pcut[partj] || p2> pcut[partj+1]) continue;
-        //for (int i=0;i<Npart;i++){
-        //  if (p1>=pcut[i]&&p1<pcut[i+1]){
-        //    factori = facv[i];
-        //    break;
-        //  }
-        //}         
-          mass = CalInvMass(mpi,factori*ppx[jin],factori*ppy[jin],factori*ppz[jin],mpi,factor*mpx[jin],factor*mpy[jin],factor*mpz[jin]);
-          if (mass>kslow && mass<ksup){
+          if (p2 < pcut1[partj] || p2> pcut1[partj+1]) continue;
+		  if (costheta2<coscut[cosj] || costheta2>coscut[cosj+1]) continue;
+          mass = evts.at(jin).InvMass(factori,factor);
+		  if (mass>kslow && mass<ksup){
             dataraw->Fill();
           }
        }// loop data end
@@ -374,18 +408,14 @@ void Ks0Alg::Loop()
  
     }// n point end
     //will fit linear, get factor needed
-	std::cout<<"after loop, aaaaaaaaaaaaa"<<std::endl;
     c1->Clear();
     TGraphErrors *graph = new TGraphErrors(pointNo,factors,deltapeaks,factorserr,deltapeakserr);
     graph->SetTitle("delta peak");
     graph->Draw("AP");
     graph->SetMarkerStyle(5);
     gStyle->SetOptFit(1111);
-	std::cout<<"after loop, dddddddddddda"<<std::endl;
     facfit->SetParameters(1.0,0.4);
-	std::cout<<"after loop, cccccccccccca"<<std::endl;
     facfit->SetParNames("factor","slope");
-	std::cout<<"after loop, bbbbbbbbbbbba"<<std::endl;
     graph->Fit(facfit,"","",factors[0],factors[pointNo-1]);
     factor = facfit->GetParameter(0);
     //factori=factor;
@@ -410,20 +440,21 @@ void Ks0Alg::Loop()
     dataraw->Reset();
     std::cout<<"factor is "<<factor<<std::endl;
        
-    for (Long64_t jin=0; jin<ppx.size();jin++) {
-      //mass = CalInvMass(mpi,factori*ppx[jin],factori*ppy[jin],factori*ppz[jin],mpi,factor*mpx[jin],factor*mpy[jin],factor*mpz[jin]);
-      //p1 = CalMom(ppx[jin],ppy[jin],ppz[jin]);
-      p2 = CalMom(mpx[jin],mpy[jin],mpz[jin]);
-      if (partj<0 || partj>Npart) continue;
-      //if (p1 < pcut[partj] || p1> pcut[partj+1]) continue;
-      if (p2 < pcut[partj] || p2> pcut[partj+1]) continue;
-    //for (int i=0;i<Npart;i++){
-    //  if (p1>=pcut[i]&&p1<pcut[i+1]){
-    //    factori = facv[i];
-    //    break;
-    //  }
-    //}         
-      mass = CalInvMass(mpi,factori*ppx[jin],factori*ppy[jin],factori*ppz[jin],mpi,factor*mpx[jin],factor*mpy[jin],factor*mpz[jin]);
+    for (Long64_t jin=0; jin<evts.size();jin++) {
+      p1 = evts.at(jin).GetP1();
+      p2 = evts.at(jin).GetP2();
+	  costheta2 = evts.at(jin).GetCostheta2();
+      if (p1<0.15||p1>0.6) continue;
+      for (int i=0;i<Npart;i++){
+        if (p1>=pcut[i]&&p1<pcut[i+1]){
+          factori = facv[i];
+          break;
+        }
+      }
+      //if (partj<0 || partj>Npart) continue;
+      if (p2 < pcut1[partj] || p2> pcut1[partj+1]) continue;
+	  if (costheta2<coscut[cosj] || costheta2>coscut[cosj+1]) continue;
+      mass = evts.at(jin).InvMass(factori,factor);
       if (mass>kslow && mass<ksup){
         dataraw->Fill();
       }
@@ -471,8 +502,10 @@ void Ks0Alg::Loop()
     c1->SetName(name);
     c1->Write();
 
-    partid[loopj] = pcut[partj]+(pcut[partj+1]-pcut[partj])/2;
+    partid[loopj] = pcut1[partj]+(pcut1[partj+1]-pcut1[partj])/2;
+	partjd[loopj] = coscut[cosj]+(coscut[cosj+1]-coscut[cosj])/2;
     parter[loopj] = 0;
+	partje[loopj] = 0;
     corfac[loopj] = factor;
     corerr[loopj] = factor4err;
    
@@ -492,10 +525,9 @@ void Ks0Alg::Loop()
   c1->Write();
 
   for (int i=0;i<realsize;i++){
-    ofpar<<"p="<<partid[i]<<"\tfactor: "<<corfac[i]<<"\t +/- \t"<< corerr[i]<<std::endl;
-    ofparpur<<partid[i]<<"\t"<<corfac[i]<<"\t"<< corerr[i]<<std::endl;
+    ofpar<<"p="<<partid[i]<<"\tcos="<<partjd[i]<<"\tfactor: "<<corfac[i]<<"\t +/- \t"<< corerr[i]<<std::endl;
+    ofparpur<<partid[i]<<"\t"<<partjd[i]<<"\t"<<corfac[i]<<"\t"<< corerr[i]<<std::endl;
   }
-
 
 }
 

@@ -35,10 +35,10 @@ int main(int argc, char** argv)
   //int ppart;
   int validNo;
   int np[200];
-  double p[200][20];
-  double pe[200][20];
-  double fac[200][20];
-  double face[200][20];
+  double p[200][50];
+  double pe[200][50];
+  double fac[200][50];
+  double face[200][50];
 
   char tmpchr[100];
   //double p1,fac1,face1;

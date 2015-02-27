@@ -5,24 +5,27 @@
 #include <TCanvas.h>
 #include <TMath.h>
 #include <TF1.h>
+#include "TPaveText.h"
 #include "function.h"
 #include <fstream>
 #include "RooFit.h"
 #include "RooRealVar.h"
 #include "RooGaussian.h"
-#include "RooChebychev.h"
-#include "RooDataHist.h"
+#include "RooPolynomial.h"
+//#include "RooChebychev.h"
+//#include "RooDataHist.h"
+#include "RooDataSet.h"
 #include "RooAddPdf.h"
 #include "RooArgList.h"
 #include "RooPlot.h"
-//#include <iostream>
+#include "RooMsgService.h"
+#include <vector>
 extern std::string outputdir;
-using RooFit::Title;
-using RooFit::Components;
-using RooFit::LineStyle;
-using RooFit::LineColor;
-using RooFit::Range;
-
+using namespace RooFit;
+namespace EEto6PI{
+  void FitSpe(std::vector<EEto6pi> evts, double beame,  char* namesfx);
+  void FitSpectrum(TTree *&dataraw, double beame, char* namesfx);
+}
 
 void gepep_fast6pi::Loop()
 {
@@ -52,100 +55,259 @@ void gepep_fast6pi::Loop()
    if (fChain == 0) return;
    //TH1D *h = new TH1D("h","invariant mass",100,1.,4.);
   
-  
    Long64_t nentries = fChain->GetEntriesFast();
 
    std::cout<<"Toral entry is "<<nentries<<std::endl;
-   int nBins=50;
+   int nBins=100;
+   double peakvalue=3.85;// mbeam
    double beamlow=3.7;
    double beamup=4.0;
-   double peakvalue=3.85;// mbeam
-   TH1D *h = new TH1D("h","invariant mass",nBins,beamlow,beamup);
-   double factore,factoreerr;
-   double factorpi,factorpierr;
+   //TH1D *h = new TH1D("h","invariant mass",nBins,beamlow,beamup);
+   //double factore,factoreerr;
+   //double factorpi,factorpierr;
    double mpi=0.13957;
-   
-   ifstream f;
-   f.open("par.txt");
-   f >> factore >> factoreerr;
-   f >> factorpi>> factorpierr;
-   f.close();
-   factorpi =1.00219;
-   std::cout<<"factor is "<<factorpi<<std::endl;
-   
-   // try to use roofit
-   RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
-   RooRealVar mean("mean","mean of gaussian",peakvalue,beamlow,beamup);
-   RooRealVar sigma("sigma","width of gaussian",0.003,0.0001,0.02);
-   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
-   RooRealVar co1("co1","coefficient #1",0,-100.,100.);
-   //RooRealVar co4("co4","coefficient #4",0);
-   RooChebychev bkg("bkg","background",x,RooArgList(co1));
-   RooRealVar signal("signal"," ",1200,10,100000);//event number
-   RooRealVar background("background"," ",200,0,1000);
-   RooPlot *xframe;
-   RooDataHist *data_6pi;
- 
+    
+  char fname[1000];
+  sprintf(fname,"%s/plot_6pi.root",outputdir.c_str());
+  TFile *f=new TFile(fname,"RECREATE");
+
+  char name[100];
+  TCanvas *c1=new TCanvas("c1","",800,600);
+  TTree *vars = new TTree("vars","vars");
+  double mass;
+  //double phi,phi1,phi2;
+  //double costheta,costheta1,costheta2;
+  double p[6];
+  vars->Branch("p1",&p[0],"p1/D");
+  vars->Branch("p2",&p[1],"p2/D");
+  vars->Branch("p3",&p[2],"p3/D");
+  vars->Branch("p4",&p[3],"p4/D");
+  vars->Branch("p5",&p[4],"p5/D");
+  vars->Branch("p6",&p[5],"p6/D");
+  vars->Branch("mass",&mass,"mass/D");
+  
+   EEto6pi evt;
+   std::vector<EEto6pi> evts;
+
+   // select useful events
    Long64_t nbytes = 0, nb = 0;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;	  
-	  double totpx,totpy,totpz,tote;
-	  double pie[6];
-	  double mass;
-	  totpx = pippx[0]+pippx[1]+pippx[2]+pimpx[0]+pimpx[1]+pimpx[2];
-	  totpy = pippy[0]+pippy[1]+pippy[2]+pimpy[0]+pimpy[1]+pimpy[2];
-	  totpz = pippz[0]+pippz[1]+pippz[2]+pimpz[0]+pimpz[1]+pimpz[2];
-	  //tote  = pipe[0] +pipe[1] +pipe[2] +pime[0] +pime[1] +pime[2];
-	  pie[0]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pippx[0]*pippx[0]+pippy[0]*pippy[0]+pippz[0]*pippz[0]) );
-	  pie[1]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pippx[1]*pippx[1]+pippy[1]*pippy[1]+pippz[1]*pippz[1]) );	
-	  pie[2]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pippx[2]*pippx[2]+pippy[2]*pippy[2]+pippz[2]*pippz[2]) );
-	  pie[3]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pimpx[0]*pimpx[0]+pimpy[0]*pimpy[0]+pimpz[0]*pimpz[0]) );
-	  pie[4]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pimpx[1]*pimpx[1]+pimpy[1]*pimpy[1]+pimpz[1]*pimpz[1]) );
-	  pie[5]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pimpx[2]*pimpx[2]+pimpy[2]*pimpy[2]+pimpz[2]*pimpz[2]) );
-	  tote  = pie[0] +pie[1] +pie[2] +pie[3] +pie[4] +pie[5];
-  mass = TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-	  h->Fill(mass);
-   }
+	  
+	  evt.Setval(pippx,pippy,pippz,pimpx,pimpy,pimpz);
+      mass = evt.InvMass();
+	  bool good=true;;
+      for (int i=0; i<6;i++) {
+	    p[i] = evt.GetP(i);
+		if (p[i]<0.15 || p[i]>1.0) good = false;
+	  }
+	  if (!good) continue;
+	  if (mass>beamlow && mass<beamup){
+	    vars->Fill();
+		evts.push_back(evt);
+	  }
+   }//select end
+   vars->Write();
+   sprintf(name,"%f",peakvalue);
+   EEto6PI::FitSpe(evts,peakvalue,name);
+   return;
+}
+
+void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
+{
+  double beamlow=beame-0.1;
+  double beamup=beame+0.1;
+  // for factor fit
+ 
+  TTree *datarawo = new TTree("datarawo","dataraw");
+  TTree *dataraw = new TTree("dataraw","dataraw");
+  TTree *datarawl = new TTree("datarawl","dataraw");
+  TTree *datarawu = new TTree("datarawu","dataraw");
+  double mass;
+  datarawo->Branch("x",&mass,"x/D");
+  dataraw->Branch("x",&mass,"x/D");
+  datarawl->Branch("x",&mass,"x/D");
+  datarawu->Branch("x",&mass,"x/D");
+ 
+  // try to correct the spectrum
+  // iniialize the fit function
+  //double factor4,factor4err;// for pi
+ 
+  int Npart=20;
+  double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
+		  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
+   //pcut[0]=0.1;
+   //pcut[1]=0.4;
+   //pcut[2]=0.9;
+   double facmap[Npart];
+   double facemap[Npart];
+
+   //  set normal factor in (0.2, 0.3) to 1.00061, get factor in different range
+//  only for r value data, combine both part
+
+   pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
+   pcut[1] =0.05;  facmap[1] =1.0;       facemap[1] =1.0;     
+   pcut[2] =0.10;  facmap[2] =1.0;       facemap[2] =1.0;
+   pcut[3] =0.15;  facmap[3] =1.00193 ;  facemap[3] =0.00014646 ;
+   pcut[4] =0.20;  facmap[4] =1.00092 ;  facemap[4] =0.00014185 ;
+   pcut[5] =0.25;  facmap[5] =1.00027 ;  facemap[5] =0.00017408 ;
+   pcut[6] =0.30;  facmap[6] =1.00028 ;  facemap[6] =0.00025041 ;
+   pcut[7] =0.35;  facmap[7] =0.999665;  facemap[7] =0.00028309 ;
+   pcut[8] =0.40;  facmap[8] =0.999421;  facemap[8] =0.00040939 ;
+   pcut[9] =0.45;  facmap[9] =0.998626;  facemap[9] =0.00048584 ;
+   pcut[10]=0.50;  facmap[10]=0.999499;  facemap[10]=0.00043914 ;
+   pcut[11]=0.60;  facmap[11]=0.998844;  facemap[11]=0.00070548 ;
+   pcut[12]=0.70;  facmap[12]=0.998429;  facemap[12]=0.00139006 ;
+   pcut[13]=0.80;  facmap[13]=1.00149 ;  facemap[13]=0.00189529 ;
+   pcut[14]=0.90;  facmap[14]=1.00292 ;  facemap[14]=0.00278649 ;
+   pcut[15]=1.00;  facmap[15]=1.00281 ;  facemap[15]=0.00383812 ;
+   pcut[16]=1.20;  facmap[16]=1.02283 ;  facemap[16]=0.0085055  ;
+   pcut[17]=1.40;  facmap[17]=1.0;       facemap[17]=1.0;
+   pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
+   pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
+   pcut[20]=2.00;  //facmap[20]=2.00;
+ 
+  // psi 3.097
+     
+  char tmpchr[100];
+
+  //~~~~~~~~~~part start~~~~~~~~
+
+  for (Long64_t jentry=0; jentry<evts.size();jentry++) {
+     
+     double p[6];
+	 double f[6];
+	 double fl[6];
+	 double fu[6];
+     // total invariant mass
+	 // without correction
+     mass = evts.at(jentry).InvMass();
+     if (mass>beamlow-0.001 && mass<beamup+0.001) datarawo->Fill();
+	 for (int i=0;i<6;i++) p[i] = evts.at(jentry).GetP(i);
+
+     short flag = 0x0;
+	 for (int pid=0;pid<6;pid++){
+       for (int i=0;i<Npart;i++){
+         if (p[pid]>=pcut[i]&&p[pid]<pcut[i+1]){
+           f[pid]  = facmap[i];
+           fl[pid] = facmap[i]-facemap[i];
+           fu[pid] = facmap[i]+facemap[i];
+		   flag = (flag<<1) +1;
+           break;
+         }
+       }
+	 }
+	 if (flag!=0x3f){
+	   std::cout<<"Waring: not good event, factor map is "<<flag<<std::endl;
+	   continue;
+	 }
+	 // for average correction factor
+     mass = evts.at(jentry).InvMass(f);
+     if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
+	 // factor at low edge
+     mass = evts.at(jentry).InvMass(fl);
+     if (mass>beamlow-0.001 && mass<beamup+0.001) datarawl->Fill();
+	 // factor at up edge
+     mass = evts.at(jentry).InvMass(fu);
+     if (mass>beamlow-0.001 && mass<beamup+0.001) datarawu->Fill();
+  }
+  //dataraw->Write();
+  // no correction
+  sprintf(tmpchr,"raw_%s",namesfx);
+  EEto6PI::FitSpectrum(datarawo,beame,tmpchr);
+
+  // factor at average
+  sprintf(tmpchr,"%s",namesfx);
+  EEto6PI::FitSpectrum(dataraw,beame,tmpchr);
+ 
+  // factor at low edge
+  sprintf(tmpchr,"low_%s",namesfx);
+  EEto6PI::FitSpectrum(datarawl,beame,tmpchr);
+
+  // factor at up edge
+  sprintf(tmpchr,"up_%s",namesfx);
+  EEto6PI::FitSpectrum(datarawu,beame,tmpchr);
+
+  //~~~~~~~~~~ part end~~~~~~~~
+  return;
+}
+
+void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
+{
+   int nBins=100;
+   int Npar;
+   double peakvalue = beame;
+   double beamlow=beame-0.1;
+   double beamup=beame+0.1;
+   // try to use roofit
+   RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
+   RooRealVar mean("mean","mean of gaussian",peakvalue,beamlow,beamup);
+   RooRealVar sigma("sigma","width of gaussian",0.003,0.0001,0.02);
+   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
+   //RooRealVar co1("co1","coefficient #1",0,-100.,100.);
+   //RooRealVar co4("co4","coefficient #4",0);
+   //RooChebychev bkg("bkg","background",x,RooArgList(co1));
+   RooRealVar signal("signal"," ",1200,10,100000);//event number
+   RooRealVar background("background"," ",200,0,1000);
+   RooRealVar a0("a0","coefficient #0",100,-100000,100000);
+   RooRealVar a1("a1","coefficient #1",-1,-100000,100000);
+   RooPolynomial ground("ground","ground",x,RooArgList(a0,a1));
+   
+   RooAddPdf *sum;
+   RooDataSet *dataset;
+   RooPlot *xframe;
+   //RooDataHist *data_6pi;
+ 
+  RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
    TCanvas *c1=new TCanvas("","",800,600);
 	 
    char tmpchr[100];
-   sprintf(tmpchr,"data_6pi_%02d",0);
-   data_6pi = new RooDataHist(tmpchr,"data_6pi",x,h);
+   sprintf(tmpchr,"data_6pi_%s",namesfx);
+   //data_6pi = new RooDataHist(tmpchr,"data_6pi",x,h);
    xframe = x.frame(Title("fit 6 pi"));
-   RooAddPdf sum("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
-   mean.setVal(peakvalue);
+   dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
+   sum = new RooAddPdf("sum","sum",RooArgList(gaus,ground),RooArgList(signal,background));
+   Npar = 6;
    //sigma.setVal(0.035);
-   signal.setVal(1200);
-   background.setVal(200);
-   co1.setVal(0);
-   sum.fitTo(*data_6pi,Range(beamlow,beamup));
-   data_6pi->plotOn(xframe);
-   sum.plotOn(xframe);
-   sum.plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-   sum.plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
+   //signal.setVal(1200);
+   //background.setVal(200);
+   //co1.setVal(0);
+   sum->fitTo(*dataset,Range(beamlow,beamup));
+   dataset->plotOn(xframe);
+   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(ground),LineStyle(2),LineColor(3));
+   sum->plotOn(xframe);
    xframe->Draw();
-   c1->Print("fit6pi.eps");
-   delete data_6pi;
+  TPaveText *pt = new TPaveText(0.60,0.5,0.90,0.90,"BRNDC");
+  pt->SetBorderSize(0);
+  pt->SetFillStyle(4000);
+  pt->SetTextAlign(12);
+  pt->SetTextFont(42);
+  pt->SetTextSize(0.035);
+  sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
+  pt->AddText(tmpchr);
+  pt->Draw();
+  sprintf(tmpchr,"mass_spectrum_%s",namesfx);
+  c1->SetName(tmpchr);
+  c1->Write();
+
+   //c1->Print("fit6pi.eps");
+   //delete data_6pi;
    delete xframe;
-
-
-   //gStyle->SetOptStat(0);
-   //gStyle->SetOptFit(1111);
-   //TF1 *fit=new TF1("fit",GausLineBack,3.75,4.0,5);
-   //fit->SetParameters(1,3.8,0.02,10,1);
-   //h->Fit(fit,"","",3.75,4.0);
-   //h->Draw();
-   //h->Fit("gaus","","",3.75,4.0);
-   //c1->Print("f6pi.eps");
+   delete dataset;
+   delete sum;
+   return;
 }
 
 #ifdef gepep_fast6pi_cxx

@@ -70,9 +70,9 @@ bool gepep_fastpipill::Loop()
 // METHOD2: replace line
 //    fChain->GetEntry(jentry);       //read all branches
 //by  b_branchname->GetEntry(ientry); //read only this branch
-  ofstream logfile("log.txt");
-  std::cout.rdbuf(logfile.rdbuf());
-  std::clog.rdbuf(logfile.rdbuf());
+  //ofstream logfile("log.txt");
+  //std::cout.rdbuf(logfile.rdbuf());
+  //std::clog.rdbuf(logfile.rdbuf());
   // std::cerr.rdbuf(logfile.rdbuf());
   
   if (fChain == 0) return false;
@@ -129,9 +129,6 @@ bool gepep_fastpipill::Loop()
  
   // Roofit part
   RooAddPdf *sum;
-  RooDataHist *data_e;
-  RooDataHist *data_mu;
-  RooDataHist *data_pi;
   RooDataSet *dataset;
   RooPlot *xframe;  
   
@@ -156,9 +153,6 @@ bool gepep_fastpipill::Loop()
   TCanvas *c1=new TCanvas("","",800,600);
   //TH1D *h1   = new TH1D("h1","2 electron invariant mass",nBins,psilow,psiup);
   //TH1D *h2   = new TH1D("h2","2 muon invariant mass",nBins,psilow,psiup);
-  TH1D *h3   = new TH1D("h3","total invariant mass(e)",nBins,psiplow,psipup);
-  TH1D *h4   = new TH1D("h4","total invariant mass(mu)",nBins,psiplow,psipup);
-  TH1D *h5   = new TH1D("h5","total invariant mass",nBins,psiplow,psipup);
   TTree *dataraw = new TTree("dataraw","dataraw");
   double mass;
   dataraw->Branch("x",&mass,"x/D");
@@ -197,7 +191,7 @@ bool gepep_fastpipill::Loop()
   // cut p
   double pcut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
   double start=0.1;
-  double stop =0.4;
+  double stop =4.0;
   for(int i=0;i<Npart+1;i++){
     pcut[i] = (stop-start)/Npart*i+start;
   }
@@ -205,7 +199,6 @@ bool gepep_fastpipill::Loop()
   //double m0=peakvalue;
   //double sigma_m=0.0017;//0.0024 for phi,
   //double width = 10.*sigma_m;
-  double mparticle=mpi;
   //std::vector<std::pair<int,int> > partmap;
   //std::vector<std::pair<int,double> > facmap;
   std::vector<int> partmap;
@@ -216,63 +209,45 @@ bool gepep_fastpipill::Loop()
   TH1D *hmphi[Npart];
   for (int partj=0;partj<Npart;partj++){
     sprintf(name,"mass_part%d",partj);
-    hmphi[partj] = new TH1D(name,name,100,psiplow,psipup);
+    hmphi[partj] = new TH1D(name,name,100,psilow,psiup);
   }
   
+  Event evt(me);
+  std::vector<Event> evts;
   // loop the data
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
      Long64_t ientry = LoadTree(jentry);
      if (ientry < 0) break;
      nb = fChain->GetEntry(jentry);   nbytes += nb;
 
+     evt.SetVal(lepx4[0],lepy4[0],lepz4[0],lepx4[1],lepy4[1],lepz4[1]);
      double mlepton;
-     double massjpsi;
-     double totpx,totpy,totpz,tote;
-     double lee[2],pie[2];
+     //double massjpsi;
      // total invariant mass
      if(cos(angle4)>0.90) continue; // cut bhabha 
-     if (decay_ee == 0)    mlepton = mmu;
+     if (decay_ee == 0)   continue; // mlepton = mmu;
      else if (decay_ee==1) mlepton = me;
      else {
        std::cout<<"can not identify lepton. "<<std::endl;
        continue;;
-     } 
-     totpx=(lepx4[0]+lepx4[1])+(pipx4[0]+pipx4[1]);
-     totpy=(lepy4[0]+lepy4[1])+(pipy4[0]+pipy4[1]);
-     totpz=(lepz4[0]+lepz4[1])+(pipz4[0]+pipz4[1]);
-     lee[0]=CalEne(mlepton,lepx4[0],lepy4[0],lepz4[0]);
-     lee[1]=CalEne(mlepton,lepx4[1],lepy4[1],lepz4[1]);
-     massjpsi = CalInvMass(mlepton,lepx4[0],lepy4[0],lepz4[0],mlepton,lepx4[1],lepy4[1],lepz4[1]);
-     pie[0]=CalEne(mpi,pipx4[0],pipy4[0],pipz4[0]);
-     pie[1]=CalEne(mpi,pipx4[1],pipy4[1],pipz4[1]);
-     tote=lee[0]+lee[1]+pie[0]+pie[1];
-     mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-     mass = mass-massjpsi+3.096916;
-     //std::cout<<"jentry "<< jentry <<", mass "<<mass<<std::endl;
-     //std::cout<<pipx4[0]<<" "<<pipy4[0]<<" "<<pipz4[0]<<" "<<mlepton<<std::endl;
+     }
+	 mass = evt.InvMass();
      // if (Cut(ientry) < 0) continue;
      int parti, partj;
-     p1 = CalMom(pipx4[0],pipy4[0],pipz4[0]);
-     p2 = CalMom(pipx4[1],pipy4[1],pipz4[1]);
-	 if (p1+p2<0.4 || p1+p2>0.6) continue;
-     costheta1 = pipz4[0]/p1;
-     costheta2 = pipz4[1]/p2;
-     if (pipy4[0]>0) phi1 = acos(pipx4[0]/sqrt(pipx4[0]*pipx4[0]+pipy4[0]*pipy4[0]));
-     else phi1=2*TMath::Pi()-acos(pipx4[0]/sqrt(pipx4[0]*pipx4[0]+pipy4[0]*pipy4[0]));
-     if (pipy4[1]>0) phi2 = acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
-     else phi2=2*TMath::Pi()-acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
-     if ( mass>psiplow-0.02 && mass<psipup+0.02 ) vars->Fill();
-     //parti = (int)(phi1/stop*Npart);
-     //partj = (int)((costheta2-start)/(stop-start)*Npart);
-     //parti = (int)((p1-start)/(stop-start)*Npart);
-     //partj = (int)((p2-start)/(stop-start)*Npart);
-     //if ( partj>=Npart || partj<0 ) continue;
-     //if ( costheta2>costhecut[partj] && costheta2<costhecut[partj+1] )
+     p1 = evt.GetP1();
+     p2 = evt.GetP2();
+	 //if (p1+p2<0.4 || p1+p2>0.6) continue;
+     costheta1 = evt.GetCostheta1();
+     costheta2 = evt.GetCostheta2();
+     phi1 = evt.GetPhi1();
+     phi2 = evt.GetPhi2();
+     if ( mass>psilow-0.02 && mass<psiup+0.02 ) vars->Fill();
      for (int partj=0;partj<Npart;partj++){
        if ( p1>pcut[partj] && p1<pcut[partj+1] && p2>pcut[partj] && p2<pcut[partj+1] )
        {
-         if ( mass>psiplow-0.02 && mass<psipup+0.02 ) {
+         if ( mass>psilow-0.02 && mass<psiup+0.02 ) {
            hmphi[partj]->Fill(mass);
+		   evts.push_back(evt);
          }
        }
      }
@@ -292,8 +267,6 @@ bool gepep_fastpipill::Loop()
 
   // try to correct the spectrum
   // iniialize the fit function
-  // double factor1,factor1err;// for e+,e-
-  // double factor2,factor2err;// for mu+,mu-
   double factor3,factor3err;// for pi
   double factor4,factor4err;// for pi
 
@@ -308,9 +281,6 @@ bool gepep_fastpipill::Loop()
   double deltapeaks[pointNo];
   double deltapeakserr[pointNo];
   double errsum=0;
-  std::string fitepsname;
-  std::string fiteps_start;
-  std::string fiteps_stop;
   std::string tmpstr;
   TLegend *legend = new TLegend(0.1,0.7,0.3,0.9);
   gStyle->SetOptStat(0);
@@ -318,9 +288,227 @@ bool gepep_fastpipill::Loop()
      
   char tmpchr[100];
 
+  // ~~~~~~~~~lepton part
+
+  std::cout<<"lepton part start"<<std::endl;
+  // iniialize the fit function
+  
+  for (int loopj=0;loopj<partmap.size();loopj++){
+    int partj = partmap.at(loopj);
+    double factori=1.00;
+    factor=factorstart;
+    factori=factor;
+    fittimes=0;
+ 
+    // for saving the fit result
+    //c1->Print(fiteps2_start.c_str());
+    //
+    //x.setVal(3.686);
+    x.setRange(psilow,psiup);
+    mean.setRange(psilow,psiup);
+    mean.setVal(3.097);
+    sigma.setRange(0.001,0.025);
+    sigma.setVal(0.0015);
+    //sigma2.setRange(0.003,0.08);
+    //sigma2.setVal(0.004);
+    
+    double factors2[pointNo];
+    double factorserr2[pointNo];
+    double deltapeaks2[pointNo];
+    double deltapeakserr2[pointNo];
+    for (int i=0;i<pointNo;i++){
+      //delete xframe;
+      xframe = x.frame(Title("fit pi"));
+      //h5->Reset();
+      dataraw->Reset();
+      std::cout<<"factor is "<<factor<<std::endl;
+      for (Long64_t jentry=0; jentry<evts.size();jentry++) {
+        Long64_t ientry = LoadTree(jentry);
+        if (ientry < 0) break;
+        nb = fChain->GetEntry(jentry);   nbytes += nb;
+ 
+        //if(ngam>0) continue;
+        double mlepton;
+        // total invariant mass
+        p1 = evts.at(jentry).GetP1();
+        p2 = evts.at(jentry).GetP2();
+        if (!(p1>pcut[partj] && p1<pcut[partj+1])) continue;
+        if (!(p2>pcut[partj] && p2<pcut[partj+1])) continue;
+        mass = evts.at(jentry).InvMass(factor,factor);
+		//h5->Fill(mass);
+
+        if (mass>psilow && mass<psiup){
+          dataraw->Fill();
+        }
+        // if (Cut(ientry) < 0) continue;
+      }
+      //dataraw->Write();
+      
+      sprintf(tmpchr,"data_pi_%2d",fittimes);
+      //dataset = new RooDataSet(tmpchr,"data",dataraw,x);
+      dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
+      //mean.setVal(3.686+0.44*(factor-1.0));
+      signal.setError(10);
+      signal2.setError(10);
+      background.setError(10);
+      sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
+      Npar=8;
+      sum->fitTo(*dataset,Range(psilow,psiup));
+      //data_pi->plotOn(xframe);
+      dataset->plotOn(xframe,Binning(nBins));
+      sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+      sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
+      sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
+      sum->plotOn(xframe);
+      xframe->Draw();
+      TPaveText *pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
+      pt->SetBorderSize(0);
+      pt->SetFillStyle(4000);
+      pt->SetTextAlign(12);
+      pt->SetTextFont(42);
+      pt->SetTextSize(0.035);
+      sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+      pt->AddText(tmpchr);
+      sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+      pt->AddText(tmpchr);
+      sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
+      pt->AddText(tmpchr);
+      sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+      pt->AddText(tmpchr);
+      sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+      pt->AddText(tmpchr);
+      sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+      pt->AddText(tmpchr);
+      sprintf(tmpchr,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
+      pt->AddText(tmpchr);
+      pt->Draw();
+      c1->Update();
+      sprintf(tmpchr,"mass_pi_%2d",fittimes);
+      xframe->SetName(tmpchr);
+      //xframe->Write();
+	  //folder->Add(xframe);
+      // save pars
+      factors2[i]=factor;
+      factorserr2[i]=0;
+      deltapeaks2[i] = mean.getVal() - peakvalue;
+      deltapeakserr2[i] = mean.getError();
+      if (deltapeakserr2[i]<1e-5) deltapeakserr2[i]=5e-4;
+      sprintf(name,"part%d_fitFor%dTimes",partj,fittimes);
+      c1->SetName(name);
+      c1->Write();
+	  //folder->Add(c1);
+	  //folder->Write();
+	  //delete folder;
+      delete sum;
+      delete dataset;
+      delete xframe;
+ 
+      fittimes++;
+      factor += factorstep;
+      factori = factor;
+    }
+    //c1->Print(fiteps2_stop.c_str());
+ 
+    c1->Clear();
+    TGraphErrors *graph3 = new TGraphErrors(pointNo,factors2,deltapeaks2,factorserr2,deltapeakserr2);
+    graph3->SetTitle("delta peak");
+    graph3->Draw("AP");
+    graph3->SetMarkerStyle(5);
+    gStyle->SetOptFit(1111);
+    facfit->SetParameters(1,0.4);
+    facfit->SetParNames("factor","slope");
+    graph3->Fit(facfit,"","",factors2[0],factors2[pointNo-1]);
+    factor4=facfit->GetParameter(0);
+ 
+    tmpstr=outputdir+"/factorpi.eps";
+    //c1->Print(tmpstr.c_str());
+	sprintf(name,"factors_pi_part%d",fittimes);
+    graph3->SetName(name);
+    graph3->Write();
+ 
+    //delete xframe;
+    xframe = x.frame(Title("fit pi"));
+    dataraw->Reset();
+    factor = factor4;
+    factori = factor;
+    //factor = 1;
+    std::cout<<"factor is "<<factor<<std::endl;
+    for (Long64_t jentry=0; jentry<evts.size();jentry++) {
+       Long64_t ientry = LoadTree(jentry);
+       if (ientry < 0) break;
+       nb = fChain->GetEntry(jentry);   nbytes += nb;
+       //if(ngam>0) continue;
+       double mlepton;
+       // total invariant mass
+       p1 = evts.at(jentry).GetP1();
+       p2 = evts.at(jentry).GetP2();
+       if (!(p1>pcut[partj] && p1<pcut[partj+1])) continue;
+       if (!(p2>pcut[partj] && p2<pcut[partj+1])) continue;
+       mass = evts.at(jentry).InvMass(factor,factor);
+       if (mass>psilow && mass<psiup)
+         dataraw->Fill();
+    }
+    dataraw->Write();
+ 
+    sprintf(tmpchr,"data_pi_%2d",fittimes);
+    dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
+    //mean.setVal(3.686+0.45*(factor-1.0));
+    sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
+    Npar=8;
+    sum->fitTo(*dataset,Range(psilow,psiup));
+    dataset->plotOn(xframe,Binning(nBins));
+    sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+    sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
+    sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
+    sum->plotOn(xframe);
+    xframe->Draw();
+    TPaveText *pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
+    pt->SetBorderSize(0);
+    pt->SetFillStyle(4000);
+    pt->SetTextAlign(12);
+    pt->SetTextFont(42);
+    pt->SetTextSize(0.035);
+    sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+    pt->AddText(tmpchr);
+    sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+    pt->AddText(tmpchr);
+    sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
+    pt->AddText(tmpchr);
+    sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+    pt->AddText(tmpchr);
+    sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+    pt->AddText(tmpchr);
+    sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+    pt->AddText(tmpchr);
+    sprintf(tmpchr,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
+    pt->AddText(tmpchr);
+    factor4err=TMath::Sqrt(TMath::Power(mean.getError()/facfit->GetParameter(1),2)
+               +TMath::Power(facfit->GetParError(0),2));
+    sprintf(tmpchr,"factor = %.6f #pm %.6f",factor,factor4err);
+    pt->AddText(tmpchr);
+	pt->Draw();
+    c1->Update();
+    tmpstr=outputdir+"/fitpi_best.eps";
+    //c1->Print(tmpstr.c_str());
+    xframe->SetName("mass_pi_best");
+    //xframe->Write();
+    sprintf(name,"part%d_correct",partj);
+    c1->SetName(name);
+    c1->Write();
+    delete sum;
+ 
+    // get factor and its error
+    factor4=facfit->GetParameter(0);
+    ofpar<<factor4<<"\t"<<factor4err<<std::endl;
+    ofpar<<"\tChisqure "<<xframe->chiSquare()<<" "<<xframe->chiSquare(Npar)<<std::endl;
+    ofpar<<signal.getVal()<<"\t"<<signal.getError()<<std::endl;
+    purepar<<"\t"<<factor4<<"\t"<<factor4err<<std::endl;
+    delete dataset;
+    delete xframe;
+  //~~~~~~~~~~~~~~ lepton part end
 
 //~~~~~~~~~~pion part start~~~~~~~~
-
+/*
   std::cout<<"pion part start"<<std::endl;
   peakvalue=3.686109;
   // iniialize the fit function
@@ -341,9 +529,6 @@ bool gepep_fastpipill::Loop()
     fittimes=0;
  
     // for saving the fit result
-    std::string fitepsname2=outputdir+"/fitpi.eps";
-    std::string fiteps2_start=fitepsname2+"[";
-    std::string fiteps2_stop =fitepsname2+"]";
     //c1->Print(fiteps2_start.c_str());
     //
     //x.setVal(3.686);
@@ -386,13 +571,9 @@ bool gepep_fastpipill::Loop()
           std::cout<<"can not identify lepton. "<<std::endl;
           return false;
         } 
-        //if (pipy4[1]>0) phi2 = acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
-        //else phi2=2*TMath::Pi()-acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
         p1 = CalMom(pipx4[0],pipy4[0],pipz4[0]);
         p2 = CalMom(pipx4[1],pipy4[1],pipz4[1]);
 	    if (p1+p2<0.4 || p1+p2>0.6) continue;
-        //costheta2 = pipz4[1]/p2;
-        //if (!(costheta2>costhecut[partj] && costheta2<costhecut[partj+1])) continue;
         if (!(p1>pcut[partj] && p1<pcut[partj+1])) continue;
         if (!(p2>pcut[partj] && p2<pcut[partj+1])) continue;
         totpx=(lepx4[0]+lepx4[1])+factori*pipx4[0]+factor*pipx4[1];
@@ -465,7 +646,6 @@ bool gepep_fastpipill::Loop()
       deltapeaks2[i] = mean.getVal() - peakvalue;
       deltapeakserr2[i] = mean.getError();
       if (deltapeakserr2[i]<1e-5) deltapeakserr2[i]=5e-4;
-      //c1->Print(fitepsname2.c_str());
       sprintf(name,"part%d_fitFor%dTimes",partj,fittimes);
       c1->SetName(name);
       c1->Write();
@@ -613,8 +793,8 @@ bool gepep_fastpipill::Loop()
     purepar<<"\t"<<factor4<<"\t"<<factor4err<<std::endl;
     delete dataset;
     delete xframe;
-
-	//folder.Write();
+*/
+	// pion part end
   
   }
 

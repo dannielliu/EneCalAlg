@@ -20,7 +20,7 @@ date
 for datadir in `ls -d /Volumes/data/besIIIwork/uidata/liud/Rvalue_Ks_2`;do
   dataset=`echo $datadir | awk -F "/" '{print $NF}' | awk -F "_" '{print $1}'`
   
-  outdir="$PWD/Ks_${dataset}_cut1p_20range8"
+  outdir="$PWD/Ks_${dataset}Only_cut1p_20range7_checkf"
   dirc_exist $outdir
   mkdir -p $outdir
 
@@ -28,8 +28,8 @@ for datadir in `ls -d /Volumes/data/besIIIwork/uidata/liud/Rvalue_Ks_2`;do
     echo $data
     ene=`echo $data | awk -F "." '{print $1}' | awk -F "/" '{print $NF}'` # | awk -F "_" '{print $NF}'
     mkdir -p "$outdir/$ene"
-    echo "../analysis $data $outdir/$ene > $outdir/$ene/log"
-    ../analysis $data $outdir/$ene > $outdir/$ene/log 
+    echo "../checkf $data $outdir/$ene > $outdir/$ene/log"
+    ../checkf $data $outdir/$ene > $outdir/$ene/log 
   done
 done
 date
