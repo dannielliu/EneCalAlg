@@ -17,14 +17,15 @@ dirc_exist(){
 }
 
 date
-for datadir in `ls -d /Volumes/data/besIIIwork/uidata/liud/Rvalue_Ks_2`;do
+#for datadir in `ls -d /Volumes/data/besIIIwork/uidata/liud/Rvalue_Ks_2`;do
+for datadir in `ls -d /Volumes/data2/newFiles`;do
   dataset=`echo $datadir | awk -F "/" '{print $NF}' | awk -F "_" '{print $1}'`
   
-  outdir="$PWD/Ks_${dataset}Only_cut1p_20range7_checkf"
+  outdir="$PWD/Ks_${dataset}Only_cut1p_20range11_1_checkf_datawithoutcor"
   dirc_exist $outdir
   mkdir -p $outdir
 
-  for data in `ls $datadir/*.root`;do
+  for data in `ls $datadir/Rvalue*.root`;do
     echo $data
     ene=`echo $data | awk -F "." '{print $1}' | awk -F "/" '{print $NF}'` # | awk -F "_" '{print $NF}'
     mkdir -p "$outdir/$ene"

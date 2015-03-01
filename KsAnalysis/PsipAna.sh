@@ -19,9 +19,10 @@ dirc_exist(){
 date
 #for datadir in `ls -d /Volumes/data/besIIIwork/Rvalue_fpipill5/combinedroot`;do
 for datadir in `ls -d /Volumes/data2/Rvalue`;do
+#for datadir in `ls -d /Volumes/data2/newFiles`;do
   dataset=`echo $datadir | awk -F "/" '{print $NF}' | awk -F "_" '{print $1}'`
   
-  outdir="$PWD/Psi_${dataset}_cut1p_20range"
+  outdir="$PWD/Psip_${dataset}_cut1p_20range11rev_7"
   dirc_exist $outdir
   mkdir -p $outdir
 
@@ -29,7 +30,7 @@ for datadir in `ls -d /Volumes/data2/Rvalue`;do
     echo $data
     ene=`echo $data | awk -F "." '{print $1}' | awk -F "/" '{print $NF}'` # | awk -F "_" '{print $NF}'
     mkdir -p "$outdir/$ene"
-    echo "../checkf $data $outdir/$ene > $outdir/$ene/log"
+    echo "../analysis $data $outdir/$ene > $outdir/$ene/log"
     ../analysis $data $outdir/$ene > $outdir/$ene/log 
   date
   done

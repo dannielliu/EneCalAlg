@@ -1,38 +1,37 @@
-#define gepep_fast6pi_cxx
-#include "gepep_fast6pi.h"
+#define gepep_fkkpipi_cxx
+#include "gepep_fkkpipi.h"
 #include <TH2.h>
 #include <TStyle.h>
 #include <TCanvas.h>
-#include <TMath.h>
-#include <TF1.h>
-#include "TPaveText.h"
 #include "function.h"
+#include "TF1.h"
+#include "TGraphErrors.h"
+#include "TPaveText.h"
 #include <fstream>
 #include "RooFit.h"
 #include "RooRealVar.h"
 #include "RooGaussian.h"
+#include "RooChebychev.h"
 #include "RooPolynomial.h"
-//#include "RooChebychev.h"
-//#include "RooDataHist.h"
+#include "RooDataHist.h"
 #include "RooDataSet.h"
 #include "RooAddPdf.h"
 #include "RooArgList.h"
 #include "RooPlot.h"
-#include "RooMsgService.h"
-#include <vector>
+//#include <iostream>
 extern std::string outputdir;
 using namespace RooFit;
-namespace EEto6PI{
-  void FitSpe(std::vector<EEto6pi> evts, double beame,  char* namesfx=0);
-  void FitSpectrum(TTree *&dataraw, double beame, char* namesfx=0);
+namespace KKPIPI{
+  void FitSpe(std::vector<KKpipi> evts, double beame,  char* namesfx);
+  void FitSpectrum(TTree *&dataraw,double beame, char* namesfx);
   double GetEnergy(int runNo);
 }
 
-void gepep_fast6pi::Loop()
+void gepep_fkkpipi::Loop()
 {
 //   In a ROOT session, you can do:
-//      Root > .L gepep_fast6pi.C
-//      Root > gepep_fast6pi t
+//      Root > .L gepep_fkkpipi.C
+//      Root > gepep_fkkpipi t
 //      Root > t.GetEntry(12); // Fill t data members with entry number 12
 //      Root > t.Show();       // Show values of entry 12
 //      Root > t.Show(16);     // Read and show values of entry 16
@@ -53,11 +52,12 @@ void gepep_fast6pi::Loop()
 // METHOD2: replace line
 //    fChain->GetEntry(jentry);       //read all branches
 //by  b_branchname->GetEntry(ientry); //read only this branch
+//
    if (fChain == 0) return;
    Long64_t nentries = fChain->GetEntriesFast();
 
    fChain->GetEntry(1);
-   double beamene = EEto6PI::GetEnergy(run);
+   double beamene = KKPIPI::GetEnergy(run);
    std::cout<<"current beam energy is "<<beamene<<", run id "<<run<<std::endl;
    if (beamene < 0.1){
      std::cout<<"can not get a suitable beam energy!"<<std::endl;
@@ -70,9 +70,10 @@ void gepep_fast6pi::Loop()
    double beamlow=beamene-0.1;
    double beamup=beamene+0.1;
    double mpi=0.13957;
+   double mk = 0.493677;
     
   char fname[1000];
-  sprintf(fname,"%s/plot_6pi_fKsPsip.root",outputdir.c_str());
+  sprintf(fname,"%s/plot_kkpipi.root",outputdir.c_str());
   TFile *f=new TFile(fname,"RECREATE");
 
   char name[100];
@@ -81,17 +82,15 @@ void gepep_fast6pi::Loop()
   double mass;
   //double phi,phi1,phi2;
   //double costheta,costheta1,costheta2;
-  double p[6];
-  vars->Branch("p1",&p[0],"p1/D");
-  vars->Branch("p2",&p[1],"p2/D");
-  vars->Branch("p3",&p[2],"p3/D");
-  vars->Branch("p4",&p[3],"p4/D");
-  vars->Branch("p5",&p[4],"p5/D");
-  vars->Branch("p6",&p[5],"p6/D");
+  double ppi1,ppi2,pk1,pk2;
+  vars->Branch("ppi1",&ppi1,"ppi1/D");
+  vars->Branch("ppi2",&ppi2,"ppi2/D");
+  vars->Branch("pk1",&pk1,"pk1/D");
+  vars->Branch("pk2",&pk2,"pk2/D");
   vars->Branch("mass",&mass,"mass/D");
   
-   EEto6pi evt;
-   std::vector<EEto6pi> evts;
+   KKpipi evt;
+   std::vector<KKpipi> evts;
 
    // select useful events
    Long64_t nbytes = 0, nb = 0;
@@ -101,14 +100,13 @@ void gepep_fast6pi::Loop()
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;	  
 	  
-	  evt.Setval(pippx,pippy,pippz,pimpx,pimpy,pimpz);
+	  evt.SetVal(pippx,pippy,pippz,pimpx,pimpy,pimpz,
+	             kappx,kappy,kappz,kampx,kampy,kampz);
       mass = evt.InvMass();
-	  bool good=true;;
-      for (int i=0; i<6;i++) {
-	    p[i] = evt.GetP(i);
-		if (p[i]<0.15 || p[i]>1.0) good = false;
-	  }
-	  if (!good) continue;
+	  ppi1 = evt.GetP1pi();
+	  ppi2 = evt.GetP2pi();
+	  pk1 = evt.GetP1k();
+	  pk2 = evt.GetP2k();
 	  if (mass>beamlow && mass<beamup){
 	    vars->Fill();
 		evts.push_back(evt);
@@ -116,158 +114,64 @@ void gepep_fast6pi::Loop()
    }//select end
    vars->Write();
    sprintf(name,"%f",peakvalue);
-   EEto6PI::FitSpe(evts,peakvalue,name);
+   KKPIPI::FitSpe(evts,peakvalue,name);
    return;
+
 }
 
-void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
+void KKPIPI::FitSpe(std::vector<KKpipi> evts, double beame, char *namesfx)
 {
   double beamlow=beame-0.1;
   double beamup=beame+0.1;
   // for factor fit
  
   TTree *datarawo = new TTree("datarawo","dataraw");
-  TTree *dataraw = new TTree("dataraw","dataraw");
-  TTree *datarawl = new TTree("datarawl","dataraw");
-  TTree *datarawu = new TTree("datarawu","dataraw");
+//TTree *dataraw = new TTree("dataraw","dataraw");
+//TTree *datarawl = new TTree("datarawl","dataraw");
+//TTree *datarawu = new TTree("datarawu","dataraw");
   double mass;
   datarawo->Branch("x",&mass,"x/D");
-  dataraw->Branch("x",&mass,"x/D");
-  datarawl->Branch("x",&mass,"x/D");
-  datarawu->Branch("x",&mass,"x/D");
+//dataraw->Branch("x",&mass,"x/D");
+//datarawl->Branch("x",&mass,"x/D");
+//datarawu->Branch("x",&mass,"x/D");
  
   // try to correct the spectrum
   // iniialize the fit function
   //double factor4,factor4err;// for pi
  
-  int Npart=20;
-  double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
+  //int Npart=20;
+  //double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
 		  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
    //pcut[0]=0.1;
    //pcut[1]=0.4;
    //pcut[2]=0.9;
-   double facmap[Npart];
-   double facemap[Npart];
+   //double facmap[Npart];
+   //double facemap[Npart];
 
    //  set normal factor in (0.2, 0.3) to 1.00061, get factor in different range
 //  only for r value data, combine both part
 // factor from Ks->pipi, pi corrected with vertex fit , low p range use factor from pipill
-/*
-   pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
-   pcut[1] =0.05;  facmap[1] =1.00594 ;  facemap[1] =0.00146173 ;
-   pcut[2] =0.10;  facmap[2] =1.00345 ;  facemap[2] =0.000209543;
-   pcut[3] =0.15;  facmap[3] =1.00191 ;  facemap[3] =9.96687e-05;
-   pcut[4] =0.20;  facmap[4] =1.00074 ;  facemap[4] =7.83398e-05;
-   pcut[5] =0.25;  facmap[5] =0.99993 ;  facemap[5] =6.57175e-05;
-   pcut[6] =0.30;  facmap[6] =0.999425;  facemap[6] =6.42244e-05;
-   pcut[7] =0.35;  facmap[7] =0.999187;  facemap[7] =6.86471e-05;
-   pcut[8] =0.40;  facmap[8] =0.998956;  facemap[8] =7.52353e-05;
-   pcut[9] =0.45;  facmap[9] =0.998686;  facemap[9] =8.37434e-05;
-   pcut[10]=0.50;  facmap[10]=0.998865;  facemap[10]=6.97743e-05;
-   pcut[11]=0.60;  facmap[11]=0.99871 ;  facemap[11]=8.90833e-05;
-   pcut[12]=0.70;  facmap[12]=0.998473;  facemap[12]=0.000118579;
-   pcut[13]=0.80;  facmap[13]=0.99859 ;  facemap[13]=0.000153497;
-   pcut[14]=0.90;  facmap[14]=0.998797;  facemap[14]=0.000208148;
-   pcut[15]=1.00;  facmap[15]=0.999028;  facemap[15]=0.000232254;
-   pcut[16]=1.20;  facmap[16]=0.999368;  facemap[16]=0.000521802;
-   pcut[17]=1.40;  facmap[17]=0.999502;  facemap[17]=0.00190491 ;
-   pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
-   pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
-   pcut[20]=2.00;  //facmap[20]=2.00;
- */
-
-   pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
-   pcut[1] =0.05;  facmap[1] =1.04644 ;  facemap[1] =0.0419675  ;
-   pcut[2] =0.10;  facmap[2] =1.0173  ;  facemap[2] =0.00322285 ;
-   pcut[3] =0.15;  facmap[3] =1.00694 ;  facemap[3] =0.000762874;
-   pcut[4] =0.20;  facmap[4] =1.00303 ;  facemap[4] =0.000389307;
-   pcut[5] =0.25;  facmap[5] =0.999829;  facemap[5] =0.000266318;
-   pcut[6] =0.30;  facmap[6] =0.997895;  facemap[6] =0.000255629;
-   pcut[7] =0.35;  facmap[7] =0.996432;  facemap[7] =0.000401476;
-   pcut[8] =0.40;  facmap[8] =0.994995;  facemap[8] =0.00165392 ;
-   pcut[9] =0.45;  facmap[9] =0.998686;  facemap[9] =8.37434e-05;
-   pcut[10]=0.50;  facmap[10]=0.998865;  facemap[10]=6.97743e-05;
-   pcut[11]=0.60;  facmap[11]=0.99871 ;  facemap[11]=8.90833e-05;
-   pcut[12]=0.70;  facmap[12]=0.998473;  facemap[12]=0.000118579;
-   pcut[13]=0.80;  facmap[13]=0.99859 ;  facemap[13]=0.000153497;
-   pcut[14]=0.90;  facmap[14]=0.998797;  facemap[14]=0.000208148;
-   pcut[15]=1.00;  facmap[15]=0.999028;  facemap[15]=0.000232254;
-   pcut[16]=1.20;  facmap[16]=0.999368;  facemap[16]=0.000521802;
-   pcut[17]=1.40;  facmap[17]=0.999502;  facemap[17]=0.00190491 ;
-   pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
-   pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
-   pcut[20]=2.00;  //facmap[20]=2.00;
- 
-
-
-
-
-  // psi 3.097
      
   char tmpchr[100];
 
   //~~~~~~~~~~part start~~~~~~~~
 
   for (Long64_t jentry=0; jentry<evts.size();jentry++) {
-     
-     double p[6];
-	 double f[6];
-	 double fl[6];
-	 double fu[6];
      // total invariant mass
 	 // without correction
      mass = evts.at(jentry).InvMass();
      if (mass>beamlow-0.001 && mass<beamup+0.001) datarawo->Fill();
-	 for (int i=0;i<6;i++) p[i] = evts.at(jentry).GetP(i);
-
-     short flag = 0x0;
-	 for (int pid=0;pid<6;pid++){
-       for (int i=0;i<Npart;i++){
-         if (p[pid]>=pcut[i]&&p[pid]<pcut[i+1]){
-           f[pid]  = facmap[i];
-           fl[pid] = facmap[i]-facemap[i];
-           fu[pid] = facmap[i]+facemap[i];
-		   flag = (flag<<1) +1; //if factor find, the flag should be 00111111
-           break;
-         }
-       }
-	 }
-	 if (flag!=0x3f){
-	   std::cout<<"Waring: not good event, factor map is "<<flag<<std::endl;
-	   continue;
-	 }
-	 // for average correction factor
-     mass = evts.at(jentry).InvMass(f);
-     if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
-	 // factor at low edge
-     mass = evts.at(jentry).InvMass(fl);
-     if (mass>beamlow-0.001 && mass<beamup+0.001) datarawl->Fill();
-	 // factor at up edge
-     mass = evts.at(jentry).InvMass(fu);
-     if (mass>beamlow-0.001 && mass<beamup+0.001) datarawu->Fill();
   }
   //dataraw->Write();
   // no correction
   sprintf(tmpchr,"raw_%s",namesfx);
-  EEto6PI::FitSpectrum(datarawo,beame,tmpchr);
-
-  // factor at average
-  sprintf(tmpchr,"nom_%s",namesfx);
-  EEto6PI::FitSpectrum(dataraw,beame,tmpchr);
- 
-  // factor at low edge
-  sprintf(tmpchr,"low_%s",namesfx);
-  EEto6PI::FitSpectrum(datarawl,beame,tmpchr);
-
-  // factor at up edge
-  sprintf(tmpchr,"upv_%s",namesfx);
-  EEto6PI::FitSpectrum(datarawu,beame,tmpchr);
-
+  KKPIPI::FitSpectrum(datarawo,beame,tmpchr);
+  
   //~~~~~~~~~~ part end~~~~~~~~
   return;
 }
 
-void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
+void KKPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
 {
    int nBins=100;
    int Npar;
@@ -282,8 +186,8 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    //RooRealVar co1("co1","coefficient #1",0,-100.,100.);
    //RooRealVar co4("co4","coefficient #4",0);
    //RooChebychev bkg("bkg","background",x,RooArgList(co1));
-   RooRealVar signal("signal"," ",1200,10,100000);//event number
-   RooRealVar background("background"," ",200,0,1000);
+   RooRealVar signal("signal"," ",200,0,100000);//event number
+   RooRealVar background("background"," ",20,0,1000);
    RooRealVar a0("a0","coefficient #0",100,-100000,100000);
    RooRealVar a1("a1","coefficient #1",-1,-100000,100000);
    RooPolynomial ground("ground","ground",x,RooArgList(a0,a1));
@@ -293,13 +197,13 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    RooPlot *xframe;
    //RooDataHist *data_6pi;
  
-  RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
+   RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
    TCanvas *c1=new TCanvas("","",800,600);
 	 
    char tmpchr[100];
-   sprintf(tmpchr,"data_6pi_%s",namesfx);
+   sprintf(tmpchr,"data_kkpipi_%s",namesfx);
    //data_6pi = new RooDataHist(tmpchr,"data_6pi",x,h);
-   xframe = x.frame(Title("fit 6 pi"));
+   xframe = x.frame(Title("fit kkpipi"));
    dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
    sum = new RooAddPdf("sum","sum",RooArgList(gaus,ground),RooArgList(signal,background));
    Npar = 6;
@@ -334,7 +238,7 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
   c1->SetName(tmpchr);
   c1->Write();
 
-   ofstream outf("f6pi",std::ios::app);
+   ofstream outf("fkkpipi",std::ios::app);
    outf<<beame<<"\t"<<namesfx<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
    
    //c1->Print("fit6pi.eps");
@@ -346,7 +250,7 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
 }
 
 
-double EEto6PI::GetEnergy(int runNo)
+double KKPIPI::GetEnergy(int runNo)
 {
   runNo=runNo%10000;
   //int a[2] = {1, 2};
@@ -381,35 +285,42 @@ double EEto6PI::GetEnergy(int runNo)
   return -1;
 }
 
-#ifdef gepep_fast6pi_cxx
-gepep_fast6pi::gepep_fast6pi(TTree *tree) : fChain(0) 
+
+
+
+
+
+
+
+#ifdef gepep_fkkpipi_cxx
+gepep_fkkpipi::gepep_fkkpipi(TTree *tree) : fChain(0) 
 {
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
    if (tree == 0) {
-      TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("data_Rvalue_f6pi_e3850.root");
+      TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("data/RValue_fkkpipi_3850.root");
       if (!f || !f->IsOpen()) {
-         f = new TFile("data_Rvalue_f6pi_e3850.root");
+         f = new TFile("data/RValue_fkkpipi_3850.root");
       }
-      f->GetObject("gepep_fast6pi",tree);
+      f->GetObject("gepep_fastkkpipi",tree);
 
    }
    Init(tree);
 }
 
-gepep_fast6pi::~gepep_fast6pi()
+gepep_fkkpipi::~gepep_fkkpipi()
 {
    if (!fChain) return;
    delete fChain->GetCurrentFile();
 }
 
-Int_t gepep_fast6pi::GetEntry(Long64_t entry)
+Int_t gepep_fkkpipi::GetEntry(Long64_t entry)
 {
 // Read contents of entry.
    if (!fChain) return 0;
    return fChain->GetEntry(entry);
 }
-Long64_t gepep_fast6pi::LoadTree(Long64_t entry)
+Long64_t gepep_fkkpipi::LoadTree(Long64_t entry)
 {
 // Set the environment to read one entry
    if (!fChain) return -5;
@@ -422,7 +333,7 @@ Long64_t gepep_fast6pi::LoadTree(Long64_t entry)
    return centry;
 }
 
-void gepep_fast6pi::Init(TTree *tree)
+void gepep_fkkpipi::Init(TTree *tree)
 {
    // The Init() function is called when the selector needs to initialize
    // a new tree or chain. Typically here the branch addresses and branch
@@ -447,19 +358,27 @@ void gepep_fast6pi::Init(TTree *tree)
    fChain->SetBranchAddress("ngch", &ngch, &b_ngch);
    fChain->SetBranchAddress("ncharg", &ncharg, &b_ncharg);
    fChain->SetBranchAddress("nneu", &nneu, &b_nneu);
-   fChain->SetBranchAddress("pippx", pippx, &b_pippx);
-   fChain->SetBranchAddress("pippy", pippy, &b_pippy);
-   fChain->SetBranchAddress("pippz", pippz, &b_pippz);
-   fChain->SetBranchAddress("pipe", pipe, &b_pipe);
-   fChain->SetBranchAddress("pimpx", pimpx, &b_pimpx);
-   fChain->SetBranchAddress("pimpy", pimpy, &b_pimpy);
-   fChain->SetBranchAddress("pimpz", pimpz, &b_pimpz);
-   fChain->SetBranchAddress("pime", pime, &b_pime);
+   fChain->SetBranchAddress("pippx", &pippx, &b_pippx);
+   fChain->SetBranchAddress("pippy", &pippy, &b_pippy);
+   fChain->SetBranchAddress("pippz", &pippz, &b_pippz);
+   fChain->SetBranchAddress("pipe", &pipe, &b_pipe);
+   fChain->SetBranchAddress("pimpx", &pimpx, &b_pimpx);
+   fChain->SetBranchAddress("pimpy", &pimpy, &b_pimpy);
+   fChain->SetBranchAddress("pimpz", &pimpz, &b_pimpz);
+   fChain->SetBranchAddress("pime", &pime, &b_pime);
+   fChain->SetBranchAddress("kappx", &kappx, &b_kappx);
+   fChain->SetBranchAddress("kappy", &kappy, &b_kappy);
+   fChain->SetBranchAddress("kappz", &kappz, &b_kappz);
+   fChain->SetBranchAddress("kape", &kape, &b_kape);
+   fChain->SetBranchAddress("kampx", &kampx, &b_kampx);
+   fChain->SetBranchAddress("kampy", &kampy, &b_kampy);
+   fChain->SetBranchAddress("kampz", &kampz, &b_kampz);
+   fChain->SetBranchAddress("kame", &kame, &b_kame);
    fChain->SetBranchAddress("kkm4", &kkm4, &b_kkm4);
    Notify();
 }
 
-Bool_t gepep_fast6pi::Notify()
+Bool_t gepep_fkkpipi::Notify()
 {
    // The Notify() function is called when a new file is opened. This
    // can be either for a new TTree in a TChain or when when a new TTree
@@ -470,18 +389,18 @@ Bool_t gepep_fast6pi::Notify()
    return kTRUE;
 }
 
-void gepep_fast6pi::Show(Long64_t entry)
+void gepep_fkkpipi::Show(Long64_t entry)
 {
 // Print contents of entry.
 // If entry is not specified, print current entry
    if (!fChain) return;
    fChain->Show(entry);
 }
-Int_t gepep_fast6pi::Cut(Long64_t entry)
+Int_t gepep_fkkpipi::Cut(Long64_t entry)
 {
 // This function may be called from Loop.
 // returns  1 if entry is accepted.
 // returns -1 otherwise.
    return 1;
 }
-#endif 
+#endif // #ifdef gepep_fkkpipi_cxx

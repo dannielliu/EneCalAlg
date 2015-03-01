@@ -46,14 +46,14 @@ public :
    Double_t        Thepim[100];   //[nKsCan]
    Double_t        Phipip[100];   //[nKsCan]
    Double_t        Phipim[100];   //[nKsCan]
-   Double_t        pippx[10];   //[npip]
-   Double_t        pippy[10];   //[npip]
-   Double_t        pippz[10];   //[npip]
-   Double_t        pipe[10];   //[npip]
-   Double_t        pimpx[10];   //[npim]
-   Double_t        pimpy[10];   //[npim]
-   Double_t        pimpz[10];   //[npim]
-   Double_t        pime[10];   //[npim]
+   Double_t        pippx[100];   //[npip]
+   Double_t        pippy[100];   //[npip]
+   Double_t        pippz[100];   //[npip]
+   Double_t        pipe[100];   //[npip]
+   Double_t        pimpx[100];   //[npim]
+   Double_t        pimpy[100];   //[npim]
+   Double_t        pimpz[100];   //[npim]
+   Double_t        pime[100];   //[npim]
 
    // List of branches
    TBranch        *b_rec_truth_Mks;   //!

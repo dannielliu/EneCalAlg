@@ -88,14 +88,14 @@ void Ks0Alg::Loop()
    //TH2D *h2pos = new TH2D("h2pos","pos",10, 0,5, 10,0,5);
    TH2D *h2p = new TH2D("h2p","P",200, 0,2, 200,0,2);
 
-   const int Npart=10;
+   const int Npart=1;
    double start=0.1;
    double stop =1.0;
-   double pcut[Npart+1]={0,0.10,0.20,0.30,0.40,0.50,
-		                   0.60,0.70,0.80,0.90,1.00};//={0.0,0.5,1.0,1.5,2.0};
+   double pcut[Npart+1];//={0,0.10,0.20,0.30,0.40,0.50,
+		                  // 0.60,0.70,0.80,0.90,1.00};//={0.0,0.5,1.0,1.5,2.0};
 //  set normal factor in (0.2, 0.3) to 1.00061, get factor in different range
-   //pcut[0] = start;
-   //pcut[1] = stop;
+   pcut[0] = start;
+   pcut[1] = stop;
  //pcut[0] =0.0 ;  
  //pcut[1] =0.05;  
  //pcut[2] =0.10;  
@@ -204,8 +204,8 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
    double p1,p2;
    double costheta1,costheta2;
 
-   const int Npart=30;
-   const int Ncos=10;
+   const int Npart=20;
+   //const int Ncos=10;
    double start=0.1;
    double stop =1.0;
    double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
@@ -213,9 +213,9 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
    //pcut[0]=0.1;
    //pcut[1]=0.4;
    //pcut[2]=0.9;
-   double coscut[Ncos+1];
-   double facmap[Npart][Ncos]; // for pi+
-   double facemap[Npart][Ncos];
+   //double coscut[Ncos+1];
+   double facmap[Npart]; // for pi+
+   double facemap[Npart];
    //double facmapm[Npart]; // for pi-
    //double facemapm[Npart];
 
@@ -451,6 +451,7 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
 */
    //  set factors in (0.15, 0.6) to up values, get factor in different range
 //  only for r value data, cut p 30 parts, cut cos 10 parts
+   /*
    pcut[0] = 0.0  ;   coscut[0] = -1.0;
    pcut[1] = 0.025;   coscut[1] = -0.8;   
    pcut[2] = 0.05 ;   coscut[2] = -0.6;
@@ -733,7 +734,32 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
   facmap[24][7] = 1.0071    ;  facemap[24][7] = 0.00693747 ;
   facmap[24][8] = 1.00672   ;  facemap[24][8] = 0.00353916 ;
   facmap[24][9] = 1.0069    ;  facemap[24][9] = 0.00417591 ;
-
+*/
+   
+   // correction factors, Ks corrected
+// factor from Ks->pipi, pi corrected with vertex fit
+   pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
+   pcut[1] =0.05;  facmap[1] =1.00594 ;  facemap[1] =0.00146173 ;     
+   pcut[2] =0.10;  facmap[2] =1.00345 ;  facemap[2] =0.000209543;
+   pcut[3] =0.15;  facmap[3] =1.00191 ;  facemap[3] =9.96687e-05;
+   pcut[4] =0.20;  facmap[4] =1.00074 ;  facemap[4] =7.83398e-05;
+   pcut[5] =0.25;  facmap[5] =0.99993 ;  facemap[5] =6.57175e-05;
+   pcut[6] =0.30;  facmap[6] =0.999425;  facemap[6] =6.42244e-05;
+   pcut[7] =0.35;  facmap[7] =0.999187;  facemap[7] =6.86471e-05;
+   pcut[8] =0.40;  facmap[8] =0.998956;  facemap[8] =7.52353e-05;
+   pcut[9] =0.45;  facmap[9] =0.998686;  facemap[9] =8.37434e-05;
+   pcut[10]=0.50;  facmap[10]=0.998865;  facemap[10]=6.97743e-05;
+   pcut[11]=0.60;  facmap[11]=0.99871 ;  facemap[11]=8.90833e-05;
+   pcut[12]=0.70;  facmap[12]=0.998473;  facemap[12]=0.000118579;
+   pcut[13]=0.80;  facmap[13]=0.99859 ;  facemap[13]=0.000153497;
+   pcut[14]=0.90;  facmap[14]=0.998797;  facemap[14]=0.000208148;
+   pcut[15]=1.00;  facmap[15]=0.999028;  facemap[15]=0.000232254;
+   pcut[16]=1.20;  facmap[16]=0.999368;  facemap[16]=0.000521802;
+   pcut[17]=1.40;  facmap[17]=0.999502;  facemap[17]=0.00190491 ;
+   pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
+   pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
+   pcut[20]=2.00;  //facmap[20]=2.00;
+ 
    char name[200];
    double factori=1;
    double factorj=1;
@@ -743,8 +769,8 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
    for (Long64_t jentry=0; jentry<evts.size();jentry++) {
       p1 = evts.at(jentry).GetP1();
       p2 = evts.at(jentry).GetP2();
-	  costheta1 = evts.at(jentry).GetCostheta1();
-	  costheta2 = evts.at(jentry).GetCostheta2();
+	//costheta1 = evts.at(jentry).GetCostheta1();
+	//costheta2 = evts.at(jentry).GetCostheta2();
       if (p1<0.1  || p1>1.0) continue;
       if (p2<0.1  || p2>1.0) continue;
       
@@ -756,24 +782,24 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
 	  // allocate factor according to p, average factor
       for (int i=0;i<Npart;i++){
         if (p1>=pcut[i]&&p1<pcut[i+1]){
-		  for (int j=0; j<Ncos;j++){
-		    if (costheta1>=coscut[j]&&costheta1<coscut[j+1]){
-              factori = facmap[i][j];
+		  //for (int j=0; j<Ncos;j++){
+		    //if (costheta1>=coscut[j]&&costheta1<coscut[j+1]){
+              factori = facmap[i];
 			  break;
-			}
-		  }
-          break;
+			//}
+		  //}
+          //break;
         }
       }
       for (int i=0;i<Npart;i++){
         if (p2>=pcut[i]&&p2<pcut[i+1]){
-		  for (int j=0; j<Ncos;j++){
-		    if (costheta2>=coscut[j]&&costheta2<coscut[j+1]){
-              factorj = facmap[i][j];
+		  //for (int j=0; j<Ncos;j++){
+		    //if (costheta2>=coscut[j]&&costheta2<coscut[j+1]){
+              factorj = facmap[i];
 			  break;
-			}
-		  }
-          break;
+			//}
+		  //}
+          //break;
         }
       }
       mass = evts.at(jentry).InvMass(factori,factorj);
@@ -784,24 +810,24 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
       // allocate factor according to p, factor at low edge
       for (int i=0;i<Npart;i++){
         if (p1>=pcut[i]&&p1<pcut[i+1]){
-		  for (int j=0; j<Ncos;j++){
-		    if (costheta1>=coscut[j]&&costheta1<coscut[j+1]){
-              factori = facmap[i][j]-facemap[i][j];
+		  //for (int j=0; j<Ncos;j++){
+		    //if (costheta1>=coscut[j]&&costheta1<coscut[j+1]){
+              factori = facmap[i]-facemap[i];
 			  break;
-			}
-		  }
-          break;
+			//}
+		  //}
+          //break;
         }
       }
       for (int i=0;i<Npart;i++){
         if (p2>=pcut[i]&&p2<pcut[i+1]){
-		  for (int j=0; j<Ncos;j++){
-		    if (costheta2>=coscut[j]&&costheta2<coscut[j+1]){
-              factorj = facmap[i][j]-facemap[i][j];
+		  //for (int j=0; j<Ncos;j++){
+		    //if (costheta2>=coscut[j]&&costheta2<coscut[j+1]){
+              factorj = facmap[i]-facemap[i];
 			  break;
-			}
-		  }
-          break;
+			//}
+		  //}
+          //break;
         }
       }
       mass = evts.at(jentry).InvMass(factori,factorj);
@@ -812,24 +838,24 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
       // allocate factor according to p, factor at up edge
       for (int i=0;i<Npart;i++){
         if (p1>=pcut[i]&&p1<pcut[i+1]){
-		  for (int j=0; j<Ncos;j++){
-		    if (costheta1>=coscut[j]&&costheta1<coscut[j+1]){
-              factori = facmap[i][j]+facemap[i][j];
+		  //for (int j=0; j<Ncos;j++){
+		    //if (costheta1>=coscut[j]&&costheta1<coscut[j+1]){
+              factori = facmap[i]+facemap[i];
 			  break;
-			}
-		  }
-          break;
+			//}
+		  //}
+          //break;
         }
       }
       for (int i=0;i<Npart;i++){
         if (p2>=pcut[i]&&p2<pcut[i+1]){
-		  for (int j=0; j<Ncos;j++){
-		    if (costheta2>=coscut[j]&&costheta2<coscut[j+1]){
-              factorj = facmap[i][j]+facemap[i][j];
+		  //for (int j=0; j<Ncos;j++){
+		    //if (costheta2>=coscut[j]&&costheta2<coscut[j+1]){
+              factorj = facmap[i]+facemap[i];
 			  break;
-			}
-		  }
-          break;
+			//}
+		  //}
+          //break;
         }
       }
       mass = evts.at(jentry).InvMass(factori,factorj);
@@ -850,12 +876,12 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
 
    // low edge part
    sprintf(name,"low_%s",namesfx);
-   KS::FitSpectrum(datarawl,name);
+   KS::FitSpectrum(datarawl,name,true);
    // low part end
 
    //  up part 
    sprintf(name,"up_%s",namesfx);
-   KS::FitSpectrum(datarawu,name);
+   KS::FitSpectrum(datarawu,name,true);
    // up part end
    return;
 }
@@ -964,12 +990,13 @@ Ks0Alg::Ks0Alg(TTree *tree)
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
    if (tree == 0) {
-      TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("Ksto2pi_583_140226_0035862.root");
-      if (!f) {
-         f = new TFile("Ksto2pi_583_140226_0035862.root");
-      }
-      tree = (TTree*)gDirectory->Get("Ks_info");
-
+      //TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("Ksto2pi_583_140226_0035862.root");
+      //if (!f) {
+      //   f = new TFile("Ksto2pi_583_140226_0035862.root");
+      //}
+      //tree = (TTree*)gDirectory->Get("Ks_info");
+	  std::cout<<"Waring: no tree input!"<<std::endl;
+	  return;
    }
    Init(tree);
 }

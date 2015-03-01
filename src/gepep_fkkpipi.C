@@ -17,12 +17,10 @@
 #include "RooPlot.h"
 //#include <iostream>
 extern std::string outputdir;
-using RooFit::Title;
-using RooFit::Components;
-using RooFit::LineStyle;
-using RooFit::LineColor;
-using RooFit::Range;
-
+using namespace RooFit;
+namespace KKPIPI{
+  void FitSpectrum(TTree *&dataraw, char* namesfx, bool out=false);
+}
 
 void gepep_fkkpipi::Loop()
 {

@@ -31,32 +31,32 @@ int main(int argc, char** argv)
   }
 
   const int Npart = 30;
-  const int Ncos = 10;
+  //const int Ncos = 10;
   char tmpchr[100];
-  double p1,cos1,fac1,face1;
-  int count[Npart][Ncos]={0}; // count vaild part
-  double facv[Npart][Ncos][200]; // buffer for pars
-  double facev[Npart][Ncos][200];
+  double p1,fac1,face1;
+  int count[Npart]={0}; // count vaild part
+  double facv[Npart][200]; // buffer for pars
+  double facev[Npart][200];
   double p[Npart];
   double pe[Npart];
-  double cos[Ncos];
-  double cose[Ncos];
-  double fac[Npart][Ncos];
-  double face[Npart][Ncos];
+//double cos[Ncos];
+//double cose[Ncos];
+  double fac[Npart];
+  double face[Npart];
 
   double pcut[Npart+1];
-  double coscut[Ncos+1];
-  pcut[0] =0.0  ;  coscut[0] = -1.0;
-  pcut[1] =0.025;  coscut[1] = -0.8;
-  pcut[2] =0.05 ;  coscut[2] = -0.6;
-  pcut[3] =0.075;  coscut[3] = -0.4;
-  pcut[4] =0.10 ;  coscut[4] = -0.2;
-  pcut[5] =0.125;  coscut[5] =  0.0;
-  pcut[6] =0.15 ;  coscut[6] =  0.2;
-  pcut[7] =0.175;  coscut[7] =  0.4;
-  pcut[8] =0.20 ;  coscut[8] =  0.6;
-  pcut[9] =0.225;  coscut[9] =  0.8;
-  pcut[10]=0.25 ;  coscut[10]=  1.0;
+//double coscut[Ncos+1];
+  pcut[0] =0.0  ;//coscut[0] = -1.0;
+  pcut[1] =0.025;//coscut[1] = -0.8;
+  pcut[2] =0.05 ;//coscut[2] = -0.6;
+  pcut[3] =0.075;//coscut[3] = -0.4;
+  pcut[4] =0.10 ;//coscut[4] = -0.2;
+  pcut[5] =0.125;//coscut[5] =  0.0;
+  pcut[6] =0.15 ;//coscut[6] =  0.2;
+  pcut[7] =0.175;//coscut[7] =  0.4;
+  pcut[8] =0.20 ;//coscut[8] =  0.6;
+  pcut[9] =0.225;//coscut[9] =  0.8;
+  pcut[10]=0.25 ;//coscut[10]=  1.0;
   pcut[11]=0.275;
   pcut[12]=0.30 ;
   pcut[13]=0.325;
@@ -87,7 +87,7 @@ int main(int argc, char** argv)
     }
     cout<<"reading file: "<<filenames[parti]<<endl;
     while(!inpar.eof()){
-      inpar>>p1>>cos1>>fac1>>face1;
+      inpar>>p1>>fac1>>face1;
       int id=-1;
 	  int jd=-1;
       for (int pi=0;pi<Npart;pi++){
@@ -96,15 +96,15 @@ int main(int argc, char** argv)
           break;
         }
       }
-	  for (int ci=0;ci<Ncos;ci++){
-	    if (cos1>=coscut[ci] && cos1<coscut[ci+1]){
-		  jd = ci;
-		  break;
-	 	}
-	  }
-      facv[id][jd][count[id][jd]] = fac1;
-      facev[id][jd][count[id][jd]]= face1;
-      count[id][jd]++;
+	//for (int ci=0;ci<Ncos;ci++){
+	//  if (cos1>=coscut[ci] && cos1<coscut[ci+1]){
+	//    jd = ci;
+	//    break;
+	//  }
+	//}
+      facv[id][count[id]] = fac1;
+      facev[id][count[id]]= face1;
+      count[id]++;
       
       inpar.read(tmpchr,2);
       inpar.seekg(-2,std::ios::cur);
@@ -112,27 +112,27 @@ int main(int argc, char** argv)
   }
 
   for (int pi=0;pi<Npart;pi++){
-  for (int ci=0;ci<Ncos;ci++){
+  //for (int ci=0;ci<Ncos;ci++){
     double sumerr=0;// sum of 1/error^2
     double sumfac=0;
-    cout<<"part "<<pi<<", "<<ci<<" have "<<count[pi][ci]<<" samples!"<<endl;
-    if (count[pi][ci]==0) continue;
-    for (int i=0;i<count[pi][ci];i++){
-      sumerr += 1./(facev[pi][ci][i]*facev[pi][ci][i]);
-      sumfac += 1./(facev[pi][ci][i]*facev[pi][ci][i])*facv[pi][ci][i];
+    cout<<"part "<<pi<<" have "<<count[pi]<<" samples!"<<endl;
+    if (count[pi]==0) continue;
+    for (int i=0;i<count[pi];i++){
+      sumerr += 1./(facev[pi][i]*facev[pi][i]);
+      sumfac += 1./(facev[pi][i]*facev[pi][i])*facv[pi][i];
     }
     p[pi] = pcut[pi] + (pcut[pi+1]-pcut[pi])/2;
     pe[pi] = 0;
-	cos[ci] = coscut[ci] + (coscut[ci+1]-coscut[ci])/2;
-	cose[ci] = 0;
+////cos[ci] = coscut[ci] + (coscut[ci+1]-coscut[ci])/2;
+////cose[ci] = 0;
     if (sumerr!=0){
-      fac[pi][ci] = sumfac/sumerr;
-      face[pi][ci]= TMath::Sqrt(1./sumerr);
+      fac[pi] = sumfac/sumerr;
+      face[pi]= TMath::Sqrt(1./sumerr);
     }
-    else fac[pi][ci]=0;
-    cout<<"part "<<pi<<", "<<ci<<" error "<<face[pi][ci]<<" factor "<<fac[pi][ci]<<endl;
+    else fac[pi]=0;
+    cout<<"part "<<pi<<" error "<<face[pi]<<" factor "<<fac[pi]<<endl;
+  //}// ci end
   }// pi end
-  }// ci end
   
   //double fp[Npart],ffac[Npart],fface[Npart];
   //double fpe[Npart]={0};
@@ -140,17 +140,17 @@ int main(int argc, char** argv)
   sprintf(tmpchr,"combinedpar.txt");
   ofstream of(tmpchr);
   for (int i=0;i<Npart;i++){
-  for (int j=0;j<Ncos;j++){
-    if (count[i][j]==0) continue;
+  //for (int j=0;j<Ncos;j++){
+    if (count[i]==0) continue;
     //fp[cp] = p[i];
     //ffac[cp]=fac[i];
     //fface[cp]=face[i];
 
-    of<<p[i]<<"\t"<<cos[j]<<"\t"<<fac[i][j]<<"\t"<<face[i][j]<<endl;
+    of<<p[i]<<"\t"<<fac[i]<<"\t"<<face[i]<<endl;
     //cout<<fp[cp]<<"\t"<<ffac[cp]<<"\t"<<fface[cp]<<endl;
 
     //cp++;
-  }
+  //}
   }
  /*
   TCanvas *c1 = new TCanvas();

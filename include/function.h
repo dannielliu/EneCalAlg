@@ -125,7 +125,7 @@ public:
   {
     ml = m;
   }
-  double InvMass(double f1=1.0,double f2=1.0,double f3=1.001,double f4=1.001)
+  double InvMass(double f1=1.0,double f2=1.0,double f3=1.00,double f4=1.00)
   {
     double totpx,totpy,totpz,tote;
 	double lee[2],pie[2];
@@ -244,5 +244,82 @@ public:
   }
 
 };
+
+struct KKpipi
+{
+  double mpi;
+  double pipx1;
+  double pipy1;
+  double pipz1;
+  double pipx2;
+  double pipy2;
+  double pipz2;
+  double mk;
+  double kpx1;
+  double kpy1;
+  double kpz1;
+  double kpx2;
+  double kpy2;
+  double kpz2;
+
+public:
+  KKpipi(){
+    mpi = 0.13957;
+	mk = 0.493677;
+  }
+  void SetVal(double px1,double py1,double pz1,
+              double px2,double py2,double pz2,
+              double px3,double py3,double pz3,
+              double px4,double py4,double pz4 )
+  {
+    pipx1 = px1;
+    pipy1 = py1;
+    pipz1 = pz1;
+    pipx2 = px2;
+    pipy2 = py2;
+    pipz2 = pz2;
+    kpx1  = px3;
+    kpy1  = py3;
+    kpz1  = pz3;
+    kpx2  = px4;
+    kpy2  = py4;
+    kpz2  = pz4;
+  }
+  double InvMass(double f1=1.0,double f2=1.0,double f3=1.00,double f4=1.00)
+  {
+    double totpx,totpy,totpz,tote;
+	double ke[2],pie[2];
+	double mass;
+    totpx = (f1*pipx1+f2*pipx2)+(f3*kpx1+f4*kpx2);
+    totpy = (f1*pipy1+f2*pipy2)+(f3*kpy1+f4*kpy2);
+    totpz = (f1*pipz1+f2*pipz2)+(f3*kpz1+f4*kpz2);
+    ke[0]=CalEne(mk,f3*kpx1,f3*kpy1,f3*kpz1);
+    ke[1]=CalEne(mk,f4*kpx2,f4*kpy2,f4*kpz2);
+    //double massjpsi = CalInvMass(ml,lpx1,lpy1,lpz1,ml,lpx2,lpy2,lpz2);
+    pie[0]=CalEne(mpi,f1*pipx1,f1*pipy1,f1*pipz1);
+    pie[1]=CalEne(mpi,f2*pipx2,f2*pipy2,f2*pipz2);
+    tote=ke[0]+ke[1]+pie[0]+pie[1];
+    mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+	return mass;
+  } 
+  double GetP1pi()
+  {
+    return CalMom(pipx1,pipy1,pipz1);
+  }
+  double GetP2pi()
+  {
+    return CalMom(pipx2,pipy2,pipz2);
+  }
+  double GetP1k()
+  {
+    return CalMom(kpx1,kpy1,kpz1);
+  }
+  double GetP2k()
+  {
+    return CalMom(kpx2,kpy2,kpz2);
+  }
+
+};
+
 
 #endif

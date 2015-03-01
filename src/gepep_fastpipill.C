@@ -118,8 +118,8 @@ bool gepep_fastpipill::Loop()
   
   RooBreitWigner brewig("brewig","brewig",x,mean,brewid);
   
-  RooRealVar signal("signal"," ",500,10,1000000);//event number
-  RooRealVar signal2("signal2"," ",100,1,1000000);//event number
+  RooRealVar signal("signal"," ",500,0,1000000);//event number
+  RooRealVar signal2("signal2"," ",100,0,1000000);//event number
   RooRealVar background("background"," ",10,0,1000000);
   //RooAddPdf sum("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
   
@@ -148,7 +148,8 @@ bool gepep_fastpipill::Loop()
   ofstream ofpardetail;
   ofpardetail.open("detail.txt",std::ios::app);
   ofstream purepar;
-  purepar.open("par");
+  sprintf(fname,"%s/par",outputdir.c_str());
+  purepar.open(fname);
  
   TCanvas *c1=new TCanvas("","",800,600);
   //TH1D *h1   = new TH1D("h1","2 electron invariant mass",nBins,psilow,psiup);
@@ -172,7 +173,7 @@ bool gepep_fastpipill::Loop()
   // for initial spectrum
   Long64_t nbytes = 0, nb = 0;
 
-  int Npart=1;
+  int Npart=10;
   // cut phi
   //double phicut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
   //double start=0.0;
@@ -190,12 +191,24 @@ bool gepep_fastpipill::Loop()
   //}
   // cut p
   double pcut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
-  double start=0.1;
-  double stop =4.0;
-  for(int i=0;i<Npart+1;i++){
-    pcut[i] = (stop-start)/Npart*i+start;
-  }
-
+//double start=0.1;
+//double stop =0.4;
+//for(int i=0;i<Npart+1;i++){
+//  pcut[i] = (stop-start)/Npart*i+start;
+//}
+  double facv[Npart],facev[Npart];
+   pcut[0] =0.0 ;    facv[0] =1.0;  facev[0] =1.0;  
+   pcut[1] =0.05;    facv[1] =1.044165;  facev[1] =1.0;  
+   pcut[2] =0.10;    facv[2] =1.016065;  facev[2] =1.0;
+   pcut[3] =0.15;    facv[3] =1.006475;  facev[3] =1.0;
+   pcut[4] =0.20;    facv[4] =1.002925;  facev[4] =1.0;
+   pcut[5] =0.25;    facv[5] =1.00009 ;  facev[5] =1.0;
+   pcut[6] =0.30;    facv[6] =0.998269;  facev[6] =1.0;
+   pcut[7] =0.35;    facv[7] =0.996053;  facev[7] =1.0;
+   pcut[8] =0.40;    facv[8] =0.994557;  facev[8] =1.0;
+   pcut[9] =0.45;    facv[9] =1.0;  facev[9] =1.0;
+   pcut[10]=0.50;
+ 
   //double m0=peakvalue;
   //double sigma_m=0.0017;//0.0024 for phi,
   //double width = 10.*sigma_m;
@@ -209,27 +222,30 @@ bool gepep_fastpipill::Loop()
   TH1D *hmphi[Npart];
   for (int partj=0;partj<Npart;partj++){
     sprintf(name,"mass_part%d",partj);
-    hmphi[partj] = new TH1D(name,name,100,psilow,psiup);
+    hmphi[partj] = new TH1D(name,name,100,psiplow,psipup);
   }
   
-  Event evt(me);
-  std::vector<Event> evts;
+  //Event evt(me);
+  //std::vector<Event> evts;
+  Psip evt;
+  std::vector<Psip> evts;
   // loop the data
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
      Long64_t ientry = LoadTree(jentry);
      if (ientry < 0) break;
      nb = fChain->GetEntry(jentry);   nbytes += nb;
 
-     evt.SetVal(lepx4[0],lepy4[0],lepz4[0],lepx4[1],lepy4[1],lepz4[1]);
-     double mlepton;
+     evt.Setval(pipx4[1],pipy4[1],pipz4[1],pipx4[0],pipy4[0],pipz4[0],
+	            lepx4[0],lepy4[0],lepz4[0],lepx4[1],lepy4[1],lepz4[1]);
+     //double mlepton;
      //double massjpsi;
      // total invariant mass
      if(cos(angle4)>0.90) continue; // cut bhabha 
-     if (decay_ee == 0)   continue; // mlepton = mmu;
-     else if (decay_ee==1) mlepton = me;
+     if (decay_ee == 0)   evt.SetLeptonM(mmu); // mlepton = mmu;
+     else if (decay_ee==1) evt.SetLeptonM(me);
      else {
        std::cout<<"can not identify lepton. "<<std::endl;
-       continue;;
+       continue;
      }
 	 mass = evt.InvMass();
      // if (Cut(ientry) < 0) continue;
@@ -241,15 +257,14 @@ bool gepep_fastpipill::Loop()
      costheta2 = evt.GetCostheta2();
      phi1 = evt.GetPhi1();
      phi2 = evt.GetPhi2();
-     if ( mass>psilow-0.02 && mass<psiup+0.02 ) vars->Fill();
+     if ( mass>psiplow-0.01 && mass<psipup+0.01 ) vars->Fill();
      for (int partj=0;partj<Npart;partj++){
-       if ( p1>pcut[partj] && p1<pcut[partj+1] && p2>pcut[partj] && p2<pcut[partj+1] )
-       {
-         if ( mass>psilow-0.02 && mass<psiup+0.02 ) {
+         if ( p2>pcut[partj] && p2<pcut[partj+1] ){
+         if ( mass>psiplow-0.01 && mass<psipup+0.01 ) {
            hmphi[partj]->Fill(mass);
 		   evts.push_back(evt);
          }
-       }
+         }
      }
   }
   vars->Write();
@@ -271,7 +286,7 @@ bool gepep_fastpipill::Loop()
   double factor4,factor4err;// for pi
 
   // psi 3.097
-  const int pointNo=20;
+  const int pointNo=10;
   double factor=factorstart;
   double factorstep=(1.-factor)*2/pointNo;
   double peakvalue=3.096916;
@@ -289,7 +304,7 @@ bool gepep_fastpipill::Loop()
   char tmpchr[100];
 
   // ~~~~~~~~~lepton part
-
+/*
   std::cout<<"lepton part start"<<std::endl;
   // iniialize the fit function
   
@@ -505,11 +520,12 @@ bool gepep_fastpipill::Loop()
     purepar<<"\t"<<factor4<<"\t"<<factor4err<<std::endl;
     delete dataset;
     delete xframe;
+	*/
   //~~~~~~~~~~~~~~ lepton part end
 
 //~~~~~~~~~~pion part start~~~~~~~~
-/*
-  std::cout<<"pion part start"<<std::endl;
+
+  std::cout<<"pion part start, events size "<<evts.size()<<std::endl;
   peakvalue=3.686109;
   // iniialize the fit function
   // psi(2S) 3.686
@@ -520,23 +536,16 @@ bool gepep_fastpipill::Loop()
     //double factori=1.00090;
     double factori=1.0000;
     factor=factorstart;
-    factori=factor;
-    //folder = new TFolder(name,name);
-    
-	sprintf(name,"part%d",partj);
-	//f->Cd(name);
-
+    //factori=factor;
     fittimes=0;
  
     // for saving the fit result
-    //c1->Print(fiteps2_start.c_str());
-    //
     //x.setVal(3.686);
     x.setRange(psiplow,psipup);
     mean.setRange(psiplow,psipup);
-    mean2.setRange(3.684,3.688);
+    //mean2.setRange(3.684,3.688);
     mean.setVal(3.686);
-    mean2.setVal(3.686);
+    //mean2.setVal(3.686);
     //sigma.setRange(0.002,0.004);
     sigma.setRange(0.001,0.0025);
     sigma.setVal(0.0015);
@@ -553,40 +562,21 @@ bool gepep_fastpipill::Loop()
       //h5->Reset();
       dataraw->Reset();
       std::cout<<"factor is "<<factor<<std::endl;
-      for (Long64_t jentry=0; jentry<nentries;jentry++) {
-        Long64_t ientry = LoadTree(jentry);
-        if (ientry < 0) break;
-        nb = fChain->GetEntry(jentry);   nbytes += nb;
+      for (Long64_t jentry=0; jentry<evts.size();jentry++) {
  
-        //if(ngam>0) continue;
-        double mlepton;
-        double massjpsi;
-        double totpx,totpy,totpz,tote;
-        double lee[2],pie[2];
-        // total invariant mass
-        if(cos(angle4)>0.90) continue; // cut bhabha 
-        if (decay_ee == 0)       mlepton = mmu;
-        else if (decay_ee==1) mlepton = me;
-        else {
-          std::cout<<"can not identify lepton. "<<std::endl;
-          return false;
-        } 
-        p1 = CalMom(pipx4[0],pipy4[0],pipz4[0]);
-        p2 = CalMom(pipx4[1],pipy4[1],pipz4[1]);
-	    if (p1+p2<0.4 || p1+p2>0.6) continue;
-        if (!(p1>pcut[partj] && p1<pcut[partj+1])) continue;
-        if (!(p2>pcut[partj] && p2<pcut[partj+1])) continue;
-        totpx=(lepx4[0]+lepx4[1])+factori*pipx4[0]+factor*pipx4[1];
-        totpy=(lepy4[0]+lepy4[1])+factori*pipy4[0]+factor*pipy4[1];
-        totpz=(lepz4[0]+lepz4[1])+factori*pipz4[0]+factor*pipz4[1];
-        lee[0]=CalEne(mlepton,lepx4[0],lepy4[0],lepz4[0]);
-        lee[1]=CalEne(mlepton,lepx4[1],lepy4[1],lepz4[1]);
-        massjpsi = CalInvMass(mlepton,lepx4[0],lepy4[0],lepz4[0],mlepton,lepx4[1],lepy4[1],lepz4[1]);
-        pie[0]=CalEne(mpi,pipx4[0],pipy4[0],pipz4[0],factori);
-        pie[1]=CalEne(mpi,pipx4[1],pipy4[1],pipz4[1],factor);
-        tote=lee[0]+lee[1]+pie[0]+pie[1];
-        mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-        mass = mass-massjpsi+3.096916;
+        p1 = evts.at(jentry).GetP1(); 
+		p2 = evts.at(jentry).GetP2();
+	    //if (p1+p2<0.4 || p1+p2>0.6) continue;
+        if (!(p1>0.0 && p1<0.5)) continue;
+        for (int i=0;i<Npart;i++){
+          if (p1>=pcut[i]&&p1<pcut[i+1]){
+            factori = facv[i];
+            break;
+          }
+        }
+ 
+		if (!(p2>pcut[partj] && p2<pcut[partj+1])) continue;
+		mass = evts.at(jentry).InvMass(factori,factor);
 		//h5->Fill(mass);
 
         if (mass>psiplow && mass<psipup){
@@ -658,7 +648,7 @@ bool gepep_fastpipill::Loop()
  
       fittimes++;
       factor += factorstep;
-      factori = factor;
+      //factori = factor;
     }
     //c1->Print(fiteps2_stop.c_str());
  
@@ -675,7 +665,7 @@ bool gepep_fastpipill::Loop()
  
     tmpstr=outputdir+"/factorpi.eps";
     //c1->Print(tmpstr.c_str());
-	sprintf(name,"factors_pi_part%d",fittimes);
+	sprintf(name,"factors_pi_part%d",partj);
     graph3->SetName(name);
     graph3->Write();
  
@@ -683,52 +673,23 @@ bool gepep_fastpipill::Loop()
     xframe = x.frame(Title("fit pi"));
     dataraw->Reset();
     factor = factor4;
-    factori = factor;
+    //factori = factor;
     //factor = 1;
     std::cout<<"factor is "<<factor<<std::endl;
-    for (Long64_t jentry=0; jentry<nentries;jentry++) {
-       Long64_t ientry = LoadTree(jentry);
-       if (ientry < 0) break;
-       nb = fChain->GetEntry(jentry);   nbytes += nb;
-       //if(ngam>0) continue;
-       double massjpsi;
-       double mlepton;
-       //double p1,p2;
-       //double theta1,theta2;
-       double totpx,totpy,totpz,tote;
-       double lee[2],pie[2];
-       // total invariant mass
-       if (cos(angle4)>0.90) continue; // cut bhabha 
-       if (decay_ee == 0)    mlepton = mmu;
-       else if(decay_ee==1)  mlepton = me;
-       else {
-         std::cout<<"can not identify lepton. "<<std::endl;
-         return false;
-       }
-       //if (pipy4[1]>0) phi2 = acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
-       //else phi2=2*TMath::Pi()-acos(pipx4[1]/sqrt(pipx4[1]*pipx4[1]+pipy4[1]*pipy4[1]));
-       //if (!(phi2>phicut[partj] && phi2<phicut[partj+1])) continue;
-       p1 = CalMom(pipx4[0],pipy4[0],pipz4[0]);
-       p2 = CalMom(pipx4[1],pipy4[1],pipz4[1]);
-	   if (p1+p2<0.4 || p1+p2>0.6) continue;
-       //costheta2 = pipz4[1]/p2;
-       //if (!(costheta2>costhecut[partj] && costheta2<costhecut[partj+1])) continue;
-       if (!(p1>pcut[partj] && p1<pcut[partj+1])) continue;
+    for (Long64_t jentry=0; jentry<evts.size();jentry++) {
+       p1 = evts.at(jentry).GetP1();
+       p2 = evts.at(jentry).GetP2();
+	   //if (p1+p2<0.4 || p1+p2>0.6) continue;
+       //if (!(p1>pcut[partj] && p1<pcut[partj+1])) continue;
+        if (!(p1>0. && p1<0.5)) continue;
+        for (int i=0;i<Npart;i++){
+          if (p1>=pcut[i]&&p1<pcut[i+1]){
+            factori = facv[i];
+            break;
+          }
+        }
        if (!(p2>pcut[partj] && p2<pcut[partj+1])) continue;
-       totpx=(lepx4[0]+lepx4[1])+factori*pipx4[0]+factor*pipx4[1];
-       totpy=(lepy4[0]+lepy4[1])+factori*pipy4[0]+factor*pipy4[1];
-       totpz=(lepz4[0]+lepz4[1])+factori*pipz4[0]+factor*pipz4[1];
-       lee[0]= CalEne(mlepton,lepx4[0],lepy4[0],lepz4[0]);
-       lee[1]= CalEne(mlepton,lepx4[1],lepy4[1],lepz4[1]);
-       massjpsi = CalInvMass(mlepton,lepx4[0],lepy4[0],lepz4[0],mlepton,lepx4[1],lepy4[1],lepz4[1]);
- 
-       pie[0]= CalEne(mpi,pipx4[0],pipy4[0],pipz4[0],factori);
-       pie[1]= CalEne(mpi,pipx4[1],pipy4[1],pipz4[1],factor);
- 
-       tote=lee[0]+lee[1]+pie[0]+pie[1];
-       mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-       //h5->Fill(mass-massjpsi+3.096916);
-       mass = mass-massjpsi+3.096916;
+       mass = evts.at(jentry).InvMass(factori,factor);
        if (mass>psiplow && mass<psipup)
          dataraw->Fill();
     }
@@ -790,10 +751,10 @@ bool gepep_fastpipill::Loop()
     ofpar<<factor4<<"\t"<<factor4err<<std::endl;
     ofpar<<"\tChisqure "<<xframe->chiSquare()<<" "<<xframe->chiSquare(Npar)<<std::endl;
     ofpar<<signal.getVal()<<"\t"<<signal.getError()<<std::endl;
-    purepar<<"\t"<<factor4<<"\t"<<factor4err<<std::endl;
+    purepar<<pcut[partj]+0.025<<"\t"<<factor4<<"\t"<<factor4err<<std::endl;
     delete dataset;
     delete xframe;
-*/
+
 	// pion part end
   
   }

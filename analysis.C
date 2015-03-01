@@ -29,7 +29,7 @@ int main(int argc,char **argv)
    std::cout<<"output dir is "<<outputdir<<std::endl;
   }
   if (argc==1){
-   std::cout<<"Please specify an input root file ! "<<std::endl;
+    std::cout<<"Please specify an input root file ! "<<std::endl;
     return 0;
    //filename = "data_Rvalue_fpipill_e3850.root";
   }
@@ -119,7 +119,7 @@ bool analysis(T *type,std::string &filename, std::string treename)
     std::cout<<"can not open file "<<filename<<std::endl;
    return false;
   }
-  TTree *tree = new TTree();;
+  TTree *tree = new TTree();
   file->GetObject(treename.c_str(),tree);
   if(!tree){
     std::cout<<"can not find tree "<<treename<<std::endl;
