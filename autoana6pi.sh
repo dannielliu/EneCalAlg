@@ -14,7 +14,7 @@ for algdir in `ls $datadir`;do
 #		echo $ene>>"par.txt"
 #		echo $ene>>"detail.txt"
         echo "analysis $ene ..."
-        ./analysis ${datafile} "./graphs/$ene" >> analog
+        ./checkf ${datafile} "./graphs/$ene" >> analog
 	  done
     fi
   fi

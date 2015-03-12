@@ -196,7 +196,7 @@ bool gepep_fastpipill::Loop()
 //for(int i=0;i<Npart+1;i++){
 //  pcut[i] = (stop-start)/Npart*i+start;
 //}
-  double facv[Npart],facev[Npart];
+   double facv[Npart],facev[Npart];
    pcut[0] =0.0 ;    facv[0] =1.0;  facev[0] =1.0;  
    pcut[1] =0.05;    facv[1] =1.044165;  facev[1] =1.0;  
    pcut[2] =0.10;    facv[2] =1.016065;  facev[2] =1.0;
@@ -536,7 +536,7 @@ bool gepep_fastpipill::Loop()
     //double factori=1.00090;
     double factori=1.0000;
     factor=factorstart;
-    //factori=factor;
+    factori=factor;
     fittimes=0;
  
     // for saving the fit result
@@ -757,7 +757,7 @@ bool gepep_fastpipill::Loop()
 
 	// pion part end
   
-  }
+  } // part map end
 
 //~~~~~~~~~~pion part end~~~~~~~~
   std::cout<<"dataset pointer:"<<dataset<<std::endl;

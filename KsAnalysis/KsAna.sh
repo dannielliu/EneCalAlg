@@ -21,11 +21,11 @@ date
 for datadir in `ls -d /Volumes/data2/newFiles`;do
   #dataset=`echo $datadir | awk -F "/" '{print $NF}' | awk -F "_" '{print $1}'`
   dataset="Rvalue"
-  outdir="$PWD/Ks_${dataset}_cut1p_20range10_3"
+  outdir="$PWD/Ks_${dataset}_cut2p_20range1_0"
   dirc_exist $outdir
   mkdir -p $outdir
 
-  for data in `ls $datadir/Rvalue*.root`;do
+  for data in `ls $datadir/Rvalue_Ks_all.root`;do
     echo $data
     ene=`echo $data | awk -F "." '{print $1}' | awk -F "/" '{print $NF}'` # | awk -F "_" '{print $NF}'
     mkdir -p "$outdir/$ene"

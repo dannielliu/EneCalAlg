@@ -58,6 +58,7 @@ void gepep_fast6pi::Loop()
 
    fChain->GetEntry(1);
    double beamene = EEto6PI::GetEnergy(run);
+   beamene = 4.26;
    std::cout<<"current beam energy is "<<beamene<<", run id "<<run<<std::endl;
    if (beamene < 0.1){
      std::cout<<"can not get a suitable beam energy!"<<std::endl;
@@ -72,7 +73,7 @@ void gepep_fast6pi::Loop()
    double mpi=0.13957;
     
   char fname[1000];
-  sprintf(fname,"%s/plot_6pi_fKsPsip.root",outputdir.c_str());
+  sprintf(fname,"%s/plot_6pi_fKsnovtx_4260.root",outputdir.c_str());
   TFile *f=new TFile(fname,"RECREATE");
 
   char name[100];
@@ -100,17 +101,17 @@ void gepep_fast6pi::Loop()
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;	  
-	  
+	  //if (run > 30367) break;
 	  evt.Setval(pippx,pippy,pippz,pimpx,pimpy,pimpz);
       mass = evt.InvMass();
 	  bool good=true;;
       for (int i=0; i<6;i++) {
 	    p[i] = evt.GetP(i);
-		if (p[i]<0.15 || p[i]>1.0) good = false;
+		if (p[i]<0.1 || p[i]>1.0) good = false;
 	  }
-	  if (!good) continue;
 	  if (mass>beamlow && mass<beamup){
 	    vars->Fill();
+	    if (!good) continue;
 		evts.push_back(evt);
 	  }
    }//select end
@@ -177,23 +178,23 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
  */
 
    pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
-   pcut[1] =0.05;  facmap[1] =1.04644 ;  facemap[1] =0.0419675  ;
-   pcut[2] =0.10;  facmap[2] =1.0173  ;  facemap[2] =0.00322285 ;
-   pcut[3] =0.15;  facmap[3] =1.00694 ;  facemap[3] =0.000762874;
-   pcut[4] =0.20;  facmap[4] =1.00303 ;  facemap[4] =0.000389307;
-   pcut[5] =0.25;  facmap[5] =0.999829;  facemap[5] =0.000266318;
-   pcut[6] =0.30;  facmap[6] =0.997895;  facemap[6] =0.000255629;
-   pcut[7] =0.35;  facmap[7] =0.996432;  facemap[7] =0.000401476;
-   pcut[8] =0.40;  facmap[8] =0.994995;  facemap[8] =0.00165392 ;
-   pcut[9] =0.45;  facmap[9] =0.998686;  facemap[9] =8.37434e-05;
-   pcut[10]=0.50;  facmap[10]=0.998865;  facemap[10]=6.97743e-05;
-   pcut[11]=0.60;  facmap[11]=0.99871 ;  facemap[11]=8.90833e-05;
-   pcut[12]=0.70;  facmap[12]=0.998473;  facemap[12]=0.000118579;
-   pcut[13]=0.80;  facmap[13]=0.99859 ;  facemap[13]=0.000153497;
-   pcut[14]=0.90;  facmap[14]=0.998797;  facemap[14]=0.000208148;
-   pcut[15]=1.00;  facmap[15]=0.999028;  facemap[15]=0.000232254;
-   pcut[16]=1.20;  facmap[16]=0.999368;  facemap[16]=0.000521802;
-   pcut[17]=1.40;  facmap[17]=0.999502;  facemap[17]=0.00190491 ;
+   pcut[1] =0.05;  facmap[1] =1.0103  ;  facemap[1] =0.00271272 ;
+   pcut[2] =0.10;  facmap[2] =1.00242 ;  facemap[2] =0.000294394;
+   pcut[3] =0.15;  facmap[3] =1.00154 ;  facemap[3] =0.000168453;
+   pcut[4] =0.20;  facmap[4] =1.00072 ;  facemap[4] =0.000152402;
+   pcut[5] =0.25;  facmap[5] =1.00036 ;  facemap[5] =0.000135882;
+   pcut[6] =0.30;  facmap[6] =0.999792;  facemap[6] =0.000146793;
+   pcut[7] =0.35;  facmap[7] =1       ;  facemap[7] =0.000178329;
+   pcut[8] =0.40;  facmap[8] =0.999605;  facemap[8] =0.000256467;
+   pcut[9] =0.45;  facmap[9] =0.999899;  facemap[9] =0.000262561;
+   pcut[10]=0.50;  facmap[10]=0.999495;  facemap[10]=0.000247957;
+   pcut[11]=0.60;  facmap[11]=1.00016 ;  facemap[11]=0.000364348;
+   pcut[12]=0.70;  facmap[12]=0.999504;  facemap[12]=0.000537846;
+   pcut[13]=0.80;  facmap[13]=1.00029 ;  facemap[13]=0.00077103 ;
+   pcut[14]=0.90;  facmap[14]=1.00031 ;  facemap[14]=0.00123488 ;
+   pcut[15]=1.00;  facmap[15]=1.00313 ;  facemap[15]=0.00150405 ;
+   pcut[16]=1.20;  facmap[16]=0.986371;  facemap[16]=0.00626053 ;
+   pcut[17]=1.40;  facmap[17]=0.938064;  facemap[17]=0.0999831  ;
    pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
    pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
    pcut[20]=2.00;  //facmap[20]=2.00;
@@ -272,18 +273,18 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    int nBins=100;
    int Npar;
    double peakvalue = beame;
-   double beamlow=beame-0.1;
-   double beamup=beame+0.1;
+   double beamlow=beame-0.06;
+   double beamup=beame+0.04;
    // try to use roofit
    RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
-   RooRealVar mean("mean","mean of gaussian",peakvalue,beamlow,beamup);
+   RooRealVar mean("mean","mean of gaussian",peakvalue-0.0005,beamlow,beamup);
    RooRealVar sigma("sigma","width of gaussian",0.003,0.0001,0.02);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
    //RooRealVar co1("co1","coefficient #1",0,-100.,100.);
    //RooRealVar co4("co4","coefficient #4",0);
    //RooChebychev bkg("bkg","background",x,RooArgList(co1));
-   RooRealVar signal("signal"," ",1200,10,100000);//event number
-   RooRealVar background("background"," ",200,0,1000);
+   RooRealVar signal("signal"," ",200,0,1000000);//event number
+   RooRealVar background("background"," ",20,0,100000);
    RooRealVar a0("a0","coefficient #0",100,-100000,100000);
    RooRealVar a1("a1","coefficient #1",-1,-100000,100000);
    RooPolynomial ground("ground","ground",x,RooArgList(a0,a1));
@@ -293,7 +294,7 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    RooPlot *xframe;
    //RooDataHist *data_6pi;
  
-  RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
+   RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
    TCanvas *c1=new TCanvas("","",800,600);
 	 
    char tmpchr[100];

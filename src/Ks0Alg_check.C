@@ -738,6 +738,7 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
    
    // correction factors, Ks corrected
 // factor from Ks->pipi, pi corrected with vertex fit
+/*
    pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
    pcut[1] =0.05;  facmap[1] =1.00594 ;  facemap[1] =0.00146173 ;     
    pcut[2] =0.10;  facmap[2] =1.00345 ;  facemap[2] =0.000209543;
@@ -759,7 +760,36 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
    pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
    pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
    pcut[20]=2.00;  //facmap[20]=2.00;
+ */
+
+   // correction factors
+// factor from Ks->pipi, pi corrected without vertex fit
+
+   pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
+   pcut[1] =0.05;  facmap[1] =1.00629 ;  facemap[1] =0.0019564 ;
+   pcut[2] =0.10;  facmap[2] =1.00295 ;  facemap[2] =0.00026642;
+   pcut[3] =0.15;  facmap[3] =1.00182 ;  facemap[3] =0.00014682;
+   pcut[4] =0.20;  facmap[4] =1.00085 ;  facemap[4] =0.00013604;
+   pcut[5] =0.25;  facmap[5] =1.00032 ;  facemap[5] =0.00012427;
+   pcut[6] =0.30;  facmap[6] =0.999913;  facemap[6] =0.00013152;
+   pcut[7] =0.35;  facmap[7] =0.999792;  facemap[7] =0.00015817;
+   pcut[8] =0.40;  facmap[8] =1.00006 ;  facemap[8] =0.00018863;
+   pcut[9] =0.45;  facmap[9] =0.998787;  facemap[9] =0.00025214;
+   pcut[10]=0.50;  facmap[10]=0.999473;  facemap[10]=0.00022201;
+   pcut[11]=0.60;  facmap[11]=0.999828;  facemap[11]=0.00032162;
+   pcut[12]=0.70;  facmap[12]=1.00034 ;  facemap[12]=0.00049396;
+   pcut[13]=0.80;  facmap[13]=1.00113 ;  facemap[13]=0.00080341;
+   pcut[14]=0.90;  facmap[14]=1.00172 ;  facemap[14]=0.00119113;
+   pcut[15]=1.00;  facmap[15]=1.00296 ;  facemap[15]=0.00159548;
+   pcut[16]=1.20;  facmap[16]=0.98714 ;  facemap[16]=0.00646425;
+   pcut[17]=1.40;  facmap[17]=0.987802;  facemap[17]=0.008873  ;
+   pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
+   pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
+   pcut[20]=2.00;  //facmap[20]=2.00;
  
+
+
+
    char name[200];
    double factori=1;
    double factorj=1;

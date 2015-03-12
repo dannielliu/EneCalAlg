@@ -21,7 +21,7 @@ date
 for datadir in `ls -d /Volumes/data2/newFiles`;do
   dataset=`echo $datadir | awk -F "/" '{print $NF}' | awk -F "_" '{print $1}'`
   
-  outdir="$PWD/Ks_${dataset}Only_cut1p_20range11_1_checkf_datawithoutcor"
+  outdir="$PWD/Ks_${dataset}Only_cut1p_20range10_3_checkf"
   dirc_exist $outdir
   mkdir -p $outdir
 

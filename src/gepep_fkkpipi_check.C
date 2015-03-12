@@ -58,6 +58,7 @@ void gepep_fkkpipi::Loop()
 
    fChain->GetEntry(1);
    double beamene = KKPIPI::GetEnergy(run);
+   beamene = 4.26;
    std::cout<<"current beam energy is "<<beamene<<", run id "<<run<<std::endl;
    if (beamene < 0.1){
      std::cout<<"can not get a suitable beam energy!"<<std::endl;
@@ -88,7 +89,8 @@ void gepep_fkkpipi::Loop()
   vars->Branch("pk1",&pk1,"pk1/D");
   vars->Branch("pk2",&pk2,"pk2/D");
   vars->Branch("mass",&mass,"mass/D");
-  
+  double chisq;
+  vars->Branch("chi2",&chisq,"chi2/D");
    KKpipi evt;
    std::vector<KKpipi> evts;
 
@@ -107,6 +109,7 @@ void gepep_fkkpipi::Loop()
 	  ppi2 = evt.GetP2pi();
 	  pk1 = evt.GetP1k();
 	  pk2 = evt.GetP2k();
+	  chisq = kkm4;
 	  if (mass>beamlow && mass<beamup){
 	    vars->Fill();
 		evts.push_back(evt);
@@ -174,6 +177,8 @@ void KKPIPI::FitSpe(std::vector<KKpipi> evts, double beame, char *namesfx)
 void KKPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
 {
    int nBins=100;
+   bool largesample = false;
+   if (dataraw->GetEntries()>10000) largesample = true;
    int Npar;
    double peakvalue = beame;
    double beamlow=beame-0.1;
@@ -182,12 +187,15 @@ void KKPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
    RooRealVar mean("mean","mean of gaussian",peakvalue,beamlow,beamup);
    RooRealVar sigma("sigma","width of gaussian",0.003,0.0001,0.02);
+   RooRealVar sigma2("sigma2","width of gaussian",0.022,0.02,0.05);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
+   RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
    //RooRealVar co1("co1","coefficient #1",0,-100.,100.);
    //RooRealVar co4("co4","coefficient #4",0);
    //RooChebychev bkg("bkg","background",x,RooArgList(co1));
-   RooRealVar signal("signal"," ",200,0,100000);//event number
-   RooRealVar background("background"," ",20,0,1000);
+   RooRealVar signal("signal"," ",200,0,10000000);//event number
+   RooRealVar signal2("signal2"," ",200,0,10000000);//event number
+   RooRealVar background("background"," ",20,0,1000000);
    RooRealVar a0("a0","coefficient #0",100,-100000,100000);
    RooRealVar a1("a1","coefficient #1",-1,-100000,100000);
    RooPolynomial ground("ground","ground",x,RooArgList(a0,a1));
@@ -205,16 +213,25 @@ void KKPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    //data_6pi = new RooDataHist(tmpchr,"data_6pi",x,h);
    xframe = x.frame(Title("fit kkpipi"));
    dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
-   sum = new RooAddPdf("sum","sum",RooArgList(gaus,ground),RooArgList(signal,background));
-   Npar = 6;
+   if (!largesample) {
+     sum = new RooAddPdf("sum","sum",RooArgList(gaus,ground),RooArgList(signal,background));
+     Npar = 6;
+   }
+   else {
+     sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
+	 Npar=8;
+   }
    //sigma.setVal(0.035);
    //signal.setVal(1200);
    //background.setVal(200);
    //co1.setVal(0);
    sum->fitTo(*dataset,Range(beamlow,beamup));
+   //sum->fitTo(*dataset,Range(beame-0.05,beame+0.03));
+   //sum->fitTo(*dataset,Range(4.22,4.28));
    dataset->plotOn(xframe);
    sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
    sum->plotOn(xframe,Components(ground),LineStyle(2),LineColor(3));
+   if (dataraw->GetEntries()>2000) sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(4));
    sum->plotOn(xframe);
    xframe->Draw();
   TPaveText *pt = new TPaveText(0.60,0.5,0.90,0.90,"BRNDC");
@@ -227,8 +244,16 @@ void KKPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
   pt->AddText(tmpchr);
   sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
   pt->AddText(tmpchr);
+  if (largesample){
+    sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
+    pt->AddText(tmpchr);
+  }
   sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
   pt->AddText(tmpchr);
+  if (largesample){
+    sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+    pt->AddText(tmpchr);
+  }
   sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
   pt->AddText(tmpchr);
   sprintf(tmpchr,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));

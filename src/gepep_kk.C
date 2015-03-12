@@ -63,13 +63,13 @@ void gepep_kk::Loop()
    Long64_t nentries = fChain->GetEntriesFast();
 
    std::cout<<"Toral entry is "<<nentries<<std::endl;
-   int nBins=200;
+   int nBins=100;
    double factorstart=0.99;
    double mk=0.493677;
    // D0 -> K K
    double philow=1.82;
    double phiup=1.90;
-   double peakvalue=1.86486;// mphi
+   double peakvalue=1.86484;// mphi
    // phi -> K K
    //double philow=0.995;
    //double phiup=1.045;
@@ -118,135 +118,149 @@ void gepep_kk::Loop()
    RooRealVar background2("background2"," ",200,0,1000000);
    
    RooPlot *xframe;
-   RooDataHist *data_k;
+   //RooDataHist *data_k;
+   RooDataSet *dataset;
    RooAddPdf *sum;
-   int Npar;
-   //sum->selfNormalized();
-   //RooFitResult *result;
    
+   //RooDataSet *dataset = new RooDataSet("dataset","data",dataraw,x);
+   RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
+
+   int Npar;
+   char fname[1000];
    ofstream ofpar;
-   ofpar.open("parkk.txt",std::ios::app);
-   ofpar<<"kk algrithm: will give factors for kaon"<<std::endl;
-   ofstream ofpardetail;
-   ofpardetail.open("detail.txt",std::ios::app);
+   sprintf(fname,"%s/pars.txt",outputdir.c_str());
+   ofpar.open(fname,std::ios::app);
    ofstream purepar;
-   purepar.open("par");
-   char fname[100];
+   sprintf(fname,"%s/parspure.txt",outputdir.c_str());
+   purepar.open(fname,std::ios::app);
    sprintf(fname,"%s/plot_kk.root",outputdir.c_str());
    TFile *f = new TFile(fname,"RECREATE");
    TTree *dataraw=new TTree("dataraw","dataraw");
    double mass;
    dataraw->Branch("x",&mass,"x/D");
-   RooDataSet *dataset = new RooDataSet("dataset","data",dataraw,x);
+   TTree *vars = new TTree("vars","vars");
+   double phi1,phi2;
+   double costheta1,costheta2;
+   double p1,p2;
+   vars->Branch("phi1",&phi1,"phi1/D");
+   vars->Branch("phi2",&phi2,"phi2/D");
+   vars->Branch("costheta1",&costheta1,"costheta1/D");
+   vars->Branch("costheta2",&costheta2,"costheta2/D");
+   vars->Branch("p1",&p1,"p1/D");
+   vars->Branch("p2",&p2,"p2/D");
+   vars->Branch("mass",&mass,"mass/D");
+
 
    TF1 *facfit = new TF1("facfit",line2,0.9,1.1,2);
    TH1D *h1    = new TH1D("h1","2 kaon invariant mass",nBins,philow,phiup);
    TCanvas *c1 = new TCanvas("","",800,600);
 
-   TH2D *h2p = new TH2D("h2p","KK momentum",200,0,2,200,0,2);
-   TH3D *the = new TH3D("the","K momentum",200,0,2,200,0,2,100,0,TMath::Pi());
-   TH2D *thedis = new TH2D("thedis","K momentum",200,0,2,100,0,TMath::Pi());
-   TH2D *thedis2 = new TH2D("thedis2","K momentum",100,0,TMath::Pi(),100,0,TMath::Pi());
-   int Npart=1;
-   double thetacut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
-   double start=0.0;
-   double stop =TMath::Pi();;
-   for(int i=0;i<Npart+1;i++){
-     thetacut[i] = (stop-start)/Npart*i+start;
-   }
+   const int Npart=20;
    double m0=peakvalue;
    double sigma_m=0.0024;//0.0024 for phi,
    double width = 10.*sigma_m;
    double mparticle=0.493677;
-   std::vector<std::pair<int,int> > partmap;
+   std::vector<int> partmap;
    std::vector<std::pair<int,double> > facmap;
 
-   Long64_t nbytes = 0, nb = 0;
-   char name[100];
-   // ~~~~~~~~ draw nxn histogram, m distribution in different p range
-   TH1D *hmtheta[Npart][Npart];
-   for (int parti=0;parti<Npart;parti++){
-   for (int partj=0;partj<Npart;partj++){
-     sprintf(name,"mass_part%d_part%d",parti,partj);
-     hmtheta[parti][partj] = new TH1D(name,name,100,philow,phiup);
-   }
-   }
+   int realsize=0;
+   double partid[Npart];
+   double parter[Npart];
+   double corfac[Npart];
+   double corerr[Npart];
+   
+   double pcut[Npart+1];
+   double facv[Npart];
+   double facev[Npart];
 
-   h2p->Reset();
-   for (Long64_t jentry=0; jentry<nentries;jentry++) {
-     Long64_t ientry = LoadTree(jentry);
-     if (ientry < 0) break;
-     nb = fChain->GetEntry(jentry);   nbytes += nb;
-  
-     int parti,partj;
-     double p1,p2;
-     double theta,theta1,theta2;
-     mass = CalInvMass(mk,kappx,kappy,kappz,mk,kampx,kampy,kampz);
-     
-     // total invariant mass, D0 -> k- pi+
-     p1 = CalMom(kappx,kappy,kappz);
-     p2 = CalMom(kampx,kampy,kampz);
-     theta1 = acos(kappz/p1);
-     theta2 = acos(kampz/p2);
-     parti = (int)(theta1/stop*Npart);
-     partj = (int)(theta2/stop*Npart);
-     if (parti>=Npart || partj>=Npart || parti<0 || partj<0) continue;
-     if (theta1>thetacut[parti]&&theta1<thetacut[parti+1]
-       &&theta2>thetacut[partj]&&theta2<thetacut[partj+1])
-       if (mass>m0-width/2. && mass<m0+width/2.)
-       {
-         h2p->Fill(p1,p2);
-         thedis->Fill(p1,theta1);
-         thedis->Fill(p2,theta2);
-         thedis2->Fill(theta1,theta2);
-         theta = acos((kappx*kampx+kappy*kampy+kappz*kampz)/(p1*p2));
-         the->Fill(p1,p2,theta);
-         hmtheta[parti][partj]->Fill(mass);
-       }
-     // if (Cut(ientry) < 0) continue;
-   }
-   h2p->Write();
-   thedis->Write();
-   thedis2->Write();
-   the->Write();
-   for (int parti=0;parti<Npart;parti++)
+
+   pcut[0]=0;
+   pcut[1] = 2.0;
+ //pcut[0] =0.0 ;    facv[0] =1.0;       facev[0] =1.0;  
+ //pcut[1] =0.10;    facv[1] =1.0     ;  facev[1] =1.0        ;  
+ //pcut[2] =0.20;    facv[2] =1.00149 ;  facev[2] =1.0        ;
+ //pcut[3] =0.30;    facv[3] =1.00079 ;  facev[3] =1.0        ;
+ //pcut[4] =0.40;    facv[4] =1.0004  ;  facev[4] =1.0        ;
+ //pcut[5] =0.50;    facv[5] =1.00019 ;  facev[5] =1.0        ;
+ //pcut[6] =0.60;    facv[6] =1.00016 ;  facev[6] =1.0        ;
+ //pcut[7] =0.70;    facv[7] =1.00012 ;  facev[7] =1.0        ;
+ //pcut[8] =0.80;    facv[8] =1.0003  ;  facev[8] =1.0        ;
+ //pcut[9] =0.90;    facv[9] =1.00032 ;  facev[9] =1.0        ;
+ //pcut[10]=1.00;    facv[10]=1.00016 ;  facev[10]=1.0        ;
+ //pcut[11]=1.10;    facv[11]=1.00016 ;  facev[11]=1.0        ;
+ //pcut[12]=1.20;    facv[12]=0.999986;  facev[12]=1.0        ;
+ //pcut[13]=1.30;    facv[13]=0.999765;  facev[13]=1.0        ;
+ //pcut[14]=1.40;    facv[14]=0.999356;  facev[14]=1.0        ;
+ //pcut[15]=1.50;    facv[15]=0.998949;  facev[15]=1.0        ;
+ //pcut[16]=1.60;    facv[16]=0.998518;  facev[16]=1.0        ;
+ //pcut[17]=1.70;    facv[17]=0.998049;  facev[17]=1.0        ;
+ //pcut[18]=1.80;    facv[18]=1.0;       facev[18]=1.0;  
+ //pcut[19]=1.90;    facv[19]=1.0;       facev[19]=1.0;  
+ //pcut[20]=2.00;           
+
+   char name[100];
+   TH1D *hmD0[Npart];
    for (int partj=0;partj<Npart;partj++){
-     hmtheta[parti][partj]->Write();
-     std::cout<<"processed part "<<parti<<", part "<<partj<<std::endl;
-     if (hmtheta[parti][partj]->GetEntries() > 100
-       &&hmtheta[parti][partj]->GetMaximumBin()> 30 //check the the peak position,
-       &&hmtheta[parti][partj]->GetMaximumBin()< 70 //make sure there is a peak in the region
+     sprintf(name,"mass_part%0d",partj);
+     hmD0[partj] = new TH1D(name,name,100,philow,phiup);
+   }
+ 
+   // loop data
+   Event evt(mk);
+   std::vector<Event> evts[Npart];
+   Long64_t nbytes = 0, nb = 0;
+   for (Long64_t jentry=0; jentry<nentries;jentry++) {
+      Long64_t ientry = LoadTree(jentry);
+      if (ientry < 0) break;
+      nb = fChain->GetEntry(jentry);   nbytes += nb;
+      // if (Cut(ientry) < 0) continue;
+     
+	    evt.SetVal(kappx,kappy,kappz,kampx,kampy,kampz);
+        mass = evt.InvMass();
+        p1 = evt.GetP1();
+        p2 = evt.GetP2();
+        costheta1 = evt.GetCostheta1();
+		costheta2 = evt.GetCostheta2();
+        phi1 = evt.GetPhi1();
+        phi2 = evt.GetPhi2();
+        if (mass>philow && mass<phiup){
+          vars->Fill();
+        }
+        if (costheta1 > 0.8 && costheta2 <-0.8) continue;
+		//if (p1<0.5 || p1>1.3) continue;
+
+        //if ( partj>=Npart || partj<0 ) continue;
+        for (int partj=0;partj<Npart;partj++){
+          if (p1<pcut[partj] || p1>pcut[partj+1]) continue;
+          if (p2<pcut[partj] || p2>pcut[partj+1]) continue;
+          if (mass>philow-0.02 && mass<phiup+0.02){
+            hmD0[partj]->Fill(mass);
+			evts[partj].push_back(evt);
+	      }
+          break;
+		}
+   
+   }
+   std::cout<<"part No: "<< Npart<<std::endl;
+   vars->Write();
+   for (int partj=0;partj<Npart;partj++){
+     hmD0[partj]->Write();
+	 std::cout<<"histogram part "<<partj<<" has entries: "<<hmD0[partj]->GetEntries()<<std::endl;
+     if (hmD0[partj]->GetEntries() > 100
+       &&hmD0[partj]->GetMaximumBin()> 30 //check the the peak position,
+       &&hmD0[partj]->GetMaximumBin()< 70 
        ){
-       partmap.push_back(std::make_pair(parti,partj));
+       partmap.push_back(partj);
      }
    }
+
    // ~~~~~~~~ draw end
 
-   for (int loopi=0;loopi<2;loopi++){
    for (int loopj=0;loopj<partmap.size();loopj++){
-     int parti=partmap.at(loopj).first;
-     int partj=partmap.at(loopj).second;
-     if (loopi==0 && parti!=partj) continue;
-     else if(loopi!=0 && parti==partj) continue;
-     double factori=0,factorj=0;
-     for (int loopk=0;loopk<facmap.size();loopk++){
-       if (facmap.at(loopk).first == parti) factori=facmap.at(loopk).second;
-       if (facmap.at(loopk).first == partj) factorj=facmap.at(loopk).second;
-     }
-     if(factori==0 && factorj==0 && parti!=partj) continue;
-     if(parti==partj && factori!=0) continue;
-     if(factori!=0 && factorj!=0) continue;
-   ofpar<<"parti: "<<parti<<"--"<<factori<<", partj: "<<partj<<"--"<<factorj<<std::endl;
+     int partj=partmap.at(loopj);
 
    // for saving the fit result
-   char fitepsname[100];
-   char fiteps_start[100];
-   char fiteps_stop[100];
-   sprintf(fitepsname,"%s/fitkk_part%d_part%d.eps",outputdir.c_str(),parti,partj);
-   sprintf(fiteps_start,"%s[",fitepsname);
-   sprintf(fiteps_stop,"%s]",fitepsname);
-   c1->Print(fiteps_start);
-   
+   double factori = 1.0;
    int fittimes = 0;
    factor = factorstart;
    for (int i=0;i<pointNo;i++){
@@ -256,29 +270,19 @@ void gepep_kk::Loop()
       //h1->Reset();
       dataraw->Reset();
       std::cout<<"factor is "<<factor<<std::endl;
-      for (Long64_t jentry=0; jentry<nentries;jentry++) {
-         Long64_t ientry = LoadTree(jentry);
-         if (ientry < 0) break;
-         nb = fChain->GetEntry(jentry);   nbytes += nb;
-         
-         //if(ngam>0) continue;
-         double p1,p2;
-         double theta1,theta2;
-         double factors[2]={1,1};
-         factori==0? factors[0]=factor : factors[0]=factori;
-         factorj==0? factors[1]=factor : factors[1]=factorj;
-         p1 = CalMom(kappx,kappy,kappz);
-         p2 = CalMom(kampx,kampy,kampz);
-         theta1 = acos(kappz/p1);
-         theta2 = acos(kampz/p2);
-         if (theta1>thetacut[parti]&&theta1<thetacut[parti+1]
-           &&theta2>thetacut[partj]&&theta2<thetacut[partj+1]){
-           mass = CalInvMass(mk,kappx,kappy,kappz,mk,kampx,kampy,kampz,-2,factors);
-           //h1->Fill(mass);
-           if (mass>philow && mass<phiup){
-             dataraw->Fill();
-           }
-         }
+      for (Long64_t jentry=0; jentry<evts[partj].size();jentry++) {
+		  p1 = evts[partj].at(jentry).GetP1();
+		  p2 = evts[partj].at(jentry).GetP2();
+          for (int i=0;i<Npart;i++){
+            if (p1>=pcut[i]&&p1<pcut[i+1]){
+              factori = facv[i];
+              break;
+            }
+          }
+          mass = evts[partj].at(jentry).InvMass(factor ,factor);
+          if (mass>philow && mass<phiup){
+            dataraw->Fill();
+          }
          // if (Cut(ientry) < 0) continue;
       }
       //dataraw->Write();
@@ -318,9 +322,12 @@ void gepep_kk::Loop()
       pt->AddText(tmpchr);
       sprintf(tmpchr,"#chi^{2}/(100-%d) = %5.6f",Npar,xframe->chiSquare(Npar));
       pt->AddText(tmpchr);
+      sprintf(name,"factor = %.6f",factor);
+      pt->AddText(name);
       pt->Draw();
-      c1->Update();
-      c1->Print(fitepsname);
+      sprintf(name,"part%d_fitFor_%dth_time",partj,fittimes);
+      c1->SetName(name);
+      c1->Write();
       //delete data_k;
       delete dataset;
       delete xframe;
@@ -339,9 +346,6 @@ void gepep_kk::Loop()
       fittimes++;
       factor += factorstep;
    }
-   std::cout<<"entry is "<<nentries<<std::endl;
-   c1->Print(fiteps_stop);
-   c1->Clear();
    
    TGraphErrors *graph1 = new TGraphErrors(pointNo,factors,deltapeaks,factorserr,deltapeakserr);
    graph1->SetTitle("delta peak");
@@ -354,55 +358,32 @@ void gepep_kk::Loop()
    //factor1=facfit->GetParameter(0);
    //factor1err=facfit->GetParError(0);
    factor = facfit->GetParameter(0);
-   double factorerr=deltapeakserr[9]/facfit->GetParameter(1);
-   ofpar<<facfit->GetParameter(0)<<"\t"<<factorerr<<"\t"<<facfit->GetParError(0)<<std::endl;
-   ofpar<<signal.getVal()<<"\t"<<signal.getError()<<std::endl;
-   purepar<<"\t"<<factor<<"\t"<<factorerr<<std::endl;
-   //std::cout<<"fit factor: "<<factor1<<", error is "<<factor1err<<std::endl;
-   sprintf(name,"factors_kk_part%d_part%d.eps",parti,partj);
-   c1->Print(name);
-   sprintf(name,"factors_kk_part%d_part%d",parti,partj);
+   sprintf(name,"factors_kk_part%d",partj);
    graph1->SetName(name);
    graph1->Write();
-   int index;
-   factori==0? index=parti : index=partj;
-   facmap.push_back(std::make_pair(index,factor));
 
    // draw the best fitting
       xframe = x.frame(Title("fit kaon"));
-      //h1->Reset();
       dataraw->Reset();
       std::cout<<"factor is "<<factor<<std::endl;
-      for (Long64_t jentry=0; jentry<nentries;jentry++) {
-         Long64_t ientry = LoadTree(jentry);
-         if (ientry < 0) break;
-         nb = fChain->GetEntry(jentry);   nbytes += nb;
-         
-         //if(ngam>0) continue;
-         double p1,p2;
-         double theta1,theta2;
-         double factors[2]={1,1};
-         factori==0? factors[0]=factor : factors[0]=factori;
-         factorj==0? factors[1]=factor : factors[1]=factorj;
-         p1 = CalMom(kappx,kappy,kappz);
-         p2 = CalMom(kampx,kampy,kampz);
-         theta1 = acos(kappz/p1);
-         theta2 = acos(kampz/p2);
-         if(theta1>thetacut[parti]&&theta1<thetacut[parti+1]
-          &&theta2>thetacut[partj]&&theta2<thetacut[partj+1]){
-           mass = CalInvMass(mk,kappx,kappy,kappz,mk,kampx,kampy,kampz,-2,factors);
-           //h1->Fill(mass);
-           if (mass>philow && mass<phiup){
-             dataraw->Fill();
-           }
+      for (Long64_t jentry=0; jentry<evts[partj].size();jentry++) {
+		 p1 = evts[partj].at(jentry).GetP1();
+		 p2 = evts[partj].at(jentry).GetP2();
+         for (int i=0;i<Npart;i++){
+            if (p1>=pcut[i]&&p1<pcut[i+1]){
+              factori = facv[i];
+              break;
+            }
          }
-         // if (Cut(ientry) < 0) continue;
+         mass = evts[partj].at(jentry).InvMass(factor ,factor);
+         if (mass>philow && mass<phiup){
+           dataraw->Fill();
+         }
       }
-      dataraw->Write();
+      //dataraw->Write();
 
       char tmpchr[100];
       sprintf(tmpchr,"data_k");
-      //data_k = new RooDataHist(tmpchr,"data_k",x,h1);
       dataset = new RooDataSet("dataset","data",dataraw,x);
       sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,bkg),RooArgList(signal,signal2,background));
       Npar=8;
@@ -436,25 +417,37 @@ void gepep_kk::Loop()
       pt->AddText(tmpchr);
       sprintf(tmpchr,"#chi^{2}/(100-%d) = %5.6f",Npar,xframe->chiSquare(Npar));
       pt->AddText(tmpchr);
+      double factor4err=TMath::Sqrt(TMath::Power(mean.getError()/facfit->GetParameter(1),2) + TMath::Power(facfit->GetParError(0),2));
+      sprintf(name,"factor = %.6f #pm %.6f",factor,factor4err);
+      pt->AddText(name);
+
       pt->Draw();
-      c1->Update();      
-      sprintf(name,"fit_kk_best_part%d_part%d.eps",parti,partj);
-      c1->Print(name);
-      sprintf(name,"mass_kk_part%d_part%d",parti,partj);
-      xframe->SetName(name);
-      xframe->Write();
-      //delete data_k;
+      sprintf(name,"part%d_final_fit",partj);
+      c1->SetName(name);
+      c1->Write();      
+      
+      partid[loopj] = pcut[partj]+(pcut[partj+1]-pcut[partj])/2;
+      parter[loopj] = 0;
+      corfac[loopj] = factor;
+      corerr[loopj] = factor4err;
+   
+
+	  //delete data_k;
       delete dataset;
       delete xframe;
       delete sum;
    }
-   }
 
-   f->Close();
-   ofpar.close();
-   ofpardetail.close();
+  realsize = partmap.size();
    
-
+  for (int i=0;i<realsize;i++){
+    ofpar<<"p="<<partid[i]<<"\tfactor: "<<corfac[i]<<"\t +/- \t"<< corerr[i]<<std::endl;
+    purepar<<partid[i]<<"\t"<<corfac[i]<<"\t"<< corerr[i]<<std::endl;
+  }
+   
+   
+   f->Close();
+   return;
 }
 
 #ifdef gepep_kk_cxx

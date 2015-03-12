@@ -94,7 +94,7 @@ int main(int argc, char** argv)
   TCanvas *c1 = new TCanvas();
   TFile *f = new TFile("aaa.root","RECREATE");
   //char lname[200][100]={"Rvalue","xyz4230","xyz4260","xyz4360","xyz4420","xyz4600"};
-  char lname[200][100]={"cut2p","cut1p_pi-","cut1p_pi+","xyz4360","xyz4420","xyz4600"};
+  char lname[200][100]={"factors","factors in","cut1p_pi+","xyz4360","xyz4420","xyz4600"};
   TLegend *legend = new TLegend(0.7,0.7,0.9,0.9);
   for (fid=0;fid<validNo;fid++){
     std::cout<<"file "<<fid<<" have "<<np[fid]<<" parts."<<std::endl;
@@ -104,9 +104,9 @@ int main(int argc, char** argv)
     graph->SetLineColor(2+fid);
     graph->SetMarkerColor(2+fid);
     if (fid == 0){
-      graph->SetTitle("factors");
+      graph->SetTitle("factors for D^{0} #rightarrow K^{+} K^{-}");
       graph->GetYaxis()->SetRangeUser(0.995,1.005);
-      graph->GetXaxis()->SetRangeUser(0.,1.5);
+      graph->GetXaxis()->SetRangeUser(0.,2.0);
       graph->SetMarkerStyle(5);
       gStyle->SetOptFit(1111);
       graph->Draw("APC");
@@ -117,7 +117,7 @@ int main(int argc, char** argv)
 
   } 
   legend->Draw(); 
-  sprintf(tmpchr,"./Ks_compare_factors_%d.pdf",fid);
+  sprintf(tmpchr,"./KK_compare_factors_%d.pdf",fid);
   c1->Print(tmpchr);
   c1->Write();
   f->Close();

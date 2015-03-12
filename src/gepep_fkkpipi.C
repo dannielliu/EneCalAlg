@@ -53,7 +53,7 @@ void gepep_fkkpipi::Loop()
 
    Long64_t nentries = fChain->GetEntriesFast();
    std::cout<<"Toral entry is "<<nentries<<std::endl;
-   int nBins=30;
+   int nBins=100;
    double factorstart=0.99;
    double Dmlow=1.83;
    double Dmup=1.90;

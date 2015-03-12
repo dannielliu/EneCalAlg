@@ -3,6 +3,8 @@
 #include "gepep_fast4pi.h"
 #include "gepep_fast6pi.h"
 #include "gepep_fkkpipi.h"
+#include "gepep_kk.h"
+#include "gepep_npi.h"
 #include "Ks0Alg.h"
 //#include "TFile.h"
 #include <string>
@@ -33,6 +35,8 @@ int main(int argc,char **argv)
   bool usef4pi=false;
   bool usef6pi=false;
   bool usefkkpipi=false;
+  bool usekk=false;
+  bool usenpi=false;
   bool useKs0Alg=false;
   usefpipill = ( filename.find("fpipill")   != std::string::npos
               || filename.find("fastpipill")!= std::string::npos);
@@ -42,6 +46,10 @@ int main(int argc,char **argv)
               || filename.find("fast6pi")   != std::string::npos);
   usefkkpipi = ( filename.find("fkkpipi")   != std::string::npos
               || filename.find("fastkkpipi")!= std::string::npos);
+  usekk      = ( filename.find("kk")   != std::string::npos
+              || filename.find("kk")!= std::string::npos);
+  usenpi     = ( filename.find("npi")   != std::string::npos
+              || filename.find("npi")!= std::string::npos);
   useKs0Alg  = ( filename.find("Ksto2pi")   != std::string::npos
 	          || filename.find("_Ks_")      != std::string::npos);
 
@@ -61,6 +69,14 @@ int main(int argc,char **argv)
   else if( usefkkpipi){
     gepep_fkkpipi *a;
     analysis(a,filename, "gepep_fastkkpipi");
+  }
+  else if( usekk){
+    gepep_kk *a;
+    analysis(a,filename, "gepep_kk");
+  }
+  else if( usenpi){
+    gepep_npi *a;
+    analysis(a,filename, "gepep_2pi");
   }
   else if( useKs0Alg){
     Ks0Alg *a;
