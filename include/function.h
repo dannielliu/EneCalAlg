@@ -1,6 +1,9 @@
 #ifndef myfunction_h
 #define myfunction_h
 #include "TMath.h"
+#include "TF1.h"
+#include "TF2.h"
+#include <vector>
 
 double BreitWigner(double *x, double *par);
 
@@ -60,6 +63,10 @@ public:
   double GetP2()
   {
     return CalMom(px2,py2,pz2);
+  }
+  double GetCostheta()
+  {
+    return (px1*px2+py1*py2+pz1*pz2)/(GetP1()*GetP2());
   }
   double GetCostheta1()
   {
@@ -320,6 +327,250 @@ public:
   }
 
 };
+
+struct NPi
+{
+  int num;
+  double mpi;
+  std::vector<double> pipx;
+  std::vector<double> pipy;
+  std::vector<double> pipz;
+
+public:
+  NPi(){
+    num = 0;
+    mpi = 0.13957;
+  }
+  void SetVal( int n, double* px1,double* py1,double* pz1)
+  {
+    num = n;
+	for (int i=0;i<num;i++){
+      pipx.push_back(px1[i]);
+      pipy.push_back(py1[i]);
+      pipz.push_back(pz1[i]);
+	}
+
+  }
+  void AddParticle(double px, double py, double pz)
+  {
+    num ++;
+	pipx.push_back(px);
+	pipy.push_back(py);
+	pipz.push_back(pz);
+  }
+  bool CheckVolume()
+  {
+    if (num==pipx.size()) return true;
+	return false;
+  }
+  int Clear(){
+    pipx.clear();
+    pipy.clear();
+    pipz.clear();
+	num = pipx.size();
+	return num;
+  }
+  double InvMass(double *f = 0)
+  {
+    double facs[num];
+	double mass;
+    double totpx=0,totpy=0,totpz=0,tote=0;
+	for (int i=0; i<num;i++){
+      f==0 ? facs[i] = 1.0: facs[i] = f[i];
+      totpx += facs[i]*pipx.at(i);
+      totpy += facs[i]*pipy.at(i);
+      totpz += facs[i]*pipz.at(i);
+      tote  += CalEne(mpi,facs[i]*pipx.at(i),facs[i]*pipy.at(i),facs[i]*pipz.at(i));
+	}
+    mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+	return mass;
+  } 
+  double GetP(int idx)
+  {
+    return CalMom(pipx.at(idx),pipy.at(idx),pipz.at(idx));
+  }
+
+};
+
+namespace PeakEstimate{
+//private:
+  // par[0]: p distribution slope
+  // par[1]: gaus mean;
+  // par[2]: gaus sigma
+  // par[3]: dm(p) E1
+  // E1 = par[3];
+  // E2 = par[4];
+  // p1 = par[5];
+  // p2 = par[6];
+  // costheta = par[7];
+  //double pdfpar[3];
+  //double pspar[2];
+  //double dmpar[5];
+
+//public:
+  //void SetPdfPar(double a, double b, double c)
+  //{}
+  //void SetPsPar(double mean, double sigma)
+  //{
+  //  pspar[0] = mean;
+	//pspar[1] = sigma;
+  //}
+  double mresonace = 1.86484;
+  double mfinal    = 0.493677;
+  double mk = mfinal;
+  double pars[8] ;
+  double &p1dismean = pars[0] = 1.5;
+  double &p1dissigma= pars[1] = 0.15;
+  double &p2dismean = pars[2] = 1.5;
+  double &p2dissigma= pars[3] = 0.15;
+ 
+  void SetPdisPar(double m1, double s1, double m2, double s2)
+  {
+    p1dismean  = m1;
+	p1dissigma = s1;
+	p2dismean  = m2;
+	p2dissigma = s2;
+  }
+
+  double GetResolution(double p)
+  {
+    return 0.01*p;
+  }
+  
+  double Gauss2D(double *x, double *par);
+  double ppdf(double *x, double *par);
+  double psmear(double *x, double *par);
+  double deltam(double *x, double *par);
+  double multifgdelta(double *x, double *par);
+  double multifg(double *x, double *par);
+  double dmatp(double *x, double *par);
+  double multifdm(double *x, double *par);
+  double peakshift(double p1low=0, double p1up=0, double p2low=0, double p2up=0,int idx=0);
+
+};
+
+  double PeakEstimate::Gauss2D(double *x, double *par)
+  {
+    if (par[2]<=0 || par[4]<=0) return 0;
+	double rx = (x[0]-par[1])/par[2];
+	double ry = (x[1]-par[3])/par[4];
+	return par[0]*TMath::Exp(-(rx*rx+ry*ry)/2.0);
+  }
+  double PeakEstimate::ppdf(double *x, double *par)
+  {
+    //return par[0]*x[0];
+	if (pars[1]<0 || pars[3]<0) return 0;
+	  
+	double rx = (x[0]-pars[0])/pars[1];
+	double ry = (x[1]-pars[2])/pars[3];
+
+	//double res = TMath::Gaus(x[0],par[0],par[1],true);
+	double res = TMath::Exp(-(rx*rx+ry*ry)/2.);
+    //std::cout<<"in ppdf, p1 is "<<x[0]<<", mean is "<<par[0]<<", sigma is "<< par[1] <<", value is "<<res<< std::endl;
+	return res;
+  }
+  double PeakEstimate::psmear(double *x, double *par)
+  { 
+    double sigma = GetResolution(x[0]);
+    double res = TMath::Gaus(par[0],x[0],sigma,true);
+    //std::cout<<"in psmear, p1 "<<par[0]<<", mean is "<<x[0]<<", sigma is "<< sigma <<", value is "<<res << std::endl;
+    return res;
+  }
+  double PeakEstimate::deltam(double *x, double *par)
+  {
+    //std::cout<<"in deltam"<<std::endl;
+    double m,E1,E2,p1,p2,costheta;
+    m = mresonace;
+	double mk = mfinal;
+    //std::cout<<"in deltam  aaa"<<std::endl;
+	p1 = par[0];
+    p2 = par[1];
+    //std::cout<<"in deltam bbb"<<std::endl;
+	double p1r = x[0]; // p1 real position, smear to par[0]
+	double p2r = x[1];
+	E1 = sqrt(mk*mk + p1r*p1r);
+	E2 = sqrt(mk*mk + p2r*p2r);
+    costheta = ((E1+E2)*(E1+E2)-m*m-(p1r*p1r + p2r*p2r))/(2*p1r*p2r);
+    //std::cout<<"E1: "<<E1<<"\tE2: "<<E2 <<"\tp1: "<<p1<<"\tp2: "<<p2<<"\tcostheta: "<<costheta<< std::endl;
+    //std::cout<<"in multifgdelta return"<<std::endl;
+	if (fabs(costheta)>1) return -1;
+
+    double delta;
+    double dp1 = p1 - x[0];
+	double dp2 = p2 - x[1];
+    delta = 1/m*((E1+E2)*(p1r*dp1/E1+p2r*dp2/E2)-(p1r*dp1+p2r*dp2+p2r*dp1*costheta+p1r*dp2*costheta));
+    //std::cout<<"in delta m, p1 is "<<p1<<", dp1 is "<<dp1<<", delta m is "<< delta << std::endl;
+
+	return delta;
+  }
+  double PeakEstimate::multifgdelta(double *x, double *par)
+  {
+    //std::cout<<"in multifgdelta"<<std::endl;
+	//std::cout<<"fgd "<<ppdf(x,0)<<" "<<psmear(&x[0],&par[0])*psmear(&x[1],&par[1])<<" "<<deltam(x,par)<<std::endl;
+    if (deltam(x,par) <-0.9) return 0;
+    //std::cout<<"in multifgdelta"<<std::endl;
+    return ppdf(x,0)*psmear(&x[0],&par[0])*psmear(&x[1],&par[1])*deltam(x,par);
+  }
+  double PeakEstimate::multifg(double *x, double *par)
+  {
+    double res = ppdf(x,0)*psmear(x,&par[0])*psmear(&x[1],&par[1]);
+	//if (res < 1e-20)
+	//std::cout<<"in fg ppdf is "<< ppdf(x,0)<<"x is ("<<x[0]<<","<<x[1]<< ") psmear is "<<psmear(x,&par[0])<<" "<<psmear(&x[1],&par[1])<<std::endl;
+	return res;
+  }
+  double PeakEstimate::dmatp(double *x, double *par)
+  {
+    //std::cout<<"in dmatp"<<std::endl;
+    double dm;
+
+	double pars1[2];
+	pars1[0] = x[0];// p1 smear to x[0] prob
+	pars1[1] = x[1];// p2 smear to x[1]
+
+    double p1 = x[0];
+	double p2 = x[1];
+    double s1 = GetResolution(x[0]);
+	double s2 = GetResolution(x[1]);
+    TF2 fgd("fgd",multifgdelta,0,3,0,3,2);
+    TF2 fg("fg",multifg,0,3,0,3,2);
+    fgd.SetParameters(p1,p2);
+	fg.SetParameters(p1,p2);
+	//std::cout<<"p1,p2:"<<p1<<" "<<p2<<std::endl;
+    
+	if ( fgd(x[0],x[1])<-0.9 ) return 0;
+	if ( fgd(x[0]-5*s1,x[1]-5*s1)<-0.9 ) return 0;
+	if ( fgd(x[0]+5*s2,x[1]+5*s2)<-0.9 ) return 0;
+
+	//std::cout<<"bbb"<<std::endl;
+    double integral1 = fgd.Integral(p1-5*s1,p1+5*s1,p2-5*s2,p2+5*s2);
+	//std::cout<<"aaaaaa fgd  integral is "<< integral1<< std::endl;
+	double integral2 = fg.Integral(p1-5*s1,p1+5*s1,p2-5*s2,p2+5*s2);
+	//std::cout<<"aaaaaa fg  integral is "<< integral2<< std::endl;
+	//std::cout<<"aaaaaa fgd integral is "<< integral1<<", fg int "<<integral2<<" p1 p2 "<<p1<<" "<<p2<< std::endl;
+	if (fabs(integral2-0)<1e-100) return 0;
+	return integral1/integral2;
+  }
+  double PeakEstimate::multifdm(double *x, double *par)
+  {
+    //std::cout<<"in multifdm "<<ppdf(x,0)<<" "<<dmatp(x,0)<<std::endl;
+    return ppdf(x,0)*dmatp(x,0);
+  }
+
+  double PeakEstimate::peakshift(double p1low,double p1up,double p2low,double p2up,int idx)
+  {
+ 
+    TF2 fdm("fdm",   multifdm,0,2,0);
+    TF2 pdis("pdis", ppdf,    0,2,0);
+    std::cout<<"peak shift " <<std::endl;
+	double fdmint = fdm.Integral(p1low,p1up,p2low,p2up);
+	double pdisint= pdis.Integral(p1low,p1up,p2low,p2up);
+    double ps = fdmint/pdisint;
+	//std::cout<<"int1 int2 : "<<fdmint<<" " <<pdisint<<std::endl;
+    std::cout<<"peak shift is "<< ps <<std::endl;
+    if (idx ==0 ) return ps+mresonace;
+	return ps;
+  }
+
 
 
 #endif

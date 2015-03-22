@@ -58,7 +58,7 @@ void Ks0Alg::Loop()
 
    Long64_t nentries = fChain->GetEntriesFast();
 
-   std::cout<<"loop"<<std::endl;
+   std::cout<<"loop, entries is "<< nentries<<std::endl;
 
    char fname[100];
    sprintf(fname,"%s/plot_ks.root",outputdir.c_str());
@@ -89,8 +89,8 @@ void Ks0Alg::Loop()
    TH2D *h2p = new TH2D("h2p","P",200, 0,2, 200,0,2);
 
    const int Npart=1;
-   double start=0.1;
-   double stop =1.0;
+   double start=0.;
+   double stop =2.2;
    double pcut[Npart+1];//={0,0.10,0.20,0.30,0.40,0.50,
 		                  // 0.60,0.70,0.80,0.90,1.00};//={0.0,0.5,1.0,1.5,2.0};
 //  set normal factor in (0.2, 0.3) to 1.00061, get factor in different range
@@ -122,6 +122,7 @@ void Ks0Alg::Loop()
    std::vector<Event> evts[Npart][Npart];
    
    Long64_t nbytes = 0, nb = 0;
+   if (nentries>1000000) nentries = 1000000;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
@@ -146,8 +147,9 @@ void Ks0Alg::Loop()
         hmassc->Fill(mass);
         p1 = evt.GetP1();
         p2 = evt.GetP2();
-        if (p1<0.1  || p1>1.0) continue;
-        if (p2<0.1  || p2>1.0) continue;
+        //if (p1<0.1  || p1>1.0) continue;
+        //if (p2<0.1  || p2>1.0) continue;
+        costheta  = evt.GetCostheta();
         costheta1 = evt.GetCostheta1();
         costheta2 = evt.GetCostheta2();
 		phi1 = evt.GetPhi1();
@@ -166,7 +168,8 @@ void Ks0Alg::Loop()
           }
         }
         if(parti==-1 || partj==-1) continue;
-        if (mass>kslow && mass<ksup){
+        //if (mass>kslow && mass<ksup)
+		{
           vars->Fill();
 		  evts[parti][partj].push_back(evt);
          }
@@ -801,8 +804,8 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
       p2 = evts.at(jentry).GetP2();
 	//costheta1 = evts.at(jentry).GetCostheta1();
 	//costheta2 = evts.at(jentry).GetCostheta2();
-      if (p1<0.1  || p1>1.0) continue;
-      if (p2<0.1  || p2>1.0) continue;
+      //if (p1<0.1  || p1>1.0) continue;
+      //if (p2<0.1  || p2>1.0) continue;
       
       mass = evts.at(jentry).InvMass();
       if (mass>kslow && mass<ksup){
@@ -900,19 +903,19 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
    sprintf(name,"raw_%s",namesfx);
    KS::FitSpectrum(datarawo,name,true);
 
-   // average factor part
-   sprintf(name,"nom_%s",namesfx);
-   KS::FitSpectrum(dataraw,name,true);
+// // average factor part
+// sprintf(name,"nom_%s",namesfx);
+// KS::FitSpectrum(dataraw,name,true);
 
-   // low edge part
-   sprintf(name,"low_%s",namesfx);
-   KS::FitSpectrum(datarawl,name,true);
-   // low part end
+// // low edge part
+// sprintf(name,"low_%s",namesfx);
+// KS::FitSpectrum(datarawl,name,true);
+// // low part end
 
-   //  up part 
-   sprintf(name,"up_%s",namesfx);
-   KS::FitSpectrum(datarawu,name,true);
-   // up part end
+// //  up part 
+// sprintf(name,"up_%s",namesfx);
+// KS::FitSpectrum(datarawu,name,true);
+// // up part end
    return;
 }
 

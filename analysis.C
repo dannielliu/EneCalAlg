@@ -55,7 +55,7 @@ int main(int argc,char **argv)
   usefkkpipi = ( filename.find("fkkpipi")   != std::string::npos
               || filename.find("fastkkpipi")!= std::string::npos);
   useKs0Alg  = ( filename.find("Ksto2pi")   != std::string::npos
-	      || filename.find("_Ks_")      != std::string::npos);
+	          || filename.find("Ks")      != std::string::npos);
 
 
   if( usefpipill ){

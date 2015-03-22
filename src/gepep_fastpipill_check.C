@@ -217,15 +217,15 @@ void gepep_fastpipill::FitSpe(std::vector<Psip> &evts,const char *namesfx)
   //double factor4,factor4err;// for pi
  
   int Npart=30;
-  int Ncos=10;
+  //int Ncos=10;
   double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
 		  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
    //pcut[0]=0.1;
    //pcut[1]=0.4;
    //pcut[2]=0.9;
-   double coscut[Ncos+1];
-   double facmap[Npart][Ncos];
-   double facemap[Npart][Ncos];
+   //double coscut[Ncos+1];
+   double  facmap[Npart];
+   double facemap[Npart];
 
 //  set normal factor in (0.2, 0.3) to 1.00061, get factor in different range
 /*
@@ -378,7 +378,7 @@ void gepep_fastpipill::FitSpe(std::vector<Psip> &evts,const char *namesfx)
 */
    //  set factors in (0.15, 0.6) to up values, get factor in different range
 //  only for r value data, combine both part
-/*
+
    pcut[0] = 0.0  ;  facmap[0] = 1.0     ;  facemap[0] = 1.0     ;
    pcut[1] = 0.025;  facmap[1] = 1.0     ;  facemap[1] = 1.0     ;
    pcut[2] = 0.05 ;  facmap[2] = 1.0     ;  facemap[2] = 1.0     ;
@@ -410,39 +410,39 @@ void gepep_fastpipill::FitSpe(std::vector<Psip> &evts,const char *namesfx)
    pcut[28]= 1.60 ;  facmap[28]= 1.0     ;  facemap[28]= 1.0     ;
    pcut[29]= 1.80 ;  facmap[29]= 1.0     ;  facemap[29]= 1.0     ;
    pcut[30]= 2.00 ;
-*/
-   pcut[0] = 0.0  ;   coscut[0] = -1.0;
-   pcut[1] = 0.025;   coscut[1] = -0.8;   
-   pcut[2] = 0.05 ;   coscut[2] = -0.6;
-   pcut[3] = 0.075;   coscut[3] = -0.4;
-   pcut[4] = 0.10 ;   coscut[4] = -0.2;   
-   pcut[5] = 0.125;   coscut[5] =  0.0;   
-   pcut[6] = 0.15 ;   coscut[6] =  0.2;   
-   pcut[7] = 0.175;   coscut[7] =  0.4;   
-   pcut[8] = 0.20 ;   coscut[8] =  0.6;   
-   pcut[9] = 0.225;   coscut[9] =  0.8;   
-   pcut[10]= 0.25 ;   coscut[10]=  1.0;   
-   pcut[11]= 0.275;   
-   pcut[12]= 0.30 ;   
-   pcut[13]= 0.325;   
-   pcut[14]= 0.35 ;   
-   pcut[15]= 0.375;   
-   pcut[16]= 0.40 ;   
-   pcut[17]= 0.425;   
-   pcut[18]= 0.45 ;   
-   pcut[19]= 0.475;   
-   pcut[20]= 0.50 ;   
-   pcut[21]= 0.60 ;   
-   pcut[22]= 0.70 ;   
-   pcut[23]= 0.80 ;   
-   pcut[24]= 0.90 ;   
-   pcut[25]= 1.00 ;   
-   pcut[26]= 1.20 ;   
-   pcut[27]= 1.40 ;   
-   pcut[28]= 1.60 ;   
-   pcut[29]= 1.80 ;   
-   pcut[30]= 2.00 ;   
 
+ //pcut[0] = 0.0  ; //coscut[0] = -1.0;
+ //pcut[1] = 0.025; //coscut[1] = -0.8;   
+ //pcut[2] = 0.05 ; //coscut[2] = -0.6;
+ //pcut[3] = 0.075; //coscut[3] = -0.4;
+ //pcut[4] = 0.10 ; //coscut[4] = -0.2;   
+ //pcut[5] = 0.125; //coscut[5] =  0.0;   
+ //pcut[6] = 0.15 ; //coscut[6] =  0.2;   
+ //pcut[7] = 0.175; //coscut[7] =  0.4;   
+ //pcut[8] = 0.20 ; //coscut[8] =  0.6;   
+ //pcut[9] = 0.225; //coscut[9] =  0.8;   
+ //pcut[10]= 0.25 ; //coscut[10]=  1.0;   
+ //pcut[11]= 0.275;   
+ //pcut[12]= 0.30 ;   
+ //pcut[13]= 0.325;   
+ //pcut[14]= 0.35 ;   
+ //pcut[15]= 0.375;   
+ //pcut[16]= 0.40 ;   
+ //pcut[17]= 0.425;   
+ //pcut[18]= 0.45 ;   
+ //pcut[19]= 0.475;   
+ //pcut[20]= 0.50 ;   
+ //pcut[21]= 0.60 ;   
+ //pcut[22]= 0.70 ;   
+ //pcut[23]= 0.80 ;   
+ //pcut[24]= 0.90 ;   
+ //pcut[25]= 1.00 ;   
+ //pcut[26]= 1.20 ;   
+ //pcut[27]= 1.40 ;   
+ //pcut[28]= 1.60 ;   
+ //pcut[29]= 1.80 ;   
+ //pcut[30]= 2.00 ;   
+/*
   facmap[0][0] =  1. ;  facemap[0][0] =  1.;
   facmap[0][1] =  1. ;  facemap[0][1] =  1.;
   facmap[0][2] =  1. ;  facemap[0][2] =  1.;
@@ -693,7 +693,7 @@ void gepep_fastpipill::FitSpe(std::vector<Psip> &evts,const char *namesfx)
   facmap[24][7] = 1.0071    ;  facemap[24][7] = 0.00693747 ;
   facmap[24][8] = 1.00672   ;  facemap[24][8] = 0.00353916 ;
   facmap[24][9] = 1.0069    ;  facemap[24][9] = 0.00417591 ;
-
+*/
 
   char tmpchr[100];
 
@@ -719,23 +719,13 @@ void gepep_fastpipill::FitSpe(std::vector<Psip> &evts,const char *namesfx)
 	 // for average correction factor
      for (int i=0;i<Npart;i++){
         if (p1>=pcut[i]&&p1<pcut[i+1]){
-		  for (int j=0; j<Ncos;j++){
-		    if (costheta1>=coscut[j]&&costheta1<coscut[j+1]){
-              factori = facmap[i][j];
-			  break;
-			}
-		  }
-          break;
+           factori = facmap[i];
+		   break;
         }
       }
       for (int i=0;i<Npart;i++){
         if (p2>=pcut[i]&&p2<pcut[i+1]){
-		  for (int j=0; j<Ncos;j++){
-		    if (costheta2>=coscut[j]&&costheta2<coscut[j+1]){
-              factorj = facmap[i][j];
-			  break;
-			}
-		  }
+          factorj = facmap[i];
           break;
         }
       }
@@ -753,24 +743,14 @@ void gepep_fastpipill::FitSpe(std::vector<Psip> &evts,const char *namesfx)
 	 // factor at low edge
      for (int i=0;i<Npart;i++){
         if (p1>=pcut[i]&&p1<pcut[i+1]){
-		  for (int j=0; j<Ncos;j++){
-		    if (costheta1>=coscut[j]&&costheta1<coscut[j+1]){
-              factori = facmap[i][j]-facemap[i][j];
+              factori = facmap[i]-facemap[i];
 			  break;
-			}
-		  }
-          break;
         }
       }
       for (int i=0;i<Npart;i++){
         if (p2>=pcut[i]&&p2<pcut[i+1]){
-		  for (int j=0; j<Ncos;j++){
-		    if (costheta2>=coscut[j]&&costheta2<coscut[j+1]){
-              factorj = facmap[i][j]-facemap[i][j];
+              factorj = facmap[i]-facemap[i];
 			  break;
-			}
-		  }
-          break;
         }
       }
      if (factori==0 || factorj==0){
@@ -786,24 +766,14 @@ void gepep_fastpipill::FitSpe(std::vector<Psip> &evts,const char *namesfx)
 	 // factor at up edge
      for (int i=0;i<Npart;i++){
         if (p1>=pcut[i]&&p1<pcut[i+1]){
-		  for (int j=0; j<Ncos;j++){
-		    if (costheta1>=coscut[j]&&costheta1<coscut[j+1]){
-              factori = facmap[i][j]+facemap[i][j];
+              factori = facmap[i]+facemap[i];
 			  break;
-			}
-		  }
-          break;
         }
       }
       for (int i=0;i<Npart;i++){
         if (p2>=pcut[i]&&p2<pcut[i+1]){
-		  for (int j=0; j<Ncos;j++){
-		    if (costheta2>=coscut[j]&&costheta2<coscut[j+1]){
-              factorj = facmap[i][j]+facemap[i][j];
+              factorj = facmap[i]+facemap[i];
 			  break;
-			}
-		  }
-          break;
         }
       }
      if (factori==0 || factorj==0){

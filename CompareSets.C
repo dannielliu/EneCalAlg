@@ -104,9 +104,9 @@ int main(int argc, char** argv)
     graph->SetLineColor(2+fid);
     graph->SetMarkerColor(2+fid);
     if (fid == 0){
-      graph->SetTitle("factors for D^{0} #rightarrow K^{+} K^{-}");
+      graph->SetTitle("factors for Ks #rightarrow #pi^{+} #pi^{-}");
       graph->GetYaxis()->SetRangeUser(0.995,1.005);
-      graph->GetXaxis()->SetRangeUser(0.,2.0);
+      graph->GetXaxis()->SetRangeUser(0.,2.3);
       graph->SetMarkerStyle(5);
       gStyle->SetOptFit(1111);
       graph->Draw("APC");

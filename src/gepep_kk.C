@@ -155,8 +155,9 @@ void gepep_kk::Loop()
    TH1D *h1    = new TH1D("h1","2 kaon invariant mass",nBins,philow,phiup);
    TCanvas *c1 = new TCanvas("","",800,600);
 
-   const int Npart=20;
+   const int Npart=21;
    double m0=peakvalue;
+   double peakest[Npart];
    double sigma_m=0.0024;//0.0024 for phi,
    double width = 10.*sigma_m;
    double mparticle=0.493677;
@@ -174,29 +175,30 @@ void gepep_kk::Loop()
    double facev[Npart];
 
 
-   pcut[0]=0;
-   pcut[1] = 2.0;
- //pcut[0] =0.0 ;    facv[0] =1.0;       facev[0] =1.0;  
- //pcut[1] =0.10;    facv[1] =1.0     ;  facev[1] =1.0        ;  
- //pcut[2] =0.20;    facv[2] =1.00149 ;  facev[2] =1.0        ;
- //pcut[3] =0.30;    facv[3] =1.00079 ;  facev[3] =1.0        ;
- //pcut[4] =0.40;    facv[4] =1.0004  ;  facev[4] =1.0        ;
- //pcut[5] =0.50;    facv[5] =1.00019 ;  facev[5] =1.0        ;
- //pcut[6] =0.60;    facv[6] =1.00016 ;  facev[6] =1.0        ;
- //pcut[7] =0.70;    facv[7] =1.00012 ;  facev[7] =1.0        ;
- //pcut[8] =0.80;    facv[8] =1.0003  ;  facev[8] =1.0        ;
- //pcut[9] =0.90;    facv[9] =1.00032 ;  facev[9] =1.0        ;
- //pcut[10]=1.00;    facv[10]=1.00016 ;  facev[10]=1.0        ;
- //pcut[11]=1.10;    facv[11]=1.00016 ;  facev[11]=1.0        ;
- //pcut[12]=1.20;    facv[12]=0.999986;  facev[12]=1.0        ;
- //pcut[13]=1.30;    facv[13]=0.999765;  facev[13]=1.0        ;
- //pcut[14]=1.40;    facv[14]=0.999356;  facev[14]=1.0        ;
- //pcut[15]=1.50;    facv[15]=0.998949;  facev[15]=1.0        ;
- //pcut[16]=1.60;    facv[16]=0.998518;  facev[16]=1.0        ;
- //pcut[17]=1.70;    facv[17]=0.998049;  facev[17]=1.0        ;
- //pcut[18]=1.80;    facv[18]=1.0;       facev[18]=1.0;  
- //pcut[19]=1.90;    facv[19]=1.0;       facev[19]=1.0;  
- //pcut[20]=2.00;           
+   //pcut[0]=0;
+   //pcut[1] = 2.0;
+   pcut[0] =0.0 ;    facv[0] =1.0;       facev[0] =1.0;  
+   pcut[1] =0.10;    facv[1] =1.0     ;  facev[1] =1.0        ;  
+   pcut[2] =0.20;    facv[2] =1.0     ;  facev[2] =1.0        ;
+   pcut[3] =0.30;    facv[3] =1.0     ;  facev[3] =1.0        ;
+   pcut[4] =0.40;    facv[4] =1.0     ;  facev[4] =1.0        ;
+   pcut[5] =0.50;    facv[5] =1.0     ;  facev[5] =1.0        ;
+   pcut[6] =0.60;    facv[6] =1.0     ;  facev[6] =1.0        ;
+   pcut[7] =0.70;    facv[7] =1.0     ;  facev[7] =1.0        ;
+   pcut[8] =0.80;    facv[8] =1.0     ;  facev[8] =1.0        ;
+   pcut[9] =0.90;    facv[9] =1.0     ;  facev[9] =1.0        ;
+   pcut[10]=1.00;    facv[10]=1.0     ;  facev[10]=1.0        ;
+   pcut[11]=1.10;    facv[11]=1.0     ;  facev[11]=1.0        ;
+   pcut[12]=1.20;    facv[12]=1.0     ;  facev[12]=1.0        ;
+   pcut[13]=1.30;    facv[13]=1.0     ;  facev[13]=1.0        ;
+   pcut[14]=1.40;    facv[14]=1.0     ;  facev[14]=1.0        ;
+   pcut[15]=1.50;    facv[15]=1.0     ;  facev[15]=1.0        ;
+   pcut[16]=1.60;    facv[16]=1.0     ;  facev[16]=1.0        ;
+   pcut[17]=1.70;    facv[17]=1.0     ;  facev[17]=1.0        ;
+   pcut[18]=1.80;    facv[18]=1.0;       facev[18]=1.0;  
+   pcut[19]=1.90;    facv[19]=1.0;       facev[19]=1.0;  
+   pcut[20]=2.00;    facv[20]=1.0;       facev[19]=1.0;  
+   pcut[21]=2.20;           
 
    char name[100];
    TH1D *hmD0[Npart];
@@ -226,17 +228,19 @@ void gepep_kk::Loop()
         if (mass>philow && mass<phiup){
           vars->Fill();
         }
-        if (costheta1 > 0.8 && costheta2 <-0.8) continue;
+        //if (costheta1 > 0.8 && costheta2 <-0.8) continue;
 		//if (p1<0.5 || p1>1.3) continue;
+		//if (p1<0.4 || p1>1.3) continue;
+		//if (p2<0.4 || p2>1.3) continue;
 
         //if ( partj>=Npart || partj<0 ) continue;
         for (int partj=0;partj<Npart;partj++){
-          if (p1<pcut[partj] || p1>pcut[partj+1]) continue;
+          //if (p1<pcut[partj] || p1>pcut[partj+1]) continue;
           if (p2<pcut[partj] || p2>pcut[partj+1]) continue;
           if (mass>philow-0.02 && mass<phiup+0.02){
             hmD0[partj]->Fill(mass);
 			evts[partj].push_back(evt);
-	      }
+		  }
           break;
 		}
    
@@ -251,7 +255,34 @@ void gepep_kk::Loop()
        &&hmD0[partj]->GetMaximumBin()< 70 
        ){
        partmap.push_back(partj);
-     }
+     	      	
+   		TH1D *hp = new TH1D("hp","hp",200,0,2);
+   		//TH2D *hp2= new TH2D("hp2","hp2",100,0,2, 100,0,2);
+		double plow = pcut[partj];
+		double pup  = pcut[partj+1];
+       	std::cout<<"p range is "<<plow<<", "<<pup<<std::endl;
+		char cuts[100];
+	   	sprintf(cuts,"p1>%f & p1<%f",plow,pup);
+       	hp->Reset();
+	   	vars->Draw("p1>>hp",cuts);
+	   	hp->Fit("gaus","","",plow,pup);
+	   	double mean = hp->GetFunction("gaus")->GetParameter(1);
+	   	double sigma= hp->GetFunction("gaus")->GetParameter(2);
+       	hp->Reset();
+	   	vars->Draw("p2>>hp",cuts);
+	   	hp->Fit("gaus","","",pcut[0],pcut[Npart]);
+	   	double mean2 = hp->GetFunction("gaus")->GetParameter(1);
+	   	double sigma2= hp->GetFunction("gaus")->GetParameter(2);
+	   	PeakEstimate::SetPdisPar(mean, sigma, mean2, sigma2);
+	   	//std::cout<<"before est"<<std::endl;
+	   	double ps = PeakEstimate::peakshift(plow,pup,0.,2.);
+	   	peakest[partj] = ps;
+		//std::cout<<"after  est"<<std::endl;
+       	//hmD0[partj]->Fit("gaus");
+	   	//double mpeak = hmD0[partj]->GetFunction("gaus")->GetParameter(1);
+	   	//std::cout<<"fit peak is "<< mpeak << ", est peak is "<<ps<<std::endl;
+
+	 }
    }
 
    // ~~~~~~~~ draw end
@@ -279,7 +310,7 @@ void gepep_kk::Loop()
               break;
             }
           }
-          mass = evts[partj].at(jentry).InvMass(factor ,factor);
+          mass = evts[partj].at(jentry).InvMass(factori,factor);
           if (mass>philow && mass<phiup){
             dataraw->Fill();
           }
@@ -340,7 +371,8 @@ void gepep_kk::Loop()
       // save pars
       factors[i]=factor;
       factorserr[i]=0;
-      deltapeaks[i] = mean.getVal() - peakvalue;
+	  deltapeaks[i] = mean.getVal() - peakest[partj];
+	  //deltapeaks[i] = mean.getVal() - peakvalue;
       deltapeakserr[i] = mean.getError();
 
       fittimes++;
@@ -375,7 +407,7 @@ void gepep_kk::Loop()
               break;
             }
          }
-         mass = evts[partj].at(jentry).InvMass(factor ,factor);
+         mass = evts[partj].at(jentry).InvMass(factori,factor);
          if (mass>philow && mass<phiup){
            dataraw->Fill();
          }

@@ -173,7 +173,7 @@ bool gepep_fastpipill::Loop()
   // for initial spectrum
   Long64_t nbytes = 0, nb = 0;
 
-  int Npart=10;
+  int Npart=1;
   // cut phi
   //double phicut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
   //double start=0.0;
@@ -191,23 +191,23 @@ bool gepep_fastpipill::Loop()
   //}
   // cut p
   double pcut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
-//double start=0.1;
-//double stop =0.4;
-//for(int i=0;i<Npart+1;i++){
-//  pcut[i] = (stop-start)/Npart*i+start;
-//}
-   double facv[Npart],facev[Npart];
-   pcut[0] =0.0 ;    facv[0] =1.0;  facev[0] =1.0;  
-   pcut[1] =0.05;    facv[1] =1.044165;  facev[1] =1.0;  
-   pcut[2] =0.10;    facv[2] =1.016065;  facev[2] =1.0;
-   pcut[3] =0.15;    facv[3] =1.006475;  facev[3] =1.0;
-   pcut[4] =0.20;    facv[4] =1.002925;  facev[4] =1.0;
-   pcut[5] =0.25;    facv[5] =1.00009 ;  facev[5] =1.0;
-   pcut[6] =0.30;    facv[6] =0.998269;  facev[6] =1.0;
-   pcut[7] =0.35;    facv[7] =0.996053;  facev[7] =1.0;
-   pcut[8] =0.40;    facv[8] =0.994557;  facev[8] =1.0;
-   pcut[9] =0.45;    facv[9] =1.0;  facev[9] =1.0;
-   pcut[10]=0.50;
+  double start=0.1;
+  double stop =0.4;
+  for(int i=0;i<Npart+1;i++){
+    pcut[i] = (stop-start)/Npart*i+start;
+  }
+   //double facv[Npart],facev[Npart];
+ //pcut[0] =0.0 ;    facv[0] =1.0;  facev[0] =1.0;  
+ //pcut[1] =0.05;    facv[1] =1.044165;  facev[1] =1.0;  
+ //pcut[2] =0.10;    facv[2] =1.016065;  facev[2] =1.0;
+ //pcut[3] =0.15;    facv[3] =1.006475;  facev[3] =1.0;
+ //pcut[4] =0.20;    facv[4] =1.002925;  facev[4] =1.0;
+ //pcut[5] =0.25;    facv[5] =1.00009 ;  facev[5] =1.0;
+ //pcut[6] =0.30;    facv[6] =0.998269;  facev[6] =1.0;
+ //pcut[7] =0.35;    facv[7] =0.996053;  facev[7] =1.0;
+ //pcut[8] =0.40;    facv[8] =0.994557;  facev[8] =1.0;
+ //pcut[9] =0.45;    facv[9] =1.0;  facev[9] =1.0;
+ //pcut[10]=0.50;
  
   //double m0=peakvalue;
   //double sigma_m=0.0017;//0.0024 for phi,
@@ -235,7 +235,7 @@ bool gepep_fastpipill::Loop()
      if (ientry < 0) break;
      nb = fChain->GetEntry(jentry);   nbytes += nb;
 
-     evt.Setval(pipx4[1],pipy4[1],pipz4[1],pipx4[0],pipy4[0],pipz4[0],
+     evt.Setval(pipx4[0],pipy4[0],pipz4[0],pipx4[1],pipy4[1],pipz4[1],
 	            lepx4[0],lepy4[0],lepz4[0],lepx4[1],lepy4[1],lepz4[1]);
      //double mlepton;
      //double massjpsi;
@@ -252,13 +252,14 @@ bool gepep_fastpipill::Loop()
      int parti, partj;
      p1 = evt.GetP1();
      p2 = evt.GetP2();
-	 //if (p1+p2<0.4 || p1+p2>0.6) continue;
+	 if (p1+p2<0.4 || p1+p2>0.6) continue;
      costheta1 = evt.GetCostheta1();
      costheta2 = evt.GetCostheta2();
      phi1 = evt.GetPhi1();
      phi2 = evt.GetPhi2();
      if ( mass>psiplow-0.01 && mass<psipup+0.01 ) vars->Fill();
      for (int partj=0;partj<Npart;partj++){
+         if ( p1>pcut[partj] && p1<pcut[partj+1] )
          if ( p2>pcut[partj] && p2<pcut[partj+1] ){
          if ( mass>psiplow-0.01 && mass<psipup+0.01 ) {
            hmphi[partj]->Fill(mass);
@@ -567,16 +568,16 @@ bool gepep_fastpipill::Loop()
         p1 = evts.at(jentry).GetP1(); 
 		p2 = evts.at(jentry).GetP2();
 	    //if (p1+p2<0.4 || p1+p2>0.6) continue;
-        if (!(p1>0.0 && p1<0.5)) continue;
-        for (int i=0;i<Npart;i++){
-          if (p1>=pcut[i]&&p1<pcut[i+1]){
-            factori = facv[i];
-            break;
-          }
-        }
+      //if (!(p1>0.0 && p1<0.5)) continue;
+      //for (int i=0;i<Npart;i++){
+      //  if (p1>=pcut[i]&&p1<pcut[i+1]){
+      //    factori = facv[i];
+      //    break;
+      //  }
+      //}
  
 		if (!(p2>pcut[partj] && p2<pcut[partj+1])) continue;
-		mass = evts.at(jentry).InvMass(factori,factor);
+		mass = evts.at(jentry).InvMass(factor ,factor);
 		//h5->Fill(mass);
 
         if (mass>psiplow && mass<psipup){
@@ -681,15 +682,15 @@ bool gepep_fastpipill::Loop()
        p2 = evts.at(jentry).GetP2();
 	   //if (p1+p2<0.4 || p1+p2>0.6) continue;
        //if (!(p1>pcut[partj] && p1<pcut[partj+1])) continue;
-        if (!(p1>0. && p1<0.5)) continue;
-        for (int i=0;i<Npart;i++){
-          if (p1>=pcut[i]&&p1<pcut[i+1]){
-            factori = facv[i];
-            break;
-          }
-        }
+      //if (!(p1>0. && p1<0.5)) continue;
+      //for (int i=0;i<Npart;i++){
+      //  if (p1>=pcut[i]&&p1<pcut[i+1]){
+      //    factori = facv[i];
+      //    break;
+      //  }
+      //}
        if (!(p2>pcut[partj] && p2<pcut[partj+1])) continue;
-       mass = evts.at(jentry).InvMass(factori,factor);
+       mass = evts.at(jentry).InvMass(factor ,factor);
        if (mass>psiplow && mass<psipup)
          dataraw->Fill();
     }
