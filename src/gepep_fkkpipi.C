@@ -69,6 +69,7 @@ void gepep_fkkpipi::Loop()
    double factorstep=(1.-factor)*2/pointNo;
    double factork=1;
     
+   char name[1000];
    ofstream ofpar;
    ofpar.open("par.txt",std::ios::app);
    ofpar<<"k- pi+ pi- algrithm: will give factors for pion"<<std::endl;
@@ -92,10 +93,10 @@ void gepep_fkkpipi::Loop()
    TCanvas *c1= new TCanvas("","",800,600);
 
    // for saving the fit result
-   std::string fitepsname  = outputdir+"/fitkpipi.eps";
-   std::string fiteps_start=fitepsname+"[";
-   std::string fiteps_stop =fitepsname+"]";
-   c1->Print(fiteps_start.c_str());
+ //std::string fitepsname  = outputdir+"/fitkpipi.eps";
+ //std::string fiteps_start=fitepsname+"[";
+ //std::string fiteps_stop =fitepsname+"]";
+ //c1->Print(fiteps_start.c_str());
  
    Long64_t nbytes = 0, nb = 0;
    int fittimes = 0;
@@ -145,7 +146,9 @@ void gepep_fkkpipi::Loop()
 	  sum.plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
 	  sum.plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
       xframe->Draw();
-	  c1->Print(fitepsname.c_str());
+	  sprintf(name,"mass_spe_%02d",fittimes);
+	  c1->Write(name);
+	  //c1->Print(fitepsname.c_str());
 	  delete data_kpipi;
 	  delete xframe;
 
@@ -163,7 +166,7 @@ void gepep_fkkpipi::Loop()
 	  factor += factorstep;
    }
    std::cout<<"entry is "<<nentries<<std::endl;
-   c1->Print(fiteps_stop.c_str());
+   //c1->Print(fiteps_stop.c_str());
    c1->Clear();
    
    TGraphErrors *graph1 = new TGraphErrors(pointNo,factors,deltapeaks,factorserr,deltapeakserr);
@@ -181,7 +184,9 @@ void gepep_fkkpipi::Loop()
    ofpar<<signal.getVal()<<"\t"<<signal.getError()<<std::endl;
    //std::cout<<"fit factor: "<<factor1<<", error is "<<factor1err<<std::endl;
    std::string tmpstr=outputdir+"/factorkpipi.eps";
-   c1->Print(tmpstr.c_str());
+   //c1->Print(tmpstr.c_str());
+   sprintf(name,"factor");
+   c1->Write(name);
 
    ofpar.close();
    ofpardetail.close();

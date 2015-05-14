@@ -26,7 +26,7 @@
 extern std::string outputdir;
 using namespace RooFit;
 namespace KS{
-  void FitSpectrum(TTree *&dataraw, char* namesfx, bool output = false);
+  void FitSpectrum(TTree *&dataraw, char* namesfx, double ene, bool output = false);
 }
 
 void Ks0Alg::Loop()
@@ -62,7 +62,7 @@ void Ks0Alg::Loop()
 
    char fname[100];
    sprintf(fname,"%s/plot_ks.root",outputdir.c_str());
-   TFile *f=new TFile(fname,"RECREATE");
+   TFile *f = new TFile(fname,"RECREATE");
    double mpi=0.13957;
    double kslow=0.45;
    double ksup =0.55;
@@ -122,7 +122,7 @@ void Ks0Alg::Loop()
    std::vector<Event> evts[Npart][Npart];
    
    Long64_t nbytes = 0, nb = 0;
-   if (nentries>1000000) nentries = 1000000;
+   if (nentries>2000000) nentries = 1000000;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
@@ -767,7 +767,7 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
 
    // correction factors
 // factor from Ks->pipi, pi corrected without vertex fit
-
+/*
    pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
    pcut[1] =0.05;  facmap[1] =1.00629 ;  facemap[1] =0.0019564 ;
    pcut[2] =0.10;  facmap[2] =1.00295 ;  facemap[2] =0.00026642;
@@ -789,7 +789,31 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
    pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
    pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
    pcut[20]=2.00;  //facmap[20]=2.00;
+*/ 
+   
+   pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
+   pcut[1] =0.05;  facmap[1] =1.0019  ;  facemap[1] =0.00389584;
+   pcut[2] =0.10;  facmap[2] =1.0023  ;  facemap[2] =0.00099428;
+   pcut[3] =0.15;  facmap[3] =1.00196 ;  facemap[3] =0.00059834;
+   pcut[4] =0.20;  facmap[4] =1.00055 ;  facemap[4] =0.00047392;
+   pcut[5] =0.25;  facmap[5] =1.0007  ;  facemap[5] =0.00039978;
+   pcut[6] =0.30;  facmap[6] =0.999955;  facemap[6] =0.00053619;
+   pcut[7] =0.35;  facmap[7] =1.00092 ;  facemap[7] =0.00068195;
+   pcut[8] =0.40;  facmap[8] =1.00312 ;  facemap[8] =0.00109478;
+   pcut[9] =0.45;  facmap[9] =1.00278 ;  facemap[9] =0.00125143;
+   pcut[10]=0.50;  facmap[10]=0.99954 ;  facemap[10]=0.00178119;
+   pcut[11]=0.60;  facmap[11]=1.00235 ;  facemap[11]=0.00226029;
+   pcut[12]=0.70;  facmap[12]=1.00148 ;  facemap[12]=0.00070139;
+   pcut[13]=0.80;  facmap[13]=0.998524;  facemap[13]=0.00405132;
+   pcut[14]=0.90;  facmap[14]=1.00337 ;  facemap[14]=0.00478848;
+   pcut[15]=1.00;  facmap[15]=1.04187 ;  facemap[15]=0.020354  ;
+   pcut[16]=1.20;  facmap[16]=0.993981;  facemap[16]=0.00342047;
+   pcut[17]=1.40;  facmap[17]=1.01747 ;  facemap[17]=0.0153603 ;
+   pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
+   pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
+   pcut[20]=2.00;  //facmap[20]=2.00;
  
+
 
 
 
@@ -901,11 +925,11 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
    
    // no correction
    sprintf(name,"raw_%s",namesfx);
-   KS::FitSpectrum(datarawo,name,true);
+   KS::FitSpectrum(datarawo,name,0,true);
 
-// // average factor part
-// sprintf(name,"nom_%s",namesfx);
-// KS::FitSpectrum(dataraw,name,true);
+   // average factor part
+   sprintf(name,"nom_%s",namesfx);
+   KS::FitSpectrum(dataraw,name,0,true);
 
 // // low edge part
 // sprintf(name,"low_%s",namesfx);
@@ -919,7 +943,7 @@ void Ks0Alg::FitSpe(std::vector<Event> &evts, const char* namesfx)
    return;
 }
 
-void KS::FitSpectrum(TTree *&dataraw, char* namesfx, bool output)
+void KS::FitSpectrum(TTree *&dataraw, char* namesfx, double ene, bool output)
 {  
    TCanvas *c1 = new TCanvas();
    int Npar;
@@ -941,16 +965,18 @@ void KS::FitSpectrum(TTree *&dataraw, char* namesfx, bool output)
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
    RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
  
-   RooRealVar a0("a0","coefficient #0",1000,-1000000,1000000);
-   RooRealVar a1("a1","coefficient #1",-1000,-1000000,1000000);
+   RooRealVar a0("a0","coefficient #0",100,-1000000,1000000);
+   RooRealVar a1("a1","coefficient #1",-100,-1000000,1000000);
    RooPolynomial ground("ground","ground",x,RooArgList(a0,a1));
  
-   RooRealVar signal("signal"," ",100000,0,10000000);//event number
-   RooRealVar signal2("signal2"," ",100000,0,10000000);//event number
-   RooRealVar background("background"," ",300000,0,10000000);
-   signal.setError(sqrt(signal.getVal()));
-   signal2.setError(sqrt(signal2.getVal()));
-   background.setError(sqrt(background.getVal()));
+     RooRealVar signal("signal"," ",100000,0,10000000);//event number
+     RooRealVar signal2("signal2"," ",100000,0,10000000);//event number
+     RooRealVar background("background"," ",300000,0,10000000);
+  // signal.setError(sqrt(signal.getVal()));
+  // signal2.setError(sqrt(signal2.getVal()));
+  // background.setError(sqrt(background.getVal()));
+   RooRealVar fbkg("fbkg","background fraction",0.5,0.,1.);
+   RooRealVar fsig("fsig","gaus1 fraction",0.5,0.,1.);
 
    RooAddPdf *sum;
    RooDataHist *datahist;
@@ -964,7 +990,7 @@ void KS::FitSpectrum(TTree *&dataraw, char* namesfx, bool output)
    // fit data
    sprintf(name,"data_Ks_%s",namesfx);
    dataset = new RooDataSet(name,"data",RooArgSet(x),Import(*dataraw));
-   sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
+   sum = new RooAddPdf("sum","sum",RooArgList(ground,gaus,gaus2),RooArgList(background,signal,signal2));
    Npar=8;
    sum->fitTo(*dataset,Range(kslow,ksup));
    dataset->plotOn(xframe,Binning(nBins));
@@ -985,9 +1011,13 @@ void KS::FitSpectrum(TTree *&dataraw, char* namesfx, bool output)
    pt->AddText(name);
    sprintf(name,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
    pt->AddText(name);
-   sprintf(name,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+   sprintf(name,"fsig1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
    pt->AddText(name);
-   sprintf(name,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+   sprintf(name,"fsig = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+   pt->AddText(name);
+   sprintf(name,"a0 = %f #pm %f",a0.getVal(),a0.getError());
+   pt->AddText(name);
+   sprintf(name,"a1 = %f #pm %f",a1.getVal(),a1.getError());
    pt->AddText(name);
    sprintf(name,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
    pt->AddText(name);
@@ -1001,9 +1031,10 @@ void KS::FitSpectrum(TTree *&dataraw, char* namesfx, bool output)
    c1->Write();
    
    if (output){
-     sprintf(name,"%s/result.txt",outputdir.c_str());
+     sprintf(name,"%s/result.txt",".");
      ofstream ofresult(name,std::ios::app);
-	 ofresult<<namesfx<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+	 //double beamene = GetEnergy(this->run);
+	 ofresult<<'\t'<<ene<<'\t'<<namesfx<<'\t'<<mean.getVal()<<'\t'<<mean.getError()<<std::endl;
 	 ofresult.close();
    }
 

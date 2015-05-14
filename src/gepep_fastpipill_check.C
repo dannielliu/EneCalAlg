@@ -115,8 +115,8 @@ bool gepep_fastpipill::Loop()
   //}
   // cut p
   double pcut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
-  double start=0.1;
-  double stop =0.4;
+  double start=0.05;
+  double stop =0.5;
   for(int i=0;i<Npart+1;i++){
     pcut[i] = (stop-start)/Npart*i+start;
   }
@@ -188,7 +188,7 @@ bool gepep_fastpipill::Loop()
    for (int parti=0; parti<Npart;parti++)
    for (int partj=0; partj<Npart;partj++){
      sprintf(fname,"part%02d%02d",parti,partj);
-	 if(evts[parti][partj].size()<200) continue;
+	 if(evts[parti][partj].size()<50) continue;
 	 FitSpe(evts[parti][partj],fname);
    }
 
@@ -216,7 +216,7 @@ void gepep_fastpipill::FitSpe(std::vector<Psip> &evts,const char *namesfx)
   // iniialize the fit function
   //double factor4,factor4err;// for pi
  
-  int Npart=30;
+  int Npart=1;
   //int Ncos=10;
   double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
 		  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
@@ -378,7 +378,7 @@ void gepep_fastpipill::FitSpe(std::vector<Psip> &evts,const char *namesfx)
 */
    //  set factors in (0.15, 0.6) to up values, get factor in different range
 //  only for r value data, combine both part
-
+/* 
    pcut[0] = 0.0  ;  facmap[0] = 1.0     ;  facemap[0] = 1.0     ;
    pcut[1] = 0.025;  facmap[1] = 1.0     ;  facemap[1] = 1.0     ;
    pcut[2] = 0.05 ;  facmap[2] = 1.0     ;  facemap[2] = 1.0     ;
@@ -410,291 +410,61 @@ void gepep_fastpipill::FitSpe(std::vector<Psip> &evts,const char *namesfx)
    pcut[28]= 1.60 ;  facmap[28]= 1.0     ;  facemap[28]= 1.0     ;
    pcut[29]= 1.80 ;  facmap[29]= 1.0     ;  facemap[29]= 1.0     ;
    pcut[30]= 2.00 ;
-
- //pcut[0] = 0.0  ; //coscut[0] = -1.0;
- //pcut[1] = 0.025; //coscut[1] = -0.8;   
- //pcut[2] = 0.05 ; //coscut[2] = -0.6;
- //pcut[3] = 0.075; //coscut[3] = -0.4;
- //pcut[4] = 0.10 ; //coscut[4] = -0.2;   
- //pcut[5] = 0.125; //coscut[5] =  0.0;   
- //pcut[6] = 0.15 ; //coscut[6] =  0.2;   
- //pcut[7] = 0.175; //coscut[7] =  0.4;   
- //pcut[8] = 0.20 ; //coscut[8] =  0.6;   
- //pcut[9] = 0.225; //coscut[9] =  0.8;   
- //pcut[10]= 0.25 ; //coscut[10]=  1.0;   
- //pcut[11]= 0.275;   
- //pcut[12]= 0.30 ;   
- //pcut[13]= 0.325;   
- //pcut[14]= 0.35 ;   
- //pcut[15]= 0.375;   
- //pcut[16]= 0.40 ;   
- //pcut[17]= 0.425;   
- //pcut[18]= 0.45 ;   
- //pcut[19]= 0.475;   
- //pcut[20]= 0.50 ;   
- //pcut[21]= 0.60 ;   
- //pcut[22]= 0.70 ;   
- //pcut[23]= 0.80 ;   
- //pcut[24]= 0.90 ;   
- //pcut[25]= 1.00 ;   
- //pcut[26]= 1.20 ;   
- //pcut[27]= 1.40 ;   
- //pcut[28]= 1.60 ;   
- //pcut[29]= 1.80 ;   
- //pcut[30]= 2.00 ;   
-/*
-  facmap[0][0] =  1. ;  facemap[0][0] =  1.;
-  facmap[0][1] =  1. ;  facemap[0][1] =  1.;
-  facmap[0][2] =  1. ;  facemap[0][2] =  1.;
-  facmap[0][3] =  1. ;  facemap[0][3] =  1.;
-  facmap[0][4] =  1. ;  facemap[0][4] =  1.;
-  facmap[0][5] =  1. ;  facemap[0][5] =  1.;
-  facmap[0][6] =  1. ;  facemap[0][6] =  1.;
-  facmap[0][7] =  1. ;  facemap[0][7] =  1.;
-  facmap[0][8] =  1. ;  facemap[0][8] =  1.;
-  facmap[0][9] =  1. ;  facemap[0][9] =  1.;
-  facmap[1][0] =  1. ;  facemap[1][0] =  1.;
-  facmap[1][1] =  1. ;  facemap[1][1] =  1.;
-  facmap[1][2] =  1. ;  facemap[1][2] =  1.;
-  facmap[1][3] =  1. ;  facemap[1][3] =  1.;
-  facmap[1][4] =  1. ;  facemap[1][4] =  1.;
-  facmap[1][5] =  1. ;  facemap[1][5] =  1.;
-  facmap[1][6] =  1. ;  facemap[1][6] =  1.;
-  facmap[1][7] =  1. ;  facemap[1][7] =  1.;
-  facmap[1][8] =  1. ;  facemap[1][8] =  1.;
-  facmap[1][9] =  1. ;  facemap[1][9] =  1.;
-  facmap[2][0] =  1. ;  facemap[2][0] =  1.;
-  facmap[2][1] =  1. ;  facemap[2][1] =  1.;
-  facmap[2][2] =  1. ;  facemap[2][2] =  1.;
-  facmap[2][3] =  1. ;  facemap[2][3] =  1.;
-  facmap[2][4] =  1. ;  facemap[2][4] =  1.;
-  facmap[2][5] =  1. ;  facemap[2][5] =  1.;
-  facmap[2][6] =  1. ;  facemap[2][6] =  1.;
-  facmap[2][7] =  1. ;  facemap[2][7] =  1.;
-  facmap[2][8] =  1. ;  facemap[2][8] =  1.;
-  facmap[2][9] =  1. ;  facemap[2][9] =  1.;
-  facmap[3][0] =  1.02549  ;  facemap[3][0] = 0.057221   ;
-  facmap[3][1] =  1.00705  ;  facemap[3][1] = 0.00655242 ;
-  facmap[3][2] =  0.999087 ;  facemap[3][2] = 0.00674187 ;
-  facmap[3][3] =  1.00403  ;  facemap[3][3] = 0.00280597 ;
-  facmap[3][4] =  1.00985  ;  facemap[3][4] = 0.00348275 ;
-  facmap[3][5] =  1.00937  ;  facemap[3][5] = 0.00430175 ;
-  facmap[3][6] =  1.00833  ;  facemap[3][6] = 0.00332264 ;
-  facmap[3][7] =  1.0148   ;  facemap[3][7] = 0.00705234 ;
-  facmap[3][8] =  1.01301  ;  facemap[3][8] = 0.0170698  ;
-  facmap[3][9] =  1.0152   ;  facemap[3][9] = 0.0139321  ;
-  facmap[4][0] =  0.99162  ;  facemap[4][0] = 0.0189203  ;
-  facmap[4][1] =  1.00686  ;  facemap[4][1] = 0.00243901 ;
-  facmap[4][2] =  1.00176  ;  facemap[4][2] = 0.00135396 ;
-  facmap[4][3] =  1.00301  ;  facemap[4][3] = 0.00114467 ;
-  facmap[4][4] =  1.00485  ;  facemap[4][4] = 0.00033575 ;
-  facmap[4][5] =  1.00536  ;  facemap[4][5] = 0.00143191 ;
-  facmap[4][6] =  1.00459  ;  facemap[4][6] = 0.00127563 ;
-  facmap[4][7] =  1.00835  ;  facemap[4][7] = 0.00186224 ;
-  facmap[4][8] =  1.01304  ;  facemap[4][8] = 0.00318143 ;
-  facmap[4][9] =  1.0259   ;  facemap[4][9] = 0.00711918 ;
-  facmap[5][0] =  0.995606 ;  facemap[5][0] = 0.00516567 ;
-  facmap[5][1] =  0.999095 ;  facemap[5][1] = 0.00124138 ;
-  facmap[5][2] =  0.999311 ;  facemap[5][2] = 0.00079172 ;
-  facmap[5][3] =  1.00009  ;  facemap[5][3] = 0.00062837 ;
-  facmap[5][4] =  1.0022   ;  facemap[5][4] = 0.00059747 ;
-  facmap[5][5] =  1.00334  ;  facemap[5][5] = 0.00068348 ;
-  facmap[5][6] =  1.00425  ;  facemap[5][6] = 0.00068889 ;
-  facmap[5][7] =  1.00505  ;  facemap[5][7] = 0.00084526 ;
-  facmap[5][8] =  1.00804  ;  facemap[5][8] = 0.00167035 ;
-  facmap[5][9] =  1.00503  ;  facemap[5][9] = 0.00537048 ;
-  facmap[6][0] =  1.00025  ;  facemap[6][0] = 0.00243444  ;
-  facmap[6][1] =  0.997159 ;  facemap[6][1] = 0.000714729 ;
-  facmap[6][2] =  0.999243 ;  facemap[6][2] = 0.000526227 ;
-  facmap[6][3] =  1.00145  ;  facemap[6][3] = 0.00048751  ;
-  facmap[6][4] =  1.00162  ;  facemap[6][4] = 0.000514444 ;
-  facmap[6][5] =  1.00174  ;  facemap[6][5] = 0.00050462  ;
-  facmap[6][6] =  1.00364  ;  facemap[6][6] = 0.000546889 ;
-  facmap[6][7] =  1.00366  ;  facemap[6][7] = 0.000575031 ;
-  facmap[6][8] =  1.00529  ;  facemap[6][8] = 0.000810584 ;
-  facmap[6][9] =  1.00897  ;  facemap[6][9] = 0.00376518  ;
-  facmap[7][0] =  0.998596 ;  facemap[7][0] = 0.00181152  ;
-  facmap[7][1] =  0.998134 ;  facemap[7][1] = 0.000651994 ;
-  facmap[7][2] =  0.998765 ;  facemap[7][2] = 0.000506631 ;
-  facmap[7][3] =  0.999931 ;  facemap[7][3] = 0.000482376 ;
-  facmap[7][4] =  1.00084  ;  facemap[7][4] = 0.000490128 ;
-  facmap[7][5] =  1.00127  ;  facemap[7][5] = 0.000515299 ;
-  facmap[7][6] =  1.00374  ;  facemap[7][6] = 0.000556172 ;
-  facmap[7][7] =  1.00418  ;  facemap[7][7] = 0.000560098 ;
-  facmap[7][8] =  1.00615  ;  facemap[7][8] = 0.000720018 ;
-  facmap[7][9] =  1.007    ;  facemap[7][9] = 0.00225047  ;
-  facmap[8][0] =  0.995945 ;  facemap[8][0] = 0.00191146 ;
-  facmap[8][1] =  0.996704 ;  facemap[8][1] = 0.00057081 ;
-  facmap[8][2] =  0.999492 ;  facemap[8][2] = 0.00052991 ;
-  facmap[8][3] =  0.999143 ;  facemap[8][3] = 0.00053043 ;
-  facmap[8][4] =  1.00014  ;  facemap[8][4] = 0.00048051 ;
-  facmap[8][5] =  1.00161  ;  facemap[8][5] = 0.00051432 ;
-  facmap[8][6] =  1.00336  ;  facemap[8][6] = 0.00054595 ;
-  facmap[8][7] =  1.00331  ;  facemap[8][7] = 0.00054867 ;
-  facmap[8][8] =  1.00581  ;  facemap[8][8] = 0.00066739 ;
-  facmap[8][9] =  1.00888  ;  facemap[8][9] = 0.00216271 ;
-  facmap[9][0] =  0.998014 ;  facemap[9][0] = 0.00147886 ;
-  facmap[9][1] =  0.996598 ;  facemap[9][1] = 0.00051613 ;
-  facmap[9][2] =  0.997804 ;  facemap[9][2] = 0.00053125 ;
-  facmap[9][3] =  0.999737 ;  facemap[9][3] = 0.00054737 ;
-  facmap[9][4] =  1.00042  ;  facemap[9][4] = 0.00055447 ;
-  facmap[9][5] =  0.999856 ;  facemap[9][5] = 0.00049475 ;
-  facmap[9][6] =  1.00264  ;  facemap[9][6] = 0.00055467 ;
-  facmap[9][7] =  1.00265  ;  facemap[9][7] = 0.00046703 ;
-  facmap[9][8] =  1.00379  ;  facemap[9][8] = 0.00056445 ;
-  facmap[9][9] =  1.0065   ;  facemap[9][9] = 0.0017228  ;
-  facmap[10][0] = 0.9957    ;  facemap[10][0] = 0.00125198 ;
-  facmap[10][1] = 0.99751   ;  facemap[10][1] = 0.00050237 ;
-  facmap[10][2] = 0.997254  ;  facemap[10][2] = 0.00052201 ;
-  facmap[10][3] = 0.998913  ;  facemap[10][3] = 0.00046551 ;
-  facmap[10][4] = 1.00028   ;  facemap[10][4] = 0.00041825 ;
-  facmap[10][5] = 1.0004    ;  facemap[10][5] = 0.00043782 ;
-  facmap[10][6] = 1.00212   ;  facemap[10][6] = 0.00050719 ;
-  facmap[10][7] = 1.00272   ;  facemap[10][7] = 0.00051503 ;
-  facmap[10][8] = 1.00422   ;  facemap[10][8] = 0.00061772 ;
-  facmap[10][9] = 1.00621   ;  facemap[10][9] = 0.0016175  ;
-  facmap[11][0] = 0.99672   ;  facemap[11][0] = 0.00135414 ;
-  facmap[11][1] = 0.996279  ;  facemap[11][1] = 0.00059237 ;
-  facmap[11][2] = 0.996757  ;  facemap[11][2] = 0.00053281 ;
-  facmap[11][3] = 0.998351  ;  facemap[11][3] = 0.00046704 ;
-  facmap[11][4] = 0.999418  ;  facemap[11][4] = 0.00048226 ;
-  facmap[11][5] = 1.00049   ;  facemap[11][5] = 0.00048814 ;
-  facmap[11][6] = 1.00164   ;  facemap[11][6] = 0.00048534 ;
-  facmap[11][7] = 1.00307   ;  facemap[11][7] = 0.00058806 ;
-  facmap[11][8] = 1.00358   ;  facemap[11][8] = 0.00062555 ;
-  facmap[11][9] = 1.00156   ;  facemap[11][9] = 0.00134879 ;
-  facmap[12][0] = 0.995771  ;  facemap[12][0] = 0.00122583 ;
-  facmap[12][1] = 0.996813  ;  facemap[12][1] = 0.00063765 ;
-  facmap[12][2] = 0.997734  ;  facemap[12][2] = 0.00052545 ;
-  facmap[12][3] = 0.998646  ;  facemap[12][3] = 0.00056599 ;
-  facmap[12][4] = 0.999109  ;  facemap[12][4] = 0.00059419 ;
-  facmap[12][5] = 1.00022   ;  facemap[12][5] = 0.00059641 ;
-  facmap[12][6] = 1.00105   ;  facemap[12][6] = 0.00055426 ;
-  facmap[12][7] = 1.00281   ;  facemap[12][7] = 0.00058796 ;
-  facmap[12][8] = 1.00396   ;  facemap[12][8] = 0.00065522 ;
-  facmap[12][9] = 1.00155   ;  facemap[12][9] = 0.00142705 ;
-  facmap[13][0] = 0.996244  ;  facemap[13][0] = 0.00153883 ;
-  facmap[13][1] = 0.994997  ;  facemap[13][1] = 0.00069699 ;
-  facmap[13][2] = 0.996522  ;  facemap[13][2] = 0.00065030 ;
-  facmap[13][3] = 0.997438  ;  facemap[13][3] = 0.00067146 ;
-  facmap[13][4] = 1.00015   ;  facemap[13][4] = 0.00070481 ;
-  facmap[13][5] = 1.00098   ;  facemap[13][5] = 0.00077353 ;
-  facmap[13][6] = 1.00262   ;  facemap[13][6] = 0.00074108 ;
-  facmap[13][7] = 1.00236   ;  facemap[13][7] = 0.00067589 ;
-  facmap[13][8] = 1.00457   ;  facemap[13][8] = 0.00074389 ;
-  facmap[13][9] = 1.0043    ;  facemap[13][9] = 0.00136408 ;
-  facmap[14][0] = 0.998371  ;  facemap[14][0] = 0.00126655 ;
-  facmap[14][1] = 0.996886  ;  facemap[14][1] = 0.00069161 ;
-  facmap[14][2] = 0.997737  ;  facemap[14][2] = 0.00068289 ;
-  facmap[14][3] = 0.997049  ;  facemap[14][3] = 0.00084988 ;
-  facmap[14][4] = 0.998171  ;  facemap[14][4] = 0.0008696  ;
-  facmap[14][5] = 0.999393  ;  facemap[14][5] = 0.00089048 ;
-  facmap[14][6] = 1.00174   ;  facemap[14][6] = 0.00086111 ;
-  facmap[14][7] = 1.00197   ;  facemap[14][7] = 0.00075576 ;
-  facmap[14][8] = 1.00333   ;  facemap[14][8] = 0.00069103 ;
-  facmap[14][9] = 1.00309   ;  facemap[14][9] = 0.00147684 ;
-  facmap[15][0] = 0.998735  ;  facemap[15][0] = 0.00126323 ;
-  facmap[15][1] = 0.996166  ;  facemap[15][1] = 0.00069323 ;
-  facmap[15][2] = 0.997322  ;  facemap[15][2] = 0.00081431 ;
-  facmap[15][3] = 0.998059  ;  facemap[15][3] = 0.00089935 ;
-  facmap[15][4] = 0.998851  ;  facemap[15][4] = 0.00099198 ;
-  facmap[15][5] = 1.00182   ;  facemap[15][5] = 0.00113327 ;
-  facmap[15][6] = 1.00156   ;  facemap[15][6] = 0.00098787 ;
-  facmap[15][7] = 1.00381   ;  facemap[15][7] = 0.00089346 ;
-  facmap[15][8] = 1.00303   ;  facemap[15][8] = 0.00066777 ;
-  facmap[15][9] = 1.00299   ;  facemap[15][9] = 0.00189277 ;
-  facmap[16][0] = 0.995642  ;  facemap[16][0] = 0.00144649 ;
-  facmap[16][1] = 0.994434  ;  facemap[16][1] = 0.00080775 ;
-  facmap[16][2] = 0.996004  ;  facemap[16][2] = 0.00096512 ;
-  facmap[16][3] = 0.997221  ;  facemap[16][3] = 0.00115292 ;
-  facmap[16][4] = 0.999209  ;  facemap[16][4] = 0.00114151 ;
-  facmap[16][5] = 1.00143   ;  facemap[16][5] = 0.00113603 ;
-  facmap[16][6] = 1.00458   ;  facemap[16][6] = 0.00123215 ;
-  facmap[16][7] = 1.00339   ;  facemap[16][7] = 0.00089603 ;
-  facmap[16][8] = 1.00332   ;  facemap[16][8] = 0.00075895 ;
-  facmap[16][9] = 1.00277   ;  facemap[16][9] = 0.00129257 ;
-  facmap[17][0] = 0.994591  ;  facemap[17][0] = 0.00135669 ;
-  facmap[17][1] = 0.995838  ;  facemap[17][1] = 0.00077980 ;
-  facmap[17][2] = 0.995069  ;  facemap[17][2] = 0.00114158 ;
-  facmap[17][3] = 0.998819  ;  facemap[17][3] = 0.00136935 ;
-  facmap[17][4] = 1.00038   ;  facemap[17][4] = 0.00128658 ;
-  facmap[17][5] = 1.00086   ;  facemap[17][5] = 0.00096132 ;
-  facmap[17][6] = 1.00351   ;  facemap[17][6] = 0.00133465 ;
-  facmap[17][7] = 1.00509   ;  facemap[17][7] = 0.00115317 ;
-  facmap[17][8] = 1.0026    ;  facemap[17][8] = 0.00090339 ;
-  facmap[17][9] = 1.0049    ;  facemap[17][9] = 0.00127241 ;
-  facmap[18][0] = 0.996623  ;  facemap[18][0] = 0.00115259 ;
-  facmap[18][1] = 0.993112  ;  facemap[18][1] = 0.001056   ;
-  facmap[18][2] = 0.994203  ;  facemap[18][2] = 0.00171305 ;
-  facmap[18][3] = 0.994541  ;  facemap[18][3] = 0.00147581 ;
-  facmap[18][4] = 0.997952  ;  facemap[18][4] = 0.00147878 ;
-  facmap[18][5] = 1.0015    ;  facemap[18][5] = 0.00155263 ;
-  facmap[18][6] = 1.00419   ;  facemap[18][6] = 0.00153495 ;
-  facmap[18][7] = 1.00009   ;  facemap[18][7] = 0.00130044 ;
-  facmap[18][8] = 1.00292   ;  facemap[18][8] = 0.00096275 ;
-  facmap[18][9] = 1.00347   ;  facemap[18][9] = 0.00130109 ;
-  facmap[19][0] = 0.995813  ;  facemap[19][0] = 0.0011995  ;
-  facmap[19][1] = 0.993016  ;  facemap[19][1] = 0.00115693 ;
-  facmap[19][2] = 0.992949  ;  facemap[19][2] = 0.00155091 ;
-  facmap[19][3] = 0.996068  ;  facemap[19][3] = 0.00146682 ;
-  facmap[19][4] = 0.997903  ;  facemap[19][4] = 0.00158468 ;
-  facmap[19][5] = 1.00227   ;  facemap[19][5] = 0.0017465  ;
-  facmap[19][6] = 1.00623   ;  facemap[19][6] = 0.00180336 ;
-  facmap[19][7] = 1.0034    ;  facemap[19][7] = 0.001334   ;
-  facmap[19][8] = 1.00472   ;  facemap[19][8] = 0.00107403 ;
-  facmap[19][9] = 1.00264   ;  facemap[19][9] = 0.00113923 ;
-  facmap[20][0] = 0.995317  ;  facemap[20][0] = 0.00078434 ;
-  facmap[20][1] = 0.993119  ;  facemap[20][1] = 0.00073807 ;
-  facmap[20][2] = 0.995303  ;  facemap[20][2] = 0.00085557 ;
-  facmap[20][3] = 0.997651  ;  facemap[20][3] = 0.00095582 ;
-  facmap[20][4] = 0.999011  ;  facemap[20][4] = 0.00103992 ;
-  facmap[20][5] = 1.00088   ;  facemap[20][5] = 0.00100889 ;
-  facmap[20][6] = 1.00369   ;  facemap[20][6] = 0.00108691 ;
-  facmap[20][7] = 1.0053    ;  facemap[20][7] = 0.00093303 ;
-  facmap[20][8] = 1.00585   ;  facemap[20][8] = 0.00074471 ;
-  facmap[20][9] = 1.00331   ;  facemap[20][9] = 0.00076694 ;
-  facmap[21][0] = 0.997555  ;  facemap[21][0] = 0.00096530 ;
-  facmap[21][1] = 0.992248  ;  facemap[21][1] = 0.00116718 ;
-  facmap[21][2] = 0.996053  ;  facemap[21][2] = 0.00103887 ;
-  facmap[21][3] = 0.999313  ;  facemap[21][3] = 0.00133111 ;
-  facmap[21][4] = 1.00155   ;  facemap[21][4] = 0.00143243 ;
-  facmap[21][5] = 1.00383   ;  facemap[21][5] = 0.00152881 ;
-  facmap[21][6] = 1.00285   ;  facemap[21][6] = 0.00137629 ;
-  facmap[21][7] = 1.00635   ;  facemap[21][7] = 0.00134917 ;
-  facmap[21][8] = 1.00387   ;  facemap[21][8] = 0.00098909 ;
-  facmap[21][9] = 1.00423   ;  facemap[21][9] = 0.00104381 ;
-  facmap[22][0] = 0.995169  ;  facemap[22][0] = 0.00165177 ;
-  facmap[22][1] = 0.993842  ;  facemap[22][1] = 0.00151265 ;
-  facmap[22][2] = 0.997564  ;  facemap[22][2] = 0.0016798  ;
-  facmap[22][3] = 1.00104   ;  facemap[22][3] = 0.00213766 ;
-  facmap[22][4] = 1.00565   ;  facemap[22][4] = 0.002785   ;
-  facmap[22][5] = 1.00195   ;  facemap[22][5] = 0.00200829 ;
-  facmap[22][6] = 1.00325   ;  facemap[22][6] = 0.0026152  ;
-  facmap[22][7] = 1.00584   ;  facemap[22][7] = 0.00223157 ;
-  facmap[22][8] = 1.00246   ;  facemap[22][8] = 0.00136671 ;
-  facmap[22][9] = 1.00438   ;  facemap[22][9] = 0.00158491 ;
-  facmap[23][0] = 0.99278   ;  facemap[23][0] = 0.00097255 ;
-  facmap[23][1] = 0.995206  ;  facemap[23][1] = 0.00248032 ;
-  facmap[23][2] = 0.992371  ;  facemap[23][2] = 0.00396394 ;
-  facmap[23][3] = 0.995349  ;  facemap[23][3] = 0.00427303 ;
-  facmap[23][4] = 1.0003    ;  facemap[23][4] = 0.00294538 ;
-  facmap[23][5] = 1.00142   ;  facemap[23][5] = 0.00359154 ;
-  facmap[23][6] = 1.00584   ;  facemap[23][6] = 0.00139165 ;
-  facmap[23][7] = 1.00421   ;  facemap[23][7] = 0.00383721 ;
-  facmap[23][8] = 1.00581   ;  facemap[23][8] = 0.00250709 ;
-  facmap[23][9] = 1.00171   ;  facemap[23][9] = 0.00235628 ;
-  facmap[24][0] = 0.999002  ;  facemap[24][0] = 0.00326114 ;
-  facmap[24][1] = 0.996641  ;  facemap[24][1] = 0.00303282 ;
-  facmap[24][2] = 0.995125  ;  facemap[24][2] = 0.00437531 ;
-  facmap[24][3] = 1.00918   ;  facemap[24][3] = 0.0079375  ;
-  facmap[24][4] = 1.00619   ;  facemap[24][4] = 0.0048033  ;
-  facmap[24][5] = 1.0094    ;  facemap[24][5] = 0.00895654 ;
-  facmap[24][6] = 1.00337   ;  facemap[24][6] = 0.00745333 ;
-  facmap[24][7] = 1.0071    ;  facemap[24][7] = 0.00693747 ;
-  facmap[24][8] = 1.00672   ;  facemap[24][8] = 0.00353916 ;
-  facmap[24][9] = 1.0069    ;  facemap[24][9] = 0.00417591 ;
 */
 
+
+ // Ks decayl/err > 2 
+// pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
+// pcut[1] =0.05;  facmap[1] =1.00629 ;  facemap[1] =0.0019564;     
+// pcut[2] =0.10;  facmap[2] =1.00295 ;  facemap[2] =0.0002664;
+// pcut[3] =0.15;  facmap[3] =1.00182 ;  facemap[3] =0.0001468;
+// pcut[4] =0.20;  facmap[4] =1.00085 ;  facemap[4] =0.0001360;
+// pcut[5] =0.25;  facmap[5] =1.00032 ;  facemap[5] =0.0001242;
+// pcut[6] =0.30;  facmap[6] =0.999913;  facemap[6] =0.0001315;
+// pcut[7] =0.35;  facmap[7] =0.999792;  facemap[7] =0.0001581;
+// pcut[8] =0.40;  facmap[8] =1.00006 ;  facemap[8] =0.0001886;
+// pcut[9] =0.45;  facmap[9] =0.998787;  facemap[9] =0.0002521;
+// pcut[10]=0.50;  facmap[10]=0.999473;  facemap[10]=0.0002220;
+// pcut[11]=0.60;  facmap[11]=0.999828;  facemap[11]=0.0003216;
+// pcut[12]=0.70;  facmap[12]=1.00034 ;  facemap[12]=0.0004939;
+// pcut[13]=0.80;  facmap[13]=1.00113 ;  facemap[13]=0.0008034;
+// pcut[14]=0.90;  facmap[14]=1.00172 ;  facemap[14]=0.0011911;
+// pcut[15]=1.00;  facmap[15]=1.00296 ;  facemap[15]=0.0015954;
+// pcut[16]=1.20;  facmap[16]=0.98714 ;  facemap[16]=0.0064642;
+// pcut[17]=1.40;  facmap[17]=0.987802;  facemap[17]=0.008873 ;
+// pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
+// pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
+// pcut[20]=2.00;  //facmap[20]=2.00;
+
+
+/*
+// Ks decayL/err >1 & <2
+   pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
+   pcut[1] =0.05;  facmap[1] =1.0019  ;  facemap[1] =0.00389584 ;     
+   pcut[2] =0.10;  facmap[2] =1.0023  ;  facemap[2] =0.000994288;
+   pcut[3] =0.15;  facmap[3] =1.00196 ;  facemap[3] =0.000598345;
+   pcut[4] =0.20;  facmap[4] =1.00055 ;  facemap[4] =0.000473927;
+   pcut[5] =0.25;  facmap[5] =1.0007  ;  facemap[5] =0.000399789;
+   pcut[6] =0.30;  facmap[6] =0.999955;  facemap[6] =0.000536198;
+   pcut[7] =0.35;  facmap[7] =1.00092 ;  facemap[7] =0.000681956;
+   pcut[8] =0.40;  facmap[8] =1.00312 ;  facemap[8] =0.00109478 ;
+   pcut[9] =0.45;  facmap[9] =1.00278 ;  facemap[9] =0.00125143 ;
+   pcut[10]=0.50;  facmap[10]=0.99954 ;  facemap[10]=0.00178119 ;
+   pcut[11]=0.60;  facmap[11]=1.00235 ;  facemap[11]=0.00226029 ;
+   pcut[12]=0.70;  facmap[12]=1.00148 ;  facemap[12]=0.000701396;
+   pcut[13]=0.80;  facmap[13]=0.998524;  facemap[13]=0.00405132 ;
+   pcut[14]=0.90;  facmap[14]=1.00337 ;  facemap[14]=0.00478848 ;
+   pcut[15]=1.00;  facmap[15]=1.04187 ;  facemap[15]=0.020354   ;
+   pcut[16]=1.20;  facmap[16]=0.993981;  facemap[16]=0.00342047 ;
+   pcut[17]=1.40;  facmap[17]=1.01747 ;  facemap[17]=0.0153603  ;
+   pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
+   pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
+   pcut[20]=2.00;  //facmap[20]=2.00;
+*/
+
+   pcut[0] =0.0 ;  facmap[0] =1.000610;       facemap[0] =1.0;     
+   pcut[1] =0.5;      
+  
   char tmpchr[100];
 
 //~~~~~~~~~~pion part start~~~~~~~~
@@ -718,17 +488,17 @@ void gepep_fastpipill::FitSpe(std::vector<Psip> &evts,const char *namesfx)
 	 double factori=0,factorj=0;
 	 // for average correction factor
      for (int i=0;i<Npart;i++){
-        if (p1>=pcut[i]&&p1<pcut[i+1]){
-           factori = facmap[i];
-		   break;
-        }
-      }
-      for (int i=0;i<Npart;i++){
-        if (p2>=pcut[i]&&p2<pcut[i+1]){
-          factorj = facmap[i];
-          break;
-        }
-      }
+       if (p1>=pcut[i]&&p1<pcut[i+1]){
+          factori = facmap[i];
+	      break;
+       }
+     }
+     for (int i=0;i<Npart;i++){
+       if (p2>=pcut[i]&&p2<pcut[i+1]){
+         factorj = facmap[i];
+         break;
+       }
+     }
 	 if (factori==0 || factorj==0){
 	   std::cout<<"Waring: factor is 0, id "<<jentry<<", factori "<<factori<<", factorj "<<factorj<<std::endl;
 	   std::cout<<"p1 "<<p1<<", p2 "<<p2<<", cos1 "<<costheta1<<std::endl;
@@ -796,13 +566,13 @@ void gepep_fastpipill::FitSpe(std::vector<Psip> &evts,const char *namesfx)
   PSIP::FitSpectrum(dataraw,tmpchr,true);
   std::cout<<"dddddddddda"<<std::endl;
  
-  // factor at low edge
-  sprintf(tmpchr,"low_%s",namesfx);
-  PSIP::FitSpectrum(datarawl,tmpchr,true);
+//// factor at low edge
+//sprintf(tmpchr,"low_%s",namesfx);
+//PSIP::FitSpectrum(datarawl,tmpchr,true);
 
-  // factor at up edge
-  sprintf(tmpchr,"up_%s",namesfx);
-  PSIP::FitSpectrum(datarawu,tmpchr,true);
+//// factor at up edge
+//sprintf(tmpchr,"up_%s",namesfx);
+//PSIP::FitSpectrum(datarawu,tmpchr,true);
 
 //~~~~~~~~~~pion part end~~~~~~~~
   return;
@@ -825,21 +595,30 @@ void PSIP::FitSpectrum(TTree *&dataraw, char* namesfx, bool out)
   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
   RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
   
-  RooRealVar signal("signal"," ",3800,0,1000000);//event number
-  RooRealVar signal2("signal2"," ",3000,0,1000000);//event number
-  RooRealVar background("background"," ",2000,0,1000000);
+  RooRealVar signal("signal"," ",100,0,1000000);//event number
+  RooRealVar signal2("signal2"," ",100,0,1000000);//event number
+  RooRealVar background("background"," ",20,0,1000000);
   
   RooRealVar a0("a0","coefficient #0",100,-100000,100000);
   RooRealVar a1("a1","coefficient #1",-1,-100000,100000);
   RooPolynomial ground("ground","ground",x,RooArgList(a0,a1));
- 
-  mean.setVal(3.68611);
-  mean.setError(0.000035);
-  sigma.setError(0.000048);
-  sigma2.setError(0.000034);
-  signal.setError(sqrt(signal.getVal()));
-  signal2.setError(sqrt(signal2.getVal()));
-  background.setError(sqrt(background.getVal()));
+  
+  //mean.setVal(3.68611);
+  //mean.setError(0.0005);
+  //sigma.setError(0.0048);
+  //sigma2.setError(0.0034);
+  //signal.setError(sqrt(signal.getVal()));
+  //signal2.setError(sqrt(signal2.getVal()));
+  //background.setError(sqrt(background.getVal()));
+  
+//mean.setVal(3.68611);
+//mean.setError(0.000035);
+//mean.setError(0.000035);
+//sigma.setError(0.000048);
+//sigma2.setError(0.000034);
+//signal.setError(sqrt(signal.getVal()));
+//signal2.setError(sqrt(signal2.getVal()));
+//background.setError(sqrt(background.getVal()));
   // Roofit part
   RooAddPdf *sum;
   RooDataSet *dataset;
@@ -888,9 +667,9 @@ void PSIP::FitSpectrum(TTree *&dataraw, char* namesfx, bool out)
   c1->Write();
   if (out){
     char name[500];
-    sprintf(name,"%s/result.txt",outputdir.c_str());
+    sprintf(name,"%s/result.txt",".");//outputdir.c_str());
     ofstream ofresult(name,std::ios::app);
-    ofresult<<namesfx<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+    ofresult<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
     ofresult.close();
   }
   std::cout<<"aaaaaaaaaaa"<<std::endl;

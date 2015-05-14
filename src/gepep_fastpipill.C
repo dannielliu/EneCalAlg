@@ -28,6 +28,7 @@
 #include "RooArgList.h"
 #include "RooPlot.h"
 #include "RooMsgService.h"
+#include "EventClass.h"
 extern std::string outputdir;
 using namespace RooFit;
 namespace PIPILL{
@@ -77,7 +78,10 @@ bool gepep_fastpipill::Loop()
   
   if (fChain == 0) return false;
   Long64_t nentries = fChain->GetEntriesFast();
-
+  
+  fChain->GetEntry(1);
+  double beamene = GetEnergy(run);
+  
   std::cout<<"Total entry is "<<nentries<<std::endl;
   //int nBins=12;
   int nBins=100;
@@ -97,13 +101,14 @@ bool gepep_fastpipill::Loop()
   char fname[1000];
   sprintf(fname,"%s/plot_pipill.root",outputdir.c_str());
   TFile *f=new TFile(fname,"RECREATE");
+  std::cout<<"Output file is "<<fname<<std::endl;
 
   // try to use roofit
-  RooRealVar x("x","energy",3.097,3.0,3.2,"GeV");
-  RooRealVar mean("mean","mean of gaussian",3.0,3.8);
-  RooRealVar mean2("mean2","mean of gaussian",3.0,3.8);
-  RooRealVar sigma("sigma","width of gaussian",0.0017,0.001,0.002);
-  RooRealVar sigma2("sigma2","width of gaussian",0.0025,0.002,0.004);
+  RooRealVar x("x","energy",psiplow,psipup,"GeV");
+  RooRealVar mean("mean","mean of gaussian",3.686,psiplow,psipup);
+  //RooRealVar mean2("mean2","mean of gaussian",psiplow,psipup);
+  RooRealVar sigma("sigma","width of gaussian",0.0017,0.001,0.003);
+  RooRealVar sigma2("sigma2","width of gaussian",0.0025,0.003,0.004);
   RooRealVar brewid("brewid","width of breit wigner",0.0023,0.0010,0.05);
   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
   RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
@@ -148,8 +153,8 @@ bool gepep_fastpipill::Loop()
   ofstream ofpardetail;
   ofpardetail.open("detail.txt",std::ios::app);
   ofstream purepar;
-  sprintf(fname,"%s/par",outputdir.c_str());
-  purepar.open(fname);
+  sprintf(fname,"parpipill");
+  purepar.open(fname,std::ios::app);
  
   TCanvas *c1=new TCanvas("","",800,600);
   //TH1D *h1   = new TH1D("h1","2 electron invariant mass",nBins,psilow,psiup);
@@ -169,11 +174,12 @@ bool gepep_fastpipill::Loop()
   vars->Branch("costheta2",&costheta2,"costheta2/D");
   vars->Branch("p1",&p1,"p1/D");
   vars->Branch("p2",&p2,"p2/D");
+  vars->Branch("mass",&mass,"mass/D");
 
   // for initial spectrum
   Long64_t nbytes = 0, nb = 0;
 
-  int Npart=1;
+  const int Npart=1;
   // cut phi
   //double phicut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
   //double start=0.0;
@@ -183,19 +189,20 @@ bool gepep_fastpipill::Loop()
   //}
   //
   // cut cos theta
-  //double costhecut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
-  //double start=-1;
-  //double stop =1;
-  //for(int i=0;i<Npart+1;i++){
-  //  costhecut[i] = (stop-start)/Npart*i+start;
-  //}
+    double costhecut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
+    double start=-1;
+    double stop =1;
+    for(int i=0;i<Npart+1;i++){
+      costhecut[i] = (stop-start)/Npart*i+start;
+    }
   // cut p
-  double pcut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
-  double start=0.1;
-  double stop =0.4;
-  for(int i=0;i<Npart+1;i++){
-    pcut[i] = (stop-start)/Npart*i+start;
-  }
+   double peakest[Npart];
+//double pcut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
+//double start=0.1;
+//double stop =0.4;
+//for(int i=0;i<Npart+1;i++){
+//  pcut[i] = (stop-start)/Npart*i+start;
+//}
    //double facv[Npart],facev[Npart];
  //pcut[0] =0.0 ;    facv[0] =1.0;  facev[0] =1.0;  
  //pcut[1] =0.05;    facv[1] =1.044165;  facev[1] =1.0;  
@@ -227,57 +234,63 @@ bool gepep_fastpipill::Loop()
   
   //Event evt(me);
   //std::vector<Event> evts;
-  Psip evt;
-  std::vector<Psip> evts;
+  PSIP evt;
+  std::vector<PSIP> evts_set[Npart];
   // loop the data
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
      Long64_t ientry = LoadTree(jentry);
      if (ientry < 0) break;
      nb = fChain->GetEntry(jentry);   nbytes += nb;
 
-     evt.Setval(pipx4[0],pipy4[0],pipz4[0],pipx4[1],pipy4[1],pipz4[1],
-	            lepx4[0],lepy4[0],lepz4[0],lepx4[1],lepy4[1],lepz4[1]);
-     //double mlepton;
-     //double massjpsi;
+     HepLorentzVector pip,pim,ele,pos;
+	 pip.setVectM(Hep3Vector(pipx4[0],pipy4[0],pipz4[0]),mpi);
+	 pim.setVectM(Hep3Vector(pipx4[1],pipy4[1],pipz4[1]),mpi);
      // total invariant mass
      if(cos(angle4)>0.90) continue; // cut bhabha 
-     if (decay_ee == 0)   evt.SetLeptonM(mmu); // mlepton = mmu;
-     else if (decay_ee==1) evt.SetLeptonM(me);
+     if (decay_ee == 0){
+	   ele.setVectM(Hep3Vector(lepx4[0],lepy4[0],lepz4[0]),mmu);
+	   pos.setVectM(Hep3Vector(lepx4[1],lepy4[1],lepz4[1]),mmu);
+	 } 
+     else if (decay_ee==1) {
+	   ele.setVectM(Hep3Vector(lepx4[0],lepy4[0],lepz4[0]),me);
+	   pos.setVectM(Hep3Vector(lepx4[1],lepy4[1],lepz4[1]),me);
+	 }
      else {
        std::cout<<"can not identify lepton. "<<std::endl;
        continue;
      }
-	 mass = evt.InvMass();
-     // if (Cut(ientry) < 0) continue;
-     int parti, partj;
-     p1 = evt.GetP1();
-     p2 = evt.GetP2();
-	 if (p1+p2<0.4 || p1+p2>0.6) continue;
-     costheta1 = evt.GetCostheta1();
-     costheta2 = evt.GetCostheta2();
-     phi1 = evt.GetPhi1();
-     phi2 = evt.GetPhi2();
+	 //evt.set(pip,pim,ele,pos);
+	 evt.set(pip,pim,ele,pos);
+	 mass = evt.m();
+     p1 = evt.GetPpip().mag();
+     p2 = evt.GetPpim().mag();
+	 //if (p1+p2<0.4 || p1+p2>0.6) continue;
+     costheta1 = cos(evt.GetPpip().theta());
+     costheta2 = cos(evt.GetPpim().theta());
+     phi1 = evt.GetPpip().phi();
+     phi2 = evt.GetPpim().phi();
+	 //if (fabs(costheta1)>0.5) continue; // check theta effect
+	 //if (fabs(costheta2)>0.5) continue; // check theta effect
      if ( mass>psiplow-0.01 && mass<psipup+0.01 ) vars->Fill();
      for (int partj=0;partj<Npart;partj++){
-         if ( p1>pcut[partj] && p1<pcut[partj+1] )
-         if ( p2>pcut[partj] && p2<pcut[partj+1] ){
+         if ( costheta1>costhecut[partj] && costheta1<costhecut[partj+1] )
          if ( mass>psiplow-0.01 && mass<psipup+0.01 ) {
            hmphi[partj]->Fill(mass);
-		   evts.push_back(evt);
-         }
+		   evts_set[partj].push_back(evt);
          }
      }
   }
   vars->Write();
+	//TH1D *hp = new TH1D("hp","hp",200,0,2);
   for (int partj=0;partj<Npart;partj++){
     hmphi[partj]->Write();
     std::cout<<"processed part "<<partj<<std::endl;
-    if (hmphi[partj]->GetEntries() > 100
+    if (hmphi[partj]->GetEntries() > 50
       &&hmphi[partj]->GetMaximumBin()> 30 //check the the peak position,
       &&hmphi[partj]->GetMaximumBin()< 70 //make sure there is a peak in the region
       ){
       partmap.push_back(partj);
-    }
+	}
   }
   // ~~~~~~~~ draw end
 
@@ -526,14 +539,14 @@ bool gepep_fastpipill::Loop()
 
 //~~~~~~~~~~pion part start~~~~~~~~
 
-  std::cout<<"pion part start, events size "<<evts.size()<<std::endl;
   peakvalue=3.686109;
   // iniialize the fit function
   // psi(2S) 3.686
   
-  //TFolder *folder;//(name,name);
+  std::cout<<"partmap size is "<<partmap.size()<<std::endl;
   for (int loopj=0;loopj<partmap.size();loopj++){
     int partj = partmap.at(loopj);
+    std::cout<<"pion part start, events size "<<evts_set[partj].size()<<std::endl;
     //double factori=1.00090;
     double factori=1.0000;
     factor=factorstart;
@@ -541,18 +554,7 @@ bool gepep_fastpipill::Loop()
     fittimes=0;
  
     // for saving the fit result
-    //x.setVal(3.686);
-    x.setRange(psiplow,psipup);
-    mean.setRange(psiplow,psipup);
-    //mean2.setRange(3.684,3.688);
-    mean.setVal(3.686);
-    //mean2.setVal(3.686);
-    //sigma.setRange(0.002,0.004);
-    sigma.setRange(0.001,0.0025);
-    sigma.setVal(0.0015);
-    //sigma2.setRange(0.003,0.08);
-    //sigma2.setVal(0.004);
-    
+   
     double factors2[pointNo];
     double factorserr2[pointNo];
     double deltapeaks2[pointNo];
@@ -563,10 +565,10 @@ bool gepep_fastpipill::Loop()
       //h5->Reset();
       dataraw->Reset();
       std::cout<<"factor is "<<factor<<std::endl;
-      for (Long64_t jentry=0; jentry<evts.size();jentry++) {
- 
-        p1 = evts.at(jentry).GetP1(); 
-		p2 = evts.at(jentry).GetP2();
+      for (Long64_t jentry=0; jentry<evts_set[partj].size();jentry++) {
+        PSIP evt = evts_set[partj].at(jentry);
+    ////p1 = evt.GetPpip().mag();
+	////p2 = evt.GetPpim().mag();
 	    //if (p1+p2<0.4 || p1+p2>0.6) continue;
       //if (!(p1>0.0 && p1<0.5)) continue;
       //for (int i=0;i<Npart;i++){
@@ -576,8 +578,10 @@ bool gepep_fastpipill::Loop()
       //  }
       //}
  
-		if (!(p2>pcut[partj] && p2<pcut[partj+1])) continue;
-		mass = evts.at(jentry).InvMass(factor ,factor);
+	////if (!(p2>pcut[partj] && p2<pcut[partj+1])) continue;
+	////mass = evts.at(jentry).InvMass(factor ,factor);
+		evt.setCorrectionFactors(factor, factor);
+		mass = evt.m();
 		//h5->Fill(mass);
 
         if (mass>psiplow && mass<psipup){
@@ -586,12 +590,26 @@ bool gepep_fastpipill::Loop()
         // if (Cut(ientry) < 0) continue;
       }
       //dataraw->Write();
-      
+       
+	   //x.setVal(3.686);
+    x.setRange(psiplow,psipup);
+    mean.setRange(psiplow,psipup);
+    //mean2.setRange(3.684,3.688);
+    //mean.setVal(3.686);
+    mean.setError(0.0005);
+    //mean2.setVal(3.686);
+    //sigma.setRange(0.002,0.004);
+    //sigma.setRange(0.001,0.0025);
+    sigma.setVal(0.0015);
+    sigma.setError(0.0005);
+    //sigma2.setRange(0.003,0.08);
+    sigma2.setVal(0.004);
+    sigma2.setError(0.001);
+ 
       sprintf(tmpchr,"data_pi_%2d",fittimes);
-      //data_pi = new RooDataHist(tmpchr,"data_pi",x,h4);
       //dataset = new RooDataSet(tmpchr,"data",dataraw,x);
       dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
-      mean.setVal(3.686+0.44*(factor-1.0));
+      mean.setVal(3.686+0.43*(factor-1.0));
       signal.setError(10);
       signal2.setError(10);
       background.setError(10);
@@ -630,19 +648,15 @@ bool gepep_fastpipill::Loop()
       sprintf(tmpchr,"mass_pi_%2d",fittimes);
       xframe->SetName(tmpchr);
       //xframe->Write();
-	  //folder->Add(xframe);
       // save pars
       factors2[i]=factor;
       factorserr2[i]=0;
       deltapeaks2[i] = mean.getVal() - peakvalue;
       deltapeakserr2[i] = mean.getError();
-      if (deltapeakserr2[i]<1e-5) deltapeakserr2[i]=5e-4;
+      //if (deltapeakserr2[i]<1e-5) deltapeakserr2[i]=5e-4;
       sprintf(name,"part%d_fitFor%dTimes",partj,fittimes);
       c1->SetName(name);
       c1->Write();
-	  //folder->Add(c1);
-	  //folder->Write();
-	  //delete folder;
       delete sum;
       delete dataset;
       delete xframe;
@@ -651,7 +665,6 @@ bool gepep_fastpipill::Loop()
       factor += factorstep;
       //factori = factor;
     }
-    //c1->Print(fiteps2_stop.c_str());
  
     c1->Clear();
     TGraphErrors *graph3 = new TGraphErrors(pointNo,factors2,deltapeaks2,factorserr2,deltapeakserr2);
@@ -664,8 +677,6 @@ bool gepep_fastpipill::Loop()
     graph3->Fit(facfit,"","",factors2[0],factors2[pointNo-1]);
     factor4=facfit->GetParameter(0);
  
-    tmpstr=outputdir+"/factorpi.eps";
-    //c1->Print(tmpstr.c_str());
 	sprintf(name,"factors_pi_part%d",partj);
     graph3->SetName(name);
     graph3->Write();
@@ -677,20 +688,10 @@ bool gepep_fastpipill::Loop()
     //factori = factor;
     //factor = 1;
     std::cout<<"factor is "<<factor<<std::endl;
-    for (Long64_t jentry=0; jentry<evts.size();jentry++) {
-       p1 = evts.at(jentry).GetP1();
-       p2 = evts.at(jentry).GetP2();
-	   //if (p1+p2<0.4 || p1+p2>0.6) continue;
-       //if (!(p1>pcut[partj] && p1<pcut[partj+1])) continue;
-      //if (!(p1>0. && p1<0.5)) continue;
-      //for (int i=0;i<Npart;i++){
-      //  if (p1>=pcut[i]&&p1<pcut[i+1]){
-      //    factori = facv[i];
-      //    break;
-      //  }
-      //}
-       if (!(p2>pcut[partj] && p2<pcut[partj+1])) continue;
-       mass = evts.at(jentry).InvMass(factor ,factor);
+    for (Long64_t jentry=0; jentry<evts_set[partj].size();jentry++) {
+       PSIP evt = evts_set[partj].at(jentry);
+	   evt.setCorrectionFactors(factor,factor);
+	   mass = evt.m();
        if (mass>psiplow && mass<psipup)
          dataraw->Fill();
     }
@@ -698,11 +699,26 @@ bool gepep_fastpipill::Loop()
     //thedis2->Write();
     dataraw->Write();
     //vars->Write();
+    
+	//x.setVal(3.686);
+    x.setRange(psiplow,psipup);
+    mean.setRange(psiplow,psipup);
+    //mean2.setRange(3.684,3.688);
+    mean.setVal(3.686);
+	mean.setError(0.0005);
+    //mean2.setVal(3.686);
+    //sigma.setRange(0.002,0.004);
+    sigma.setRange(0.001,0.0025);
+    sigma.setVal(0.0015);
+	sigma.setError(0.0005);
+    //sigma2.setRange(0.003,0.08);
+    sigma2.setVal(0.004);
+	sigma2.setError(0.001);
  
     sprintf(tmpchr,"data_pi_%2d",fittimes);
     //data_pi = new RooDataHist(tmpchr,"data_pi",x,h4);
     dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
-    mean.setVal(3.686+0.45*(factor-1.0));
+    mean.setVal(3.686+0.44*(factor-1.0));
     sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
     Npar=8;
     sum->fitTo(*dataset,Range(psiplow,psipup));
@@ -752,7 +768,7 @@ bool gepep_fastpipill::Loop()
     ofpar<<factor4<<"\t"<<factor4err<<std::endl;
     ofpar<<"\tChisqure "<<xframe->chiSquare()<<" "<<xframe->chiSquare(Npar)<<std::endl;
     ofpar<<signal.getVal()<<"\t"<<signal.getError()<<std::endl;
-    purepar<<pcut[partj]+0.025<<"\t"<<factor4<<"\t"<<factor4err<<std::endl;
+    purepar<<beamene<<'\t'<<factor4<<"\t"<<factor4err<<std::endl;
     delete dataset;
     delete xframe;
 

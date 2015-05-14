@@ -11,6 +11,7 @@
 #include "RooFit.h"
 #include "RooRealVar.h"
 #include "RooGaussian.h"
+#include "RooCBShape.h"
 #include "RooChebychev.h"
 #include "RooPolynomial.h"
 #include "RooDataHist.h"
@@ -22,9 +23,9 @@
 extern std::string outputdir;
 using namespace RooFit;
 namespace KKPIPI{
-  void FitSpe(std::vector<KKpipi> evts, double beame,  char* namesfx);
+  void FitSpe(std::vector<KKpipi> &evts, double beame,  char* namesfx);
   void FitSpectrum(TTree *&dataraw,double beame, char* namesfx);
-  double GetEnergy(int runNo);
+  //double GetEnergy(int runNo);
 }
 
 void gepep_fkkpipi::Loop()
@@ -57,8 +58,8 @@ void gepep_fkkpipi::Loop()
    Long64_t nentries = fChain->GetEntriesFast();
 
    fChain->GetEntry(1);
-   double beamene = KKPIPI::GetEnergy(run);
-   beamene = 4.26;
+   double beamene = GetEnergy(run);
+   //beamene = 4.26;
    std::cout<<"current beam energy is "<<beamene<<", run id "<<run<<std::endl;
    if (beamene < 0.1){
      std::cout<<"can not get a suitable beam energy!"<<std::endl;
@@ -68,8 +69,8 @@ void gepep_fkkpipi::Loop()
    std::cout<<"Toral entry is "<<nentries<<std::endl;
    int nBins=100;
    double peakvalue=beamene;// mbeam
-   double beamlow=beamene-0.1;
-   double beamup=beamene+0.1;
+   double beamlow=beamene-0.25;
+   double beamup=beamene+0.25;
    double mpi=0.13957;
    double mk = 0.493677;
     
@@ -111,31 +112,32 @@ void gepep_fkkpipi::Loop()
 	  pk2 = evt.GetP2k();
 	  chisq = kkm4;
 	  if (mass>beamlow && mass<beamup){
+	    //mass = mass/beamene;  Ecorrected/Enomial
 	    vars->Fill();
 		evts.push_back(evt);
 	  }
    }//select end
    vars->Write();
-   sprintf(name,"%f",peakvalue);
+   //sprintf(name,"%f",peakvalue);
    KKPIPI::FitSpe(evts,peakvalue,name);
    return;
 
 }
 
-void KKPIPI::FitSpe(std::vector<KKpipi> evts, double beame, char *namesfx)
+void KKPIPI::FitSpe(std::vector<KKpipi> &evts, double beame, char *namesfx)
 {
-  double beamlow=beame-0.1;
-  double beamup=beame+0.1;
+  double beamlow=beame-0.2;
+  double beamup=beame+0.2;
   // for factor fit
  
   TTree *datarawo = new TTree("datarawo","dataraw");
-//TTree *dataraw = new TTree("dataraw","dataraw");
-//TTree *datarawl = new TTree("datarawl","dataraw");
+  TTree *dataraw = new TTree("dataraw","dataraw");
+  TTree *datarawl = new TTree("datarawl","dataraw");
 //TTree *datarawu = new TTree("datarawu","dataraw");
   double mass;
   datarawo->Branch("x",&mass,"x/D");
-//dataraw->Branch("x",&mass,"x/D");
-//datarawl->Branch("x",&mass,"x/D");
+  dataraw->Branch("x",&mass,"x/D");
+  datarawl->Branch("x",&mass,"x/D");
 //datarawu->Branch("x",&mass,"x/D");
  
   // try to correct the spectrum
@@ -162,14 +164,26 @@ void KKPIPI::FitSpe(std::vector<KKpipi> evts, double beame, char *namesfx)
   for (Long64_t jentry=0; jentry<evts.size();jentry++) {
      // total invariant mass
 	 // without correction
+	 double fpi = 1.000815;
+	 double fk  = 1.000815;
      mass = evts.at(jentry).InvMass();
      if (mass>beamlow-0.001 && mass<beamup+0.001) datarawo->Fill();
+     mass = evts.at(jentry).InvMass(fpi,fpi,fk,fk);
+     if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
+	 fpi = 1.00061; fk = 1.00061  ;
+     mass = evts.at(jentry).InvMass(fpi,fpi,fk,fk);
+     if (mass>beamlow-0.001 && mass<beamup+0.001) datarawl->Fill();
   }
   //dataraw->Write();
   // no correction
   sprintf(tmpchr,"raw_%s",namesfx);
   KKPIPI::FitSpectrum(datarawo,beame,tmpchr);
   
+  sprintf(tmpchr,"cor_%s",namesfx);
+  KKPIPI::FitSpectrum(dataraw,beame,tmpchr);
+  
+  sprintf(tmpchr,"low_%s",namesfx);
+  KKPIPI::FitSpectrum(datarawl,beame,tmpchr);
   //~~~~~~~~~~ part end~~~~~~~~
   return;
 }
@@ -181,12 +195,12 @@ void KKPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    if (dataraw->GetEntries()>10000) largesample = true;
    int Npar;
    double peakvalue = beame;
-   double beamlow=beame-0.1;
-   double beamup=beame+0.1;
+   double beamlow=beame-0.2;
+   double beamup=beame+0.2;
    // try to use roofit
    RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
    RooRealVar mean("mean","mean of gaussian",peakvalue,beamlow,beamup);
-   RooRealVar sigma("sigma","width of gaussian",0.003,0.0001,0.02);
+   RooRealVar sigma("sigma","width of gaussian",0.014,0.005,0.02);
    RooRealVar sigma2("sigma2","width of gaussian",0.022,0.02,0.05);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
    RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
@@ -199,6 +213,10 @@ void KKPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    RooRealVar a0("a0","coefficient #0",100,-100000,100000);
    RooRealVar a1("a1","coefficient #1",-1,-100000,100000);
    RooPolynomial ground("ground","ground",x,RooArgList(a0,a1));
+     
+   RooRealVar alpha1("alpha1","#alpha",1.32,-5,5);
+   RooRealVar nnn1("n1","n",5,1,200);
+   RooCBShape cbshape1("cbshape1","crystal ball",x,mean,sigma,alpha1,nnn1);
    
    RooAddPdf *sum;
    RooDataSet *dataset;
@@ -214,12 +232,13 @@ void KKPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    xframe = x.frame(Title("fit kkpipi"));
    dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
    if (!largesample) {
-     sum = new RooAddPdf("sum","sum",RooArgList(gaus,ground),RooArgList(signal,background));
-     Npar = 6;
+     //sum = new RooAddPdf("sum","sum",RooArgList(gaus,ground),RooArgList(signal,background));
+     sum = new RooAddPdf("sum","sum",RooArgList(cbshape1,ground),RooArgList(signal,background));
+     Npar = 8;
    }
    else {
-     sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
-	 Npar=8;
+     sum = new RooAddPdf("sum","sum",RooArgList(cbshape1,gaus2,ground),RooArgList(signal,signal2,background));
+	 Npar=10;
    }
    //sigma.setVal(0.035);
    //signal.setVal(1200);
@@ -229,7 +248,7 @@ void KKPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    //sum->fitTo(*dataset,Range(beame-0.05,beame+0.03));
    //sum->fitTo(*dataset,Range(4.22,4.28));
    dataset->plotOn(xframe);
-   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(cbshape1),LineStyle(2),LineColor(2));
    sum->plotOn(xframe,Components(ground),LineStyle(2),LineColor(3));
    if (dataraw->GetEntries()>2000) sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(4));
    sum->plotOn(xframe);
@@ -264,7 +283,7 @@ void KKPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
   c1->Write();
 
    ofstream outf("fkkpipi",std::ios::app);
-   outf<<beame<<"\t"<<namesfx<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+   outf<<beame<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
    
    //c1->Print("fit6pi.eps");
    //delete data_6pi;
@@ -273,43 +292,6 @@ void KKPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    delete sum;
    return;
 }
-
-
-double KKPIPI::GetEnergy(int runNo)
-{
-  runNo=runNo%10000;
-  //int a[2] = {1, 2};
-  int runNoLow[108] = {
-   4011, 4028, 4037, 4046, 4058, 4069, 4077, 4084, 4091, 4097,
-   4105, 4118, 4128, 4135, 4142, 4151, 4161, 4175, 4184, 4191,
-   4197, 4203, 4211, 4221, 4231, 4240, 4246, 4253, 4258, 4266,
-   4272, 4277, 4282, 4298, 4314, 4321, 4328, 4339, 4346, 4351,
-   4359, 4369, 4374, 4382, 4390, 4397, 4404, 4412, 4418, 4428,
-   4437, 4447, 4461, 4478, 4486, 4494, 4503, 4512, 4527, 4541,
-   4555, 4564, 4574, 4585, 4593, 4603, 4613, 4623, 4634, 4642,
-   4652, 4661, 4674, 4685, 4695, 4705, 4719, 4729, 4740, 4754,
-   4763, 4777, 4785, 4794, 4804, 4812, 4825, 4837, 4848, 4861,
-   4869, 4882, 4891, 4900, 4913, 4926, 4936, 4947, 4958, 4968,
-   4982, 5010, 5027, 5041, 5060, 5082, 5099, 5119 };// #the last number is not used!
-  double energy[108] = {
-   3850, 3890, 3895, 3900, 3905, 3910, 3915, 3920, 3925, 3930,
-   3935, 3940, 3945, 3950, 3955, 3960, 3965, 3970, 3975, 3980,
-   3985, 3990, 3995, 4000, 4005, 4010, 4012, 4014, 4016, 4018,
-   4020, 4025, 4030, 0000, 4035, 4040, 4050, 4055, 4060, 4065,
-   4070, 4080, 4090, 4100, 4110, 4120, 4130, 4140, 4145, 4150,
-   4160, 4170, 0000, 4180, 4190, 4195, 4200, 4203, 4206, 4210,
-   4215, 4220, 4225, 4230, 4235, 4240, 4243, 4245, 4248, 4250,
-   4255, 4260, 4265, 4270, 4275, 4280, 4285, 4290, 4300, 4310,
-   4320, 4330, 4340, 4350, 4360, 4370, 4380, 4390, 4395, 4400,
-   4410, 4420, 4425, 4430, 4440, 4450, 4460, 4480, 4500, 4520,
-   4540, 4550, 4560, 4570, 4580, 0000, 4590, 4600 };// # the last one is skipped
-  for(int i=0;i<107;i++){
-    if(runNo>=runNoLow[i]&&runNo<runNoLow[i+1])
-      return energy[i]/1000;
-  }
-  return -1;
-}
-
 
 
 

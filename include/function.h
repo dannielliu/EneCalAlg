@@ -25,6 +25,7 @@ double CalMom(double px, double py, double pz=0);
 
 double CalEne(double m, double px,double py,double pz,double factor=1.);
 
+double GetEnergy(int runNo);
 
 struct Event
 {
@@ -63,6 +64,14 @@ public:
   double GetP2()
   {
     return CalMom(px2,py2,pz2);
+  }
+  double GetPt1()
+  {
+    return CalMom(px1,py1);
+  }
+  double GetPt2()
+  {
+    return CalMom(px2,py2);
   }
   double GetCostheta()
   {
@@ -392,52 +401,46 @@ public:
 
 };
 
+class PeakEstPar
+{
+public:
+  double mresonace ;
+  double mfinal    ;
+  //double &mk ;
+  //double pars[4] ;
+  double p1dismean ;
+  double p1dissigma;
+  double p2dismean ;
+  double p2dissigma;
+
+private:
+  PeakEstPar()
+  {
+    mresonace = 1.86484;
+    mfinal    = 0.493677;
+    p1dismean  = 1.5;
+    p1dissigma = 0.15;
+    p2dismean  = 1.5;
+    p2dissigma = 0.15;
+  }
+public:
+  static PeakEstPar* GetInstance()
+  {
+    static PeakEstPar *instance;
+    if (instance == NULL)
+	  instance = new PeakEstPar();
+	return instance;
+  }
+
+};
 namespace PeakEstimate{
-//private:
-  // par[0]: p distribution slope
-  // par[1]: gaus mean;
-  // par[2]: gaus sigma
-  // par[3]: dm(p) E1
-  // E1 = par[3];
-  // E2 = par[4];
-  // p1 = par[5];
-  // p2 = par[6];
-  // costheta = par[7];
-  //double pdfpar[3];
-  //double pspar[2];
-  //double dmpar[5];
-
-//public:
-  //void SetPdfPar(double a, double b, double c)
-  //{}
-  //void SetPsPar(double mean, double sigma)
-  //{
-  //  pspar[0] = mean;
-	//pspar[1] = sigma;
-  //}
-  double mresonace = 1.86484;
-  double mfinal    = 0.493677;
-  double mk = mfinal;
-  double pars[8] ;
-  double &p1dismean = pars[0] = 1.5;
-  double &p1dissigma= pars[1] = 0.15;
-  double &p2dismean = pars[2] = 1.5;
-  double &p2dissigma= pars[3] = 0.15;
- 
-  void SetPdisPar(double m1, double s1, double m2, double s2)
-  {
-    p1dismean  = m1;
-	p1dissigma = s1;
-	p2dismean  = m2;
-	p2dissigma = s2;
-  }
-
-  double GetResolution(double p)
-  {
-    return 0.01*p;
-  }
   
+  void SetPdisPar(double m1, double s1, double m2, double s2);
+  void SetMResonace(double m);
+  void SetMFinal(double m);
+  //double GetResolution(double p);
   double Gauss2D(double *x, double *par);
+  double Maxwell(double *x, double *par);
   double ppdf(double *x, double *par);
   double psmear(double *x, double *par);
   double deltam(double *x, double *par);
@@ -448,7 +451,7 @@ namespace PeakEstimate{
   double peakshift(double p1low=0, double p1up=0, double p2low=0, double p2up=0,int idx=0);
 
 };
-
+/*
   double PeakEstimate::Gauss2D(double *x, double *par)
   {
     if (par[2]<=0 || par[4]<=0) return 0;
@@ -570,7 +573,7 @@ namespace PeakEstimate{
     if (idx ==0 ) return ps+mresonace;
 	return ps;
   }
-
+*/
 
 
 #endif

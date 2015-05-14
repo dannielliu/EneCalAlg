@@ -12,6 +12,7 @@
 #include "RooRealVar.h"
 #include "RooGaussian.h"
 #include "RooPolynomial.h"
+#include "RooCBShape.h"
 //#include "RooChebychev.h"
 //#include "RooDataHist.h"
 #include "RooDataSet.h"
@@ -25,7 +26,7 @@ using namespace RooFit;
 namespace EEto6PI{
   void FitSpe(std::vector<EEto6pi> evts, double beame,  char* namesfx=0);
   void FitSpectrum(TTree *&dataraw, double beame, char* namesfx=0);
-  double GetEnergy(int runNo);
+  //double GetEnergy(int runNo);
 }
 
 void gepep_fast6pi::Loop()
@@ -57,8 +58,8 @@ void gepep_fast6pi::Loop()
    Long64_t nentries = fChain->GetEntriesFast();
 
    fChain->GetEntry(1);
-   double beamene = EEto6PI::GetEnergy(run);
-   beamene = 4.26;
+   double beamene = GetEnergy(run);
+   //beamene = 4.415;
    std::cout<<"current beam energy is "<<beamene<<", run id "<<run<<std::endl;
    if (beamene < 0.1){
      std::cout<<"can not get a suitable beam energy!"<<std::endl;
@@ -68,12 +69,12 @@ void gepep_fast6pi::Loop()
    std::cout<<"Toral entry is "<<nentries<<std::endl;
    int nBins=100;
    double peakvalue=beamene;// mbeam
-   double beamlow=beamene-0.1;
-   double beamup=beamene+0.1;
+   double beamlow=beamene-0.25;
+   double beamup=beamene+0.25;
    double mpi=0.13957;
     
   char fname[1000];
-  sprintf(fname,"%s/plot_6pi_fKsnovtx_4260.root",outputdir.c_str());
+  sprintf(fname,"%s/plot_6pi.root",outputdir.c_str());
   TFile *f=new TFile(fname,"RECREATE");
 
   char name[100];
@@ -111,7 +112,7 @@ void gepep_fast6pi::Loop()
 	  }
 	  if (mass>beamlow && mass<beamup){
 	    vars->Fill();
-	    if (!good) continue;
+	    //if (!good) continue;
 		evts.push_back(evt);
 	  }
    }//select end
@@ -123,8 +124,8 @@ void gepep_fast6pi::Loop()
 
 void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
 {
-  double beamlow=beame-0.1;
-  double beamup=beame+0.1;
+  double beamlow=beame-0.15;
+  double beamup=beame+0.15;
   // for factor fit
  
   TTree *datarawo = new TTree("datarawo","dataraw");
@@ -141,7 +142,7 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
   // iniialize the fit function
   //double factor4,factor4err;// for pi
  
-  int Npart=20;
+  int Npart=1;
   double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
 		  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
    //pcut[0]=0.1;
@@ -177,30 +178,56 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
    pcut[20]=2.00;  //facmap[20]=2.00;
  */
 
+ 
+// factor from Ks dl/dle >2
+// pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
+// pcut[1] =0.05;  facmap[1] =1.00629 ;  facemap[1] =0.0019564;
+// pcut[2] =0.10;  facmap[2] =1.00295 ;  facemap[2] =0.0002664;
+// pcut[3] =0.15;  facmap[3] =1.00182 ;  facemap[3] =0.0001468;
+// pcut[4] =0.20;  facmap[4] =1.00085 ;  facemap[4] =0.0001360;
+// pcut[5] =0.25;  facmap[5] =1.00032 ;  facemap[5] =0.0001242;
+// pcut[6] =0.30;  facmap[6] =0.999913;  facemap[6] =0.0001315;
+// pcut[7] =0.35;  facmap[7] =0.999792;  facemap[7] =0.0001581;
+// pcut[8] =0.40;  facmap[8] =1.00006 ;  facemap[8] =0.0001886;
+// pcut[9] =0.45;  facmap[9] =0.998787;  facemap[9] =0.0002521;
+// pcut[10]=0.50;  facmap[10]=0.999473;  facemap[10]=0.0002220;
+// pcut[11]=0.60;  facmap[11]=0.999828;  facemap[11]=0.0003216;
+// pcut[12]=0.70;  facmap[12]=1.00034 ;  facemap[12]=0.0004939;
+// pcut[13]=0.80;  facmap[13]=1.00113 ;  facemap[13]=0.0008034;
+// pcut[14]=0.90;  facmap[14]=1.00172 ;  facemap[14]=0.0011911;
+// pcut[15]=1.00;  facmap[15]=1.00296 ;  facemap[15]=0.0015954;
+// pcut[16]=1.20;  facmap[16]=0.98714 ;  facemap[16]=0.0064642;
+// pcut[17]=1.40;  facmap[17]=0.987802;  facemap[17]=0.008873 ;
+// pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
+// pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
+// pcut[20]=2.00;  //facmap[20]=2.00;
+   pcut[0] = 0.0;  facmap[0] = 1.000815; facemap[0] = 1.000815-1.00061;
+   pcut[1] = 2.0;
+
+/*
+// factor from Ks dl/dle <2 & >1
    pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
-   pcut[1] =0.05;  facmap[1] =1.0103  ;  facemap[1] =0.00271272 ;
-   pcut[2] =0.10;  facmap[2] =1.00242 ;  facemap[2] =0.000294394;
-   pcut[3] =0.15;  facmap[3] =1.00154 ;  facemap[3] =0.000168453;
-   pcut[4] =0.20;  facmap[4] =1.00072 ;  facemap[4] =0.000152402;
-   pcut[5] =0.25;  facmap[5] =1.00036 ;  facemap[5] =0.000135882;
-   pcut[6] =0.30;  facmap[6] =0.999792;  facemap[6] =0.000146793;
-   pcut[7] =0.35;  facmap[7] =1       ;  facemap[7] =0.000178329;
-   pcut[8] =0.40;  facmap[8] =0.999605;  facemap[8] =0.000256467;
-   pcut[9] =0.45;  facmap[9] =0.999899;  facemap[9] =0.000262561;
-   pcut[10]=0.50;  facmap[10]=0.999495;  facemap[10]=0.000247957;
-   pcut[11]=0.60;  facmap[11]=1.00016 ;  facemap[11]=0.000364348;
-   pcut[12]=0.70;  facmap[12]=0.999504;  facemap[12]=0.000537846;
-   pcut[13]=0.80;  facmap[13]=1.00029 ;  facemap[13]=0.00077103 ;
-   pcut[14]=0.90;  facmap[14]=1.00031 ;  facemap[14]=0.00123488 ;
-   pcut[15]=1.00;  facmap[15]=1.00313 ;  facemap[15]=0.00150405 ;
-   pcut[16]=1.20;  facmap[16]=0.986371;  facemap[16]=0.00626053 ;
-   pcut[17]=1.40;  facmap[17]=0.938064;  facemap[17]=0.0999831  ;
+   pcut[1] =0.05;  facmap[1] =1.0019  ;  facemap[1] =0.0038958;
+   pcut[2] =0.10;  facmap[2] =1.0023  ;  facemap[2] =0.0009942;
+   pcut[3] =0.15;  facmap[3] =1.00196 ;  facemap[3] =0.0005983;
+   pcut[4] =0.20;  facmap[4] =1.00055 ;  facemap[4] =0.0004739;
+   pcut[5] =0.25;  facmap[5] =1.0007  ;  facemap[5] =0.0003997;
+   pcut[6] =0.30;  facmap[6] =0.999955;  facemap[6] =0.0005361;
+   pcut[7] =0.35;  facmap[7] =1.00092 ;  facemap[7] =0.0006819;
+   pcut[8] =0.40;  facmap[8] =1.00312 ;  facemap[8] =0.0010947;
+   pcut[9] =0.45;  facmap[9] =1.00278 ;  facemap[9] =0.0012514;
+   pcut[10]=0.50;  facmap[10]=0.99954 ;  facemap[10]=0.0017811;
+   pcut[11]=0.60;  facmap[11]=1.00235 ;  facemap[11]=0.0022602;
+   pcut[12]=0.70;  facmap[12]=1.00148 ;  facemap[12]=0.0007013;
+   pcut[13]=0.80;  facmap[13]=0.998524;  facemap[13]=0.0040513;
+   pcut[14]=0.90;  facmap[14]=1.00337 ;  facemap[14]=0.0047884;
+   pcut[15]=1.00;  facmap[15]=1.04187 ;  facemap[15]=0.020354 ;
+   pcut[16]=1.20;  facmap[16]=0.993981;  facemap[16]=0.0034204;
+   pcut[17]=1.40;  facmap[17]=1.01747 ;  facemap[17]=0.0153603;
    pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
    pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
    pcut[20]=2.00;  //facmap[20]=2.00;
- 
-
-
+*/
 
 
   // psi 3.097
@@ -260,9 +287,9 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
   sprintf(tmpchr,"low_%s",namesfx);
   EEto6PI::FitSpectrum(datarawl,beame,tmpchr);
 
-  // factor at up edge
-  sprintf(tmpchr,"upv_%s",namesfx);
-  EEto6PI::FitSpectrum(datarawu,beame,tmpchr);
+//// factor at up edge
+//sprintf(tmpchr,"upv_%s",namesfx);
+//EEto6PI::FitSpectrum(datarawu,beame,tmpchr);
 
   //~~~~~~~~~~ part end~~~~~~~~
   return;
@@ -273,12 +300,12 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    int nBins=100;
    int Npar;
    double peakvalue = beame;
-   double beamlow=beame-0.06;
-   double beamup=beame+0.04;
+   double beamlow=beame-0.12;
+   double beamup=beame+0.12;
    // try to use roofit
    RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
-   RooRealVar mean("mean","mean of gaussian",peakvalue-0.0005,beamlow,beamup);
-   RooRealVar sigma("sigma","width of gaussian",0.003,0.0001,0.02);
+   RooRealVar mean("mean","mean of gaussian",peakvalue-0.001,beamlow,beamup);
+   RooRealVar sigma("sigma","width of gaussian",0.01,0.005,0.02);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
    //RooRealVar co1("co1","coefficient #1",0,-100.,100.);
    //RooRealVar co4("co4","coefficient #4",0);
@@ -286,9 +313,15 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    RooRealVar signal("signal"," ",200,0,1000000);//event number
    RooRealVar background("background"," ",20,0,100000);
    RooRealVar a0("a0","coefficient #0",100,-100000,100000);
-   RooRealVar a1("a1","coefficient #1",-1,-100000,100000);
-   RooPolynomial ground("ground","ground",x,RooArgList(a0,a1));
-   
+   RooRealVar a1("a1","coefficient #1",-10,-100000,100000);
+   RooRealVar a2("a2","coefficient #2",0,-100000,100000);
+   //RooRealVar a3("a3","coefficient #2",0,-100000,100000);
+   RooPolynomial ground("ground","ground",x,RooArgList(a0,a1,a2));
+     
+   RooRealVar alpha1("alpha1","#alpha",1.32,-5,5);
+   RooRealVar nnn1("n1","n",5,1,200);
+   RooCBShape cbshape1("cbshape1","crystal ball",x,mean,sigma,alpha1,nnn1);
+
    RooAddPdf *sum;
    RooDataSet *dataset;
    RooPlot *xframe;
@@ -302,15 +335,16 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    //data_6pi = new RooDataHist(tmpchr,"data_6pi",x,h);
    xframe = x.frame(Title("fit 6 pi"));
    dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
-   sum = new RooAddPdf("sum","sum",RooArgList(gaus,ground),RooArgList(signal,background));
-   Npar = 6;
+   //sum = new RooAddPdf("sum","sum",RooArgList(gaus,ground),RooArgList(signal,background));
+   sum = new RooAddPdf("sum","sum",RooArgList(cbshape1,ground),RooArgList(signal,background));
+   Npar = 8;
    //sigma.setVal(0.035);
    //signal.setVal(1200);
    //background.setVal(200);
    //co1.setVal(0);
    sum->fitTo(*dataset,Range(beamlow,beamup));
    dataset->plotOn(xframe);
-   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(cbshape1),LineStyle(2),LineColor(2));
    sum->plotOn(xframe,Components(ground),LineStyle(2),LineColor(3));
    sum->plotOn(xframe);
    xframe->Draw();
@@ -336,7 +370,7 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
   c1->Write();
 
    ofstream outf("f6pi",std::ios::app);
-   outf<<beame<<"\t"<<namesfx<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+   outf<<beame<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
    
    //c1->Print("fit6pi.eps");
    //delete data_6pi;
@@ -346,41 +380,6 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    return;
 }
 
-
-double EEto6PI::GetEnergy(int runNo)
-{
-  runNo=runNo%10000;
-  //int a[2] = {1, 2};
-  int runNoLow[108] = {
-   4011, 4028, 4037, 4046, 4058, 4069, 4077, 4084, 4091, 4097,
-   4105, 4118, 4128, 4135, 4142, 4151, 4161, 4175, 4184, 4191,
-   4197, 4203, 4211, 4221, 4231, 4240, 4246, 4253, 4258, 4266,
-   4272, 4277, 4282, 4298, 4314, 4321, 4328, 4339, 4346, 4351,
-   4359, 4369, 4374, 4382, 4390, 4397, 4404, 4412, 4418, 4428,
-   4437, 4447, 4461, 4478, 4486, 4494, 4503, 4512, 4527, 4541,
-   4555, 4564, 4574, 4585, 4593, 4603, 4613, 4623, 4634, 4642,
-   4652, 4661, 4674, 4685, 4695, 4705, 4719, 4729, 4740, 4754,
-   4763, 4777, 4785, 4794, 4804, 4812, 4825, 4837, 4848, 4861,
-   4869, 4882, 4891, 4900, 4913, 4926, 4936, 4947, 4958, 4968,
-   4982, 5010, 5027, 5041, 5060, 5082, 5099, 5119 };// #the last number is not used!
-  double energy[108] = {
-   3850, 3890, 3895, 3900, 3905, 3910, 3915, 3920, 3925, 3930,
-   3935, 3940, 3945, 3950, 3955, 3960, 3965, 3970, 3975, 3980,
-   3985, 3990, 3995, 4000, 4005, 4010, 4012, 4014, 4016, 4018,
-   4020, 4025, 4030, 0000, 4035, 4040, 4050, 4055, 4060, 4065,
-   4070, 4080, 4090, 4100, 4110, 4120, 4130, 4140, 4145, 4150,
-   4160, 4170, 0000, 4180, 4190, 4195, 4200, 4203, 4206, 4210,
-   4215, 4220, 4225, 4230, 4235, 4240, 4243, 4245, 4248, 4250,
-   4255, 4260, 4265, 4270, 4275, 4280, 4285, 4290, 4300, 4310,
-   4320, 4330, 4340, 4350, 4360, 4370, 4380, 4390, 4395, 4400,
-   4410, 4420, 4425, 4430, 4440, 4450, 4460, 4480, 4500, 4520,
-   4540, 4550, 4560, 4570, 4580, 0000, 4590, 4600 };// # the last one is skipped
-  for(int i=0;i<107;i++){
-    if(runNo>=runNoLow[i]&&runNo<runNoLow[i+1])
-      return energy[i]/1000;
-  }
-  return -1;
-}
 
 #ifdef gepep_fast6pi_cxx
 gepep_fast6pi::gepep_fast6pi(TTree *tree) : fChain(0) 
