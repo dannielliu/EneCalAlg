@@ -85,6 +85,7 @@ double GetEnergy(int runNo)
 { 
   //runNo=runNo%10000;
   //int a[2] = {1, 2};
+  runNo = abs(runNo);
   if (runNo>=32239 && runNo <= 32864) return 4.23;
   else if(runNo>=29677 && runNo<=30367) return 4.26;
   else if(runNo>=31561 && runNo<=31981) return 4.26;

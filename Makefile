@@ -5,8 +5,8 @@ vpath %.h ./include
 vpath %.o obj
 VPATH = src
 CC = g++ $(ROOTINCLUDE) $(ROOTLIB) $(INCDIR)
-OBJS= function.o bes3plotstyle.o gepep_fastpipill.o gepep_fast4pi.o gepep_4k.o gepep_kk.o gepep_kpi.o gepep_kpi2.o gepep_kpipi.o gepep_fkkpipi.o gepep_pipipp.o Ks0Alg.o
-OBJS2= function.o gepep_fastpipill_check.o gepep_fast4pi.o gepep_fast6pi.o  gepep_kk_check.o gepep_npi_check.o gepep_kpipi_check.o gepep_fkkpipi_check.o gepep_pipipp.o Ks0Alg_check.o gepep_kpi_check.o
+OBJS= function.o bes3plotstyle.o gepep_fastpipill.o gepep_fast4pi.o gepep_4k.o gepep_kk.o gepep_kpi.o gepep_ppi.o gepep_kpi2.o gepep_kpipi.o gepep_fkkpipi.o gepep_pipipp.o Ks0Alg.o mumu.o
+OBJS2= function.o gepep_fastpipill_check.o gepep_fast4pi_check.o gepep_fast6pi.o  gepep_kk_check.o gepep_npi_check.o gepep_kpipi_check.o gepep_fkkpipi_check.o gepep_pipipp.o Ks0Alg_check.o gepep_kpi_check.o mumu_check.o
 OBJS := $(addprefix obj/,$(OBJS))
 OBJS2 := $(addprefix obj/,$(OBJS2))
 

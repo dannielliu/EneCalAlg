@@ -20,35 +20,35 @@
 #include "RooArgList.h"
 #include "RooPlot.h"
 #include "EventClass.h"
-//#include <iostream>
+#include <iomanip>
 extern std::string outputdir;
 using namespace RooFit;
-
+using namespace std;
 
 void gepep_kpi::Loop()
 {
 //   In a ROOT session, you can do:
-//      Root > .L gepep_kpi.C
-//      Root > gepep_kpi t
-//      Root > t.GetEntry(12); // Fill t data members with entry number 12
-//      Root > t.Show();       // Show values of entry 12
-//      Root > t.Show(16);     // Read and show values of entry 16
-//      Root > t.Loop();       // Loop on all entries
+//	  Root > .L gepep_kpi.C
+//	  Root > gepep_kpi t
+//	  Root > t.GetEntry(12); // Fill t data members with entry number 12
+//	  Root > t.Show();	   // Show values of entry 12
+//	  Root > t.Show(16);	 // Read and show values of entry 16
+//	  Root > t.Loop();	   // Loop on all entries
 //
 
-//     This is the loop skeleton where:
-//    jentry is the global entry number in the chain
-//    ientry is the entry number in the current Tree
+//	 This is the loop skeleton where:
+//	jentry is the global entry number in the chain
+//	ientry is the entry number in the current Tree
 //  Note that the argument to GetEntry must be:
-//    jentry for TChain::GetEntry
-//    ientry for TTree::GetEntry and TBranch::GetEntry
+//	jentry for TChain::GetEntry
+//	ientry for TTree::GetEntry and TBranch::GetEntry
 //
-//       To read only selected branches, Insert statements like:
+//	   To read only selected branches, Insert statements like:
 // METHOD1:
-//    fChain->SetBranchStatus("*",0);  // disable all branches
-//    fChain->SetBranchStatus("branchname",1);  // activate branchname
+//	fChain->SetBranchStatus("*",0);  // disable all branches
+//	fChain->SetBranchStatus("branchname",1);  // activate branchname
 // METHOD2: replace line
-//    fChain->GetEntry(jentry);       //read all branches
+//	fChain->GetEntry(jentry);	   //read all branches
 //by  b_branchname->GetEntry(ientry); //read only this branch
    if (fChain == 0) return;
 
@@ -76,7 +76,7 @@ void gepep_kpi::Loop()
    // try to use roofit
    RooRealVar x("x","energy",1.865,D0low,D0up,"GeV");
    RooRealVar mean("mean","mean of gaussian",1.865,D0low,D0up);
-   RooRealVar sigma("sigma","width of gaussian",0.0068,0.005,0.007);
+   RooRealVar sigma("sigma","width of gaussian",0.0056,0.005,0.007);
    RooRealVar sigma2("sigma2","width of gaussian",0.0075,0.007,0.010);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
    RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
@@ -110,11 +110,13 @@ void gepep_kpi::Loop()
    ofstream purepar;
    purepar.open("par");
    char fname[100];
-   sprintf(fname,"%s/plot_kpi.root",outputdir.c_str());
+   sprintf(fname,"%s/plot_kpi_D0D0bar.root",outputdir.c_str());
    TFile *f = new TFile(fname,"RECREATE");
   
-   TF1 *facfit = new TF1("facfit",line2,0.9,1.1,2);
-   TH1D *h1    = new TH1D("h1","k- pi+ invariant mass",nBins,D0low,D0up);
+   //TF1 *facfit = new TF1("facfit",line2,0.9,1.1,2);
+   TF1 *facfit = new TF1("facfit","[0]*(x-1)+[1]",0.9,1.1);
+   facfit->SetParNames("slope","interupt");
+   TH1D *h1	= new TH1D("h1","k- pi+ invariant mass",nBins,D0low,D0up);
    TCanvas *c1 = new TCanvas("c1","c1",800,600);
    TTree *dataraw = new TTree("dataraw","dataraw");
    double mass;
@@ -128,8 +130,8 @@ void gepep_kpi::Loop()
    vars->Branch("phi2",&phi2,"phi2/D");
    vars->Branch("costheta1",&costheta1,"costheta1/D");
    vars->Branch("costheta2",&costheta2,"costheta2/D");
-   vars->Branch("p1",&p1,"p1/D");
-   vars->Branch("p2",&p2,"p2/D");
+   vars->Branch("p1",&p1,"pk/D");
+   vars->Branch("p2",&p2,"ppi/D");
    vars->Branch("mass",&mass,"mass/D");
 
 
@@ -149,11 +151,11 @@ void gepep_kpi::Loop()
    double start=-1;
    double stop =1;
    for(int i=0;i<Npart+1;i++){
-     coscut[i] = (stop-start)/Npart*i+start;
+	 coscut[i] = (stop-start)/Npart*i+start;
    }
    double m0=peakvalue;
    double sigma_m = 0.0068;//0.0024 for phi,
-   double width = 10.*sigma_m;
+   double width = 20.*sigma_m;
    //double mparticle=mk;
    std::vector<int> partmap;
    std::vector<std::pair<int,double> > facmap;
@@ -163,38 +165,48 @@ void gepep_kpi::Loop()
    // ~~~~~~~~ draw nxn histogram, m distribution in different p range
    TH1D *hmtheta[Npart];
    for (int partj=0;partj<Npart;partj++){
-     sprintf(name,"mass_part%d",partj);
-     hmtheta[partj] = new TH1D(name,name,100,D0low,D0up);
+	 sprintf(name,"mass_part%d",partj);
+	 hmtheta[partj] = new TH1D(name,name,100,D0low,D0up);
    }
 
    h2p->Reset();
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
-     Long64_t ientry = LoadTree(jentry);
-     if (ientry < 0) break;
-     nb = fChain->GetEntry(jentry);   nbytes += nb;
-     //if (run >34028) break;
+	 Long64_t ientry = LoadTree(jentry);
+	 if (ientry < 0) break;
+	 nb = fChain->GetEntry(jentry);   nbytes += nb;
+	 //if (run >34028) break;
 
-     //int parti,partj;
-     //double mass;
+	 //int parti,partj;
+	 //double mass;
 	 double theta1,theta2;
-     int besidx=0;
-     double tmpdeltaold=100;
-     double tmpmass;
+	 int besidx=0;
+	 double tmpdeltaold=100;
+	 double tmpmass;
 	 D0KPI evt;
 	 HepLorentzVector kam, pip;
-	 kam.setVectM(Hep3Vector(kampx[0],kampy[0],kampz[0]),mk);
-     for(int i=0; i<npip;i++){
+	 //if (npip==1){
+	 //for(int i=0; i<1;i++){
+	 int i=0;
+	 if (npim==1 && nkap==1){
+	   kam.setVectM(Hep3Vector(kappx[0],kappy[0],kappz[0]),mk);
+	   pip.setVectM(Hep3Vector(pimpx[i],pimpy[i],pimpz[i]),mpi);
+	   evt.set(kam,pip);
+	 }
+	 if (npip==1 && nkam==1){
+	   kam.setVectM(Hep3Vector(kampx[0],kampy[0],kampz[0]),mk);
 	   pip.setVectM(Hep3Vector(pippx[i],pippy[i],pippz[i]),mpi);
-	   evt.set(pip,kam);
-       tmpmass = evt.m();
-       if(fabs(tmpmass-peakvalue)<tmpdeltaold){
-         tmpdeltaold = fabs(tmpmass-peakvalue);
-         besidx = i;
-       }
-     }
-	 
-	 pip.setVectM(Hep3Vector(pippx[besidx],pippy[besidx],pippz[besidx]),mpi);
-	 evt.set(pip,kam);
+	   evt.set(kam,pip);
+	 }
+	   
+////////   tmpmass = evt.m();
+////////   if(fabs(tmpmass-peakvalue)<tmpdeltaold){
+////////         tmpdeltaold = fabs(tmpmass-peakvalue);
+////////         besidx = i;
+////////   }
+//////// }
+//////// 
+////////	   pip.setVectM(Hep3Vector(pippx[besidx],pippy[besidx],pippz[besidx]),mpi);
+////////	   evt.set(kam,pip);
 	 
 	 costheta1 = cos(evt.kam.theta());
 	 costheta2 = cos(evt.pip.theta());
@@ -202,152 +214,115 @@ void gepep_kpi::Loop()
 	 phi2 = evt.pip.phi();
 	 //if (fabs(costheta1)>0.5) continue;
 	 //if (fabs(costheta2)>0.5) continue;
-     
-     // total invariant mass, D0 -> k- pi+
-     p1 = evt.kam.rho();
+	 
+	 // total invariant mass, D0 -> k- pi+
+	 p1 = evt.kam.rho();
 	 p2 = evt.pip.rho();
-     theta1= evt.kam.theta();
-     theta2= evt.pip.theta();
-	 //parti = (int)(theta1/stop*Npart);
-     //partj = (int)(theta2/stop*Npart);
-     mass = evt.m();
-     //if (parti>=Npart || partj>=Npart || parti<0 || partj<0) continue;
-     for (int parti=0; parti<Npart; parti++){
+	 theta1= evt.kam.theta();
+	 theta2= evt.pip.theta();
+	 mass = evt.m();
+	 //if (parti>=Npart || partj>=Npart || parti<0 || partj<0) continue;
+	 for (int parti=0; parti<Npart; parti++){
 	 if (costheta1>coscut[parti]&&costheta1<coscut[parti+1])
 	   //&&theta2>thetacut[partj]&&theta2<thetacut[partj+1])
-       if (mass>m0-width/2.-0.02 && mass<m0+width/2.+0.02)
+	   if (mass>m0-width/2.-0.02 && mass<m0+width/2.+0.02)
 	   {
-         h2p->Fill(p1,p2);
+		 h2p->Fill(p1,p2);
 		 thedis->Fill(p1,theta1);
 		 thedis->Fill(p2,theta2);
 		 thedis2->Fill(theta1,theta2);
-         hmtheta[parti]->Fill(mass);
+		 hmtheta[parti]->Fill(mass);
 		 evts_set[parti].push_back(evt);
 		 vars->Fill();
-       }
+	   }
 	 }
-     // if (Cut(ientry) < 0) continue;
+	 // if (Cut(ientry) < 0) continue;
    }
    vars->Write();
    h2p->Write();
    thedis->Write();
    thedis2->Write();
    for (int parti=0;parti<Npart;parti++){
-     hmtheta[parti]->Write();
-     std::cout<<"processed part "<<parti<<std::endl;
-     std::cout<<"entry is "<<hmtheta[parti]->GetEntries()<<'\t'<<hmtheta[parti]->GetMaximumBin()<<std::endl;
-     if (hmtheta[parti]->GetEntries() > 50
+	 hmtheta[parti]->Write();
+	 std::cout<<"processed part "<<parti<<std::endl;
+	 std::cout<<"entry is "<<hmtheta[parti]->GetEntries()<<'\t'<<hmtheta[parti]->GetMaximumBin()<<std::endl;
+	 if (hmtheta[parti]->GetEntries() > 50
 	   &&hmtheta[parti]->GetMaximumBin()>20
 	   &&hmtheta[parti]->GetMaximumBin()<70){
-       partmap.push_back(parti);
-     }
+	   partmap.push_back(parti);
+	 }
    }
    // ~~~~~~~~ draw end
-
+   // find delta E relation with fk
    for (int loopi=0;loopi<partmap.size();loopi++){
-     int parti=partmap.at(loopi);
-//// if (loopi==0 && parti!=partj) continue;
-//// else if(loopi!=0 && parti==partj) continue;
-//// double factori=0,factorj=0;
-//// for (int loopk=0;loopk<facmap.size();loopk++){
-////   if (facmap.at(loopk).first == parti) factori=facmap.at(loopk).second;
-////   if (facmap.at(loopk).first == partj) factorj=facmap.at(loopk).second;
-//// }
-//// if(factori==0 && factorj==0 && parti!=partj) continue;
-//// if(parti==partj && factori!=0) continue;
-//// if(factori!=0 && factorj!=0) continue;
-// ofpar<<"parti: "<<parti<<"--"<<factori<<", partj: "<<partj<<"--"<<factorj<<std::endl;
-// std::cout<<"parti: "<<parti<<"--"<<factori<<", partj: "<<partj<<"--"<<factorj<<std::endl;
+	 int parti=partmap.at(loopi);
 
-   // for saving the fit result
-   //char fitepsname[100];
-   //char fiteps_start[100];
-   //char fiteps_stop[100];
-   //sprintf(fitepsname,"%s/fitkpi_part%d.eps",outputdir.c_str(),parti);
-   //sprintf(fiteps_start,"%s[",fitepsname);
-   //sprintf(fiteps_stop,"%s]",fitepsname);
-   //c1->Print(fiteps_start);
- 
-   factor = factorstart;
-   int fittimes = 0;
-   double fpi = 1.00093;
-   //double facave = 1.000540;
-   for (int i=0;i<pointNo;i++){
+	 factor = factorstart;
+	 int fittimes = 0;
+	 double fpi = 1.00;
+	 for (int i=0;i<pointNo;i++){
 	  xframe = x.frame(Title("fit k pi"));
 
-      h1->Reset();
+	  h1->Reset();
 	  dataraw->Reset();
-      std::cout<<"factor is "<<factor<<std::endl;
+	  std::cout<<"factor is "<<factor<<std::endl;
 	  int evtNo = evts_set[parti].size();
-      for (Long64_t evtid=0; evtid<evtNo;evtid++) {
-         D0KPI evt = evts_set[parti].at(evtid);
-	     //double mass;
-	   //double p1,p2;
-	   //double theta1,theta2;
-	   //// total invariant mass, D0 -> k- pi+
- 	   //
-	   //p1 = evt.pip.rho();
-       //p2 = evt.kam.rho();
-       //theta1 = evt.pip.theta();
-	   //theta2 = evt.kam.theta();
-         evt.setCorrectionFactors(factor,fpi);
+	  for (Long64_t evtid=0; evtid<evtNo;evtid++) {
+		 D0KPI evt = evts_set[parti].at(evtid);
+		 evt.setCorrectionFactors(factor,fpi);
 		 mass = evt.m();
-       //if (theta1>thetacut[parti]&&theta1<thetacut[parti+1]
-	   //  &&theta2>thetacut[partj]&&theta2<thetacut[partj+1] ){
-	   //  h1->Fill(mass);
-	   //}
 		 if (mass>D0low && mass<D0up){
 		   dataraw->Fill();
 		 }
-         // if (Cut(ientry) < 0) continue;
-      }
+		 // if (Cut(ientry) < 0) continue;
+	  }
 
 	  char tmpchr[100];
 	  sprintf(tmpchr,"data_kpi_%02d",fittimes);
-      //data_kpi = new RooDataHist(tmpchr,"data_kpi",x,h1);
-      dataset = new RooDataSet(tmpchr,"dataset",dataraw,x);
+	  //data_kpi = new RooDataHist(tmpchr,"data_kpi",x,h1);
+	  dataset = new RooDataSet(tmpchr,"dataset",dataraw,x);
 	  sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
-      mean.setVal(peakvalue+1.4*(factor-1.0));
+	  mean.setVal(peakvalue+1.4*(factor-1.0));
 	  Npar=8;
 	  //sigma.setVal(0.035);
 	  //signal.setVal(1200);
 	  //background.setVal(500);
 	  //co1.setVal(0);
 	  //co2.setVal(-0.2);
-      sum->fitTo(*dataset,Range(D0low,D0up));
+	  sum->fitTo(*dataset,Range(D0low,D0up));
 	  dataset->plotOn(xframe);
 	  sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
 	  sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
 	  sum->plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
 	  sum->plotOn(xframe);
-      xframe->Draw();
+	  xframe->Draw();
 	  TPaveText *pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
-    //pt->SetBorderSize(0);
-    //pt->SetFillStyle(4000);
-    //pt->SetTextAlign(12);
-    //pt->SetTextFont(42);
-    //pt->SetTextSize(0.035);
-      sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"#chi^{2}/(100-%d) = %5.6f",Npar,xframe->chiSquare(Npar));
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"factor = %.6f",factor);
-      pt->AddText(tmpchr);
-      pt->Draw();
-      sprintf(tmpchr,"spe_at_%.6f",factor);
+	//pt->SetBorderSize(0);
+	//pt->SetFillStyle(4000);
+	//pt->SetTextAlign(12);
+	//pt->SetTextFont(42);
+	//pt->SetTextSize(0.035);
+	  sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+	  pt->AddText(tmpchr);
+	  sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+	  pt->AddText(tmpchr);
+	  sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
+	  pt->AddText(tmpchr);
+	  sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+	  pt->AddText(tmpchr);
+	  sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+	  pt->AddText(tmpchr);
+	  sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+	  pt->AddText(tmpchr);
+	  sprintf(tmpchr,"#chi^{2}/(100-%d) = %5.6f",Npar,xframe->chiSquare(Npar));
+	  pt->AddText(tmpchr);
+	  sprintf(tmpchr,"factor = %.6f",factor);
+	  pt->AddText(tmpchr);
+	  pt->Draw();
+	  sprintf(tmpchr,"spe_at_%.6f",factor);
 	  c1->Write(tmpchr);
-      //c1->Update();
-      //c1->Print(fitepsname);
+	  //c1->Update();
+	  //c1->Print(fitepsname);
 	  delete dataset;
 	  delete xframe;
 	  delete sum;
@@ -371,27 +346,24 @@ void gepep_kpi::Loop()
    graph1->SetMarkerStyle(5);
    graph1->Draw("AP");
    gStyle->SetOptFit(1111);
-   facfit->SetParameters(1,1.5);
-   facfit->SetParNames("factor","slope");
+   facfit->SetParameters(1,1.);
    graph1->Fit(facfit,"","",factors[0],factors[pointNo-1]);
-   factor =facfit->GetParameter(0);
-   //factor1=facfit->GetParameter(0);
-   //factor1err=facfit->GetParError(0);
-   double factorerr=deltapeakserr[9]/facfit->GetParameter(1);
-   ofpar<<beamene<<'\t'<<factor<<"\t"<<factorerr<<"\t"<<facfit->GetParError(0)<<std::endl;
+
+   //double factorerr=deltapeakserr[10]/facfit->GetParameter(1);
+   double a = facfit->GetParameter(0);
+   double ae= facfit->GetParError(0);
+   double b = facfit->GetParameter(1);
+   double be= facfit->GetParError(1);
+   factor = 1 - b/a;
+   double factorerr = sqrt(TMath::Power(ae/a,2)+TMath::Power(be/b,2))*fabs(b/a);
+   ofpar<<beamene<<'\t'<<setiosflags(ios::fixed)<<setprecision(6)<<factor<<"\t"<<factorerr<<"\t"<<facfit->GetParError(0)<<'\t'
+   <<"dE = "<< a <<"*(x-1) + "<< b <<", ae = "<< ae << " be = "<< be << " perr  = " << deltapeakserr[(pointNo-1)/2]<<resetiosflags(ios::fixed)<<std::endl;
+   
    std::cout<<"parameter@"<<beamene<<'\t'<<factor<<"\t"<<factorerr<<"\t"<<facfit->GetParError(0)<<std::endl;
-   std::cout<<" deltapeakerr "<<deltapeakserr[9]<<" slope "<<facfit->GetParameter(1)<<std::endl;
-   //ofpar<<'\t'<<signal.getVal()<<"\t"<<signal.getError()<<std::endl;
    purepar<<"\t"<<factor<<"\t"<<factorerr<<std::endl;
-   //std::cout<<"fit factor: "<<factor1<<", error is "<<factor1err<<std::endl;
-   //sprintf(name,"%s/factorkpi_part%d.eps",outputdir.c_str(),parti);
-   //c1->Print(name);
    sprintf(name,"factors_kpi_part%d",parti);
    graph1->SetName(name);
-   graph1->Write();
-   //int index;
-   //factori==0? index=parti : index=partj;
-   //facmap.push_back(std::make_pair(index,factor));
+   graph1->Write("de_fk");
 
    // draw the best fit
    xframe = x.frame(Title("fit k pi"));
@@ -400,68 +372,53 @@ void gepep_kpi::Loop()
    std::cout<<"factor is "<<factor<<std::endl;
    int evtNo = evts_set[parti].size();
    for (Long64_t jentry=0; jentry<evtNo;jentry++) {
-     D0KPI evt = evts_set[parti].at(jentry);
+	 D0KPI evt = evts_set[parti].at(jentry);
 
-	 //double mass;
-//// double p1,p2;
-//// double theta1,theta2;
-	 // total invariant mass, D0 -> k- pi+
-//// p1 = evt.pip.rho();
-//// p2 = evt.kam.rho();
-//// theta1 = evt.pip.theta();
-//// theta2 = evt.kam.theta();
-     evt.setCorrectionFactors(factor,fpi);
+	 evt.setCorrectionFactors(factor,fpi);
 	 mass = evt.m();
-//// if (theta1>thetacut[parti]&&theta1<thetacut[parti+1]
-////   &&theta2>thetacut[partj]&&theta2<thetacut[partj+1] ){
-////   h1->Fill(mass);
-//// }
 	 if (mass>D0low && mass<D0up){
 	   dataraw->Fill();
 	 }
-     // if (Cut(ientry) < 0) continue;
+	 // if (Cut(ientry) < 0) continue;
    }
 	char tmpchr[100];
 	sprintf(tmpchr,"data_kpi");
-    //data_kpi = new RooDataHist(tmpchr,"data_kpi",x,h1);
-    dataset = new RooDataSet(tmpchr,"dataset",dataraw,x);
-    sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,bkg),RooArgList(signal,signal2,background));
-    mean.setVal(peakvalue+0.05*(factor-1.0));
+	//data_kpi = new RooDataHist(tmpchr,"data_kpi",x,h1);
+	dataset = new RooDataSet(tmpchr,"dataset",dataraw,x);
+	sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,bkg),RooArgList(signal,signal2,background));
+	mean.setVal(peakvalue+0.05*(factor-1.0));
 	Npar=8;
 	//sigma.setVal(0.035);
 	//signal.setVal(1200);
 	//background.setVal(200);
 	//co1.setVal(0);
 	//co2.setVal(-0.2);
-    sum->fitTo(*dataset,Range(D0low,D0up));
+	sum->fitTo(*dataset,Range(D0low,D0up));
 	dataset->plotOn(xframe);
 	sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
 	sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
 	sum->plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
 	sum->plotOn(xframe);
-    xframe->Draw();
-    TPaveText *pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
-    sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
-    pt->AddText(tmpchr);
-    sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
-    pt->AddText(tmpchr);
-    sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
-    pt->AddText(tmpchr);
-    sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
-    pt->AddText(tmpchr);
-    sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
-    pt->AddText(tmpchr);
-    sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
-    pt->AddText(tmpchr);
-    sprintf(tmpchr,"#chi^{2}/(100-%d) = %5.6f",Npar,xframe->chiSquare(Npar));
-    pt->AddText(tmpchr);
-    sprintf(tmpchr,"factor = %.6f #pm %.6f",factor,factorerr);
-    pt->AddText(tmpchr);
-    pt->Draw();
-	c1->Write("correct");
-    //c1->Update();
-    //sprintf(name,"fitkpi_best_part%d_part%d.eps",parti,partj);
-	//c1->Print(name);
+	xframe->Draw();
+	TPaveText *pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
+	sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+	pt->AddText(tmpchr);
+	sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+	pt->AddText(tmpchr);
+	sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
+	pt->AddText(tmpchr);
+	sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+	pt->AddText(tmpchr);
+	sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+	pt->AddText(tmpchr);
+	sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+	pt->AddText(tmpchr);
+	sprintf(tmpchr,"#chi^{2}/(100-%d) = %5.6f",Npar,xframe->chiSquare(Npar));
+	pt->AddText(tmpchr);
+	sprintf(tmpchr,"factor = %.6f #pm %.6f",factor,factorerr);
+	pt->AddText(tmpchr);
+	pt->Draw();
+	c1->Write("correctk");
 	xframe->SetName(name);
 	xframe->Write();
 	delete dataset;
@@ -470,6 +427,180 @@ void gepep_kpi::Loop()
    
    }// loop i end
 
+
+   // find dE Vs fpi
+   for (int loopi=0;loopi<partmap.size();loopi++){
+	 int parti=partmap.at(loopi);
+
+	 factor = factorstart;
+	 int fittimes = 0;
+	 double fk = 1.00;
+	 for (int i=0;i<pointNo;i++){
+	  xframe = x.frame(Title("fit k pi"));
+
+	  h1->Reset();
+	  dataraw->Reset();
+	  std::cout<<"factor is "<<factor<<std::endl;
+	  int evtNo = evts_set[parti].size();
+	  for (Long64_t evtid=0; evtid<evtNo;evtid++) {
+		 D0KPI evt = evts_set[parti].at(evtid);
+		 evt.setCorrectionFactors(fk, factor);
+		 mass = evt.m();
+		 if (mass>D0low && mass<D0up){
+		   dataraw->Fill();
+		 }
+		 // if (Cut(ientry) < 0) continue;
+	  }
+
+	  char tmpchr[100];
+	  sprintf(tmpchr,"data_kpi_%02d",fittimes);
+	  //data_kpi = new RooDataHist(tmpchr,"data_kpi",x,h1);
+	  dataset = new RooDataSet(tmpchr,"dataset",dataraw,x);
+	  sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
+	  mean.setVal(peakvalue+0.4*(factor-1.0));
+	  Npar=8;
+	  //sigma.setVal(0.035);
+	  //signal.setVal(1200);
+	  //background.setVal(500);
+	  //co1.setVal(0);
+	  //co2.setVal(-0.2);
+	  sum->fitTo(*dataset,Range(D0low,D0up));
+	  dataset->plotOn(xframe);
+	  sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+	  sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
+	  sum->plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
+	  sum->plotOn(xframe);
+	  xframe->Draw();
+	  TPaveText *pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
+	//pt->SetBorderSize(0);
+	//pt->SetFillStyle(4000);
+	//pt->SetTextAlign(12);
+	//pt->SetTextFont(42);
+	//pt->SetTextSize(0.035);
+	  sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+	  pt->AddText(tmpchr);
+	  sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+	  pt->AddText(tmpchr);
+	  sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
+	  pt->AddText(tmpchr);
+	  sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+	  pt->AddText(tmpchr);
+	  sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+	  pt->AddText(tmpchr);
+	  sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+	  pt->AddText(tmpchr);
+	  sprintf(tmpchr,"#chi^{2}/(100-%d) = %5.6f",Npar,xframe->chiSquare(Npar));
+	  pt->AddText(tmpchr);
+	  sprintf(tmpchr,"factor = %.6f",factor);
+	  pt->AddText(tmpchr);
+	  pt->Draw();
+	  sprintf(tmpchr,"spe_at_%.6f",factor);
+	  c1->Write(tmpchr);
+	  //c1->Update();
+	  //c1->Print(fitepsname);
+	  delete dataset;
+	  delete xframe;
+	  delete sum;
+
+	  // save pars
+	  factors[i]=factor;
+	  factorserr[i]=0;
+	  deltapeaks[i] = mean.getVal() - peakvalue;
+	  deltapeakserr[i] = mean.getError();
+	  //if (deltapeakserr[i]<5e-5) deltapeakserr[i] = 1e-3;
+
+	  fittimes++;
+	  factor += factorstep;
+   }// loop n point
+   std::cout<<"entry is "<<nentries<<std::endl;
+   c1->Clear();
+   
+   TGraphErrors *graph1 = new TGraphErrors(pointNo,factors,deltapeaks,factorserr,deltapeakserr);
+   graph1->SetTitle("delta peak");
+   graph1->SetMarkerStyle(5);
+   graph1->Draw("AP");
+   gStyle->SetOptFit(1111);
+   facfit->SetParameters(1,1.);
+   graph1->Fit(facfit,"","",factors[0],factors[pointNo-1]);
+   
+   double a = facfit->GetParameter(0);
+   double ae= facfit->GetParError(0);
+   double b = facfit->GetParameter(1);
+   double be= facfit->GetParError(1);
+   factor = 1 - b/a;
+   double factorerr = sqrt(TMath::Power(ae/a,2)+TMath::Power(be/b,2))*fabs(b/a);
+   //factor =facfit->GetParameter(0);
+   //double factorerr=deltapeakserr[9]/facfit->GetParameter(1);
+   ofpar<<beamene<<'\t'<<setiosflags(ios::fixed)<<setprecision(6)<<factor<<"\t"<<factorerr<<"\t"<<facfit->GetParError(0)<<'\t'
+   <<"dE = "<< a <<"*(x-1) + "<< b<<", ae = "<< ae << " be = "<< be  << " perr  = " << deltapeakserr[(pointNo-1)/2]<<resetiosflags(ios::fixed)<<std::endl;
+   std::cout<<"parameter@"<<beamene<<'\t'<<factor<<"\t"<<factorerr<<"\t"<<facfit->GetParError(0)<<std::endl;
+   std::cout<<" deltapeakerr "<<deltapeakserr[9]<<" slope "<<facfit->GetParameter(1)<<std::endl;
+   purepar<<"\t"<<factor<<"\t"<<factorerr<<std::endl;
+   sprintf(name,"factors_kpi_part%d",parti);
+   graph1->SetName(name);
+   graph1->Write("de_fpi");
+
+   // draw the best fit
+   xframe = x.frame(Title("fit k pi"));
+   h1->Reset();
+   dataraw->Reset();
+   std::cout<<"factor is "<<factor<<std::endl;
+   int evtNo = evts_set[parti].size();
+   for (Long64_t jentry=0; jentry<evtNo;jentry++) {
+	 D0KPI evt = evts_set[parti].at(jentry);
+
+	 evt.setCorrectionFactors(fk, factor);
+	 mass = evt.m();
+	 if (mass>D0low && mass<D0up){
+	   dataraw->Fill();
+	 }
+	 // if (Cut(ientry) < 0) continue;
+   }
+	char tmpchr[100];
+	sprintf(tmpchr,"data_kpi");
+	//data_kpi = new RooDataHist(tmpchr,"data_kpi",x,h1);
+	dataset = new RooDataSet(tmpchr,"dataset",dataraw,x);
+	sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,bkg),RooArgList(signal,signal2,background));
+	mean.setVal(peakvalue+0.05*(factor-1.0));
+	Npar=8;
+	//sigma.setVal(0.035);
+	//signal.setVal(1200);
+	//background.setVal(200);
+	//co1.setVal(0);
+	//co2.setVal(-0.2);
+	sum->fitTo(*dataset,Range(D0low,D0up));
+	dataset->plotOn(xframe);
+	sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+	sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
+	sum->plotOn(xframe,Components(bkg),LineStyle(2),LineColor(3));
+	sum->plotOn(xframe);
+	xframe->Draw();
+	TPaveText *pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
+	sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+	pt->AddText(tmpchr);
+	sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+	pt->AddText(tmpchr);
+	sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
+	pt->AddText(tmpchr);
+	sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+	pt->AddText(tmpchr);
+	sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+	pt->AddText(tmpchr);
+	sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+	pt->AddText(tmpchr);
+	sprintf(tmpchr,"#chi^{2}/(100-%d) = %5.6f",Npar,xframe->chiSquare(Npar));
+	pt->AddText(tmpchr);
+	sprintf(tmpchr,"factor = %.6f #pm %.6f",factor,factorerr);
+	pt->AddText(tmpchr);
+	pt->Draw();
+	c1->Write("correctpi");
+	xframe->SetName(name);
+	xframe->Write();
+	delete dataset;
+	delete xframe;
+	delete sum;
+   
+   }// loop i end
    f->Close();
    ofpar.close();
    ofpardetail.close();
@@ -482,11 +613,11 @@ gepep_kpi::gepep_kpi(TTree *tree) : fChain(0)
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
    if (tree == 0) {
-      TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("data/RValue_kpi_3850.root");
-      if (!f || !f->IsOpen()) {
-         f = new TFile("data/RValue_kpi_3850.root");
-      }
-      f->GetObject("gepep_kpi",tree);
+	  TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("data/RValue_kpi_3850.root");
+	  if (!f || !f->IsOpen()) {
+		 f = new TFile("data/RValue_kpi_3850.root");
+	  }
+	  f->GetObject("gepep_kpi",tree);
 
    }
    Init(tree);
@@ -511,8 +642,8 @@ Long64_t gepep_kpi::LoadTree(Long64_t entry)
    Long64_t centry = fChain->LoadTree(entry);
    if (centry < 0) return centry;
    if (fChain->GetTreeNumber() != fCurrent) {
-      fCurrent = fChain->GetTreeNumber();
-      Notify();
+	  fCurrent = fChain->GetTreeNumber();
+	  Notify();
    }
    return centry;
 }

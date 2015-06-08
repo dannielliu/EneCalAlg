@@ -13,7 +13,7 @@
 #include "RooGaussian.h"
 #include "RooPolynomial.h"
 #include "RooCBShape.h"
-//#include "RooChebychev.h"
+  #include "RooChebychev.h"
 //#include "RooDataHist.h"
 #include "RooDataSet.h"
 #include "RooAddPdf.h"
@@ -21,8 +21,11 @@
 #include "RooPlot.h"
 #include "RooMsgService.h"
 #include <vector>
+#include <iomanip>
+#include <sstream>
 extern std::string outputdir;
 using namespace RooFit;
+using namespace std;
 namespace EEto6PI{
   void FitSpe(std::vector<EEto6pi> evts, double beame,  char* namesfx=0);
   void FitSpectrum(TTree *&dataraw, double beame, char* namesfx=0);
@@ -74,7 +77,7 @@ void gepep_fast6pi::Loop()
    double mpi=0.13957;
     
   char fname[1000];
-  sprintf(fname,"%s/plot_6pi.root",outputdir.c_str());
+  sprintf(fname,"%s/plot_6pi_DDbar.root",outputdir.c_str());
   TFile *f=new TFile(fname,"RECREATE");
 
   char name[100];
@@ -103,7 +106,13 @@ void gepep_fast6pi::Loop()
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;	  
 	  //if (run > 30367) break;
-	  evt.Setval(pippx,pippy,pippz,pimpx,pimpy,pimpz);
+	 	  
+   if (beamene == 4.26){
+   	if (run < 30368) continue;
+   }
+
+
+	 evt.Setval(pippx,pippy,pippz,pimpx,pimpy,pimpz);
       mass = evt.InvMass();
 	  bool good=true;;
       for (int i=0; i<6;i++) {
@@ -142,7 +151,7 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
   // iniialize the fit function
   //double factor4,factor4err;// for pi
  
-  int Npart=1;
+  int Npart=2;
   double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
 		  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
    //pcut[0]=0.1;
@@ -201,8 +210,10 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
 // pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
 // pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
 // pcut[20]=2.00;  //facmap[20]=2.00;
-   pcut[0] = 0.0;  facmap[0] = 1.000815; facemap[0] = 1.000815-1.00061;
-   pcut[1] = 2.0;
+   pcut[0] = 0.0;  facmap[0] = 1.000902; facemap[0] = 0.000077;
+   pcut[1] = 0.4;  facmap[1] = 1.000769; facemap[1] = 0.000117;
+   pcut[2] = 2.0;
+
 
 /*
 // factor from Ks dl/dle <2 & >1
@@ -233,6 +244,38 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
   // psi 3.097
      
   char tmpchr[100];
+  double fpilow=0, fpih=0, fpier = 0;
+  ifstream inpar("CORF");
+  if (inpar.is_open()){
+    string line;
+    istringstream isstream;
+    while (!inpar.eof()){
+      getline(inpar,line);
+      if (line[0]=='#' || line[0]==' ') continue;
+      isstream.str(line.c_str());
+      sprintf(tmpchr,"%s",line.c_str());
+      if (strncmp(tmpchr,"f pi",4) == 0){
+        isstream.read(tmpchr,4);
+	while (!isstream.eof()){
+	  isstream >> line;
+	  if (line == ":") {
+	    isstream >> fpih;
+	    isstream >> line;
+	    isstream >> fpier;
+	    break;
+	  }
+	}
+      }
+    }
+    if (fpih ==0 ){
+      std::cout<<" Can not find suitable correction factor in file: CORF"<<std::endl;
+    }
+    else{
+       facmap[1] = fpih; facemap[1] = fpier;
+    }
+  }
+  std::cout << "fpih = " << fpih << ", fer = " << fpier << std::endl;
+  inpar.close();
 
   //~~~~~~~~~~part start~~~~~~~~
 
@@ -249,13 +292,13 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
 	 for (int i=0;i<6;i++) p[i] = evts.at(jentry).GetP(i);
 
      short flag = 0x0;
-	 for (int pid=0;pid<6;pid++){
+     for (int pid=0;pid<6;pid++){
        for (int i=0;i<Npart;i++){
          if (p[pid]>=pcut[i]&&p[pid]<pcut[i+1]){
            f[pid]  = facmap[i];
            fl[pid] = facmap[i]-facemap[i];
            fu[pid] = facmap[i]+facemap[i];
-		   flag = (flag<<1) +1; //if factor find, the flag should be 00111111
+	   flag = (flag<<1) +1; //if factor find, the flag should be 00111111
            break;
          }
        }
@@ -287,9 +330,9 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
   sprintf(tmpchr,"low_%s",namesfx);
   EEto6PI::FitSpectrum(datarawl,beame,tmpchr);
 
-//// factor at up edge
-//sprintf(tmpchr,"upv_%s",namesfx);
-//EEto6PI::FitSpectrum(datarawu,beame,tmpchr);
+  // factor at up edge
+  sprintf(tmpchr,"upv_%s",namesfx);
+  EEto6PI::FitSpectrum(datarawu,beame,tmpchr);
 
   //~~~~~~~~~~ part end~~~~~~~~
   return;
@@ -300,26 +343,28 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    int nBins=100;
    int Npar;
    double peakvalue = beame;
-   double beamlow=beame-0.12;
-   double beamup=beame+0.12;
+   double beamlow=beame-0.15;
+   double beamup=beame+0.10;
    // try to use roofit
    RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
-   RooRealVar mean("mean","mean of gaussian",peakvalue-0.001,beamlow,beamup);
+   RooRealVar mean("mean","mean of gaussian",peakvalue-0.002,beamlow,beamup);
    RooRealVar sigma("sigma","width of gaussian",0.01,0.005,0.02);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
-   //RooRealVar co1("co1","coefficient #1",0,-100.,100.);
-   //RooRealVar co4("co4","coefficient #4",0);
-   //RooChebychev bkg("bkg","background",x,RooArgList(co1));
+     RooRealVar co1("co1","coefficient #1",-1,-100.,100.);
+     RooRealVar co2("co2","coefficient #1",0,-100.,100.);
+     RooRealVar co3("co3","coefficient #1",0,-100.,100.);
+     RooRealVar co4("co4","coefficient #4",0);
+     RooChebychev ground("ground","background",x,RooArgList(co1,co2,co3));
    RooRealVar signal("signal"," ",200,0,1000000);//event number
    RooRealVar background("background"," ",20,0,100000);
-   RooRealVar a0("a0","coefficient #0",100,-100000,100000);
-   RooRealVar a1("a1","coefficient #1",-10,-100000,100000);
-   RooRealVar a2("a2","coefficient #2",0,-100000,100000);
+ //RooRealVar a0("a0","coefficient #0",100,-100000,100000);
+ //RooRealVar a1("a1","coefficient #1",-10,-100000,100000);
+ //RooRealVar a2("a2","coefficient #2",0,-100000,100000);
    //RooRealVar a3("a3","coefficient #2",0,-100000,100000);
-   RooPolynomial ground("ground","ground",x,RooArgList(a0,a1,a2));
+ //RooPolynomial ground("ground","ground",x,RooArgList(a0,a1,a2));
      
-   RooRealVar alpha1("alpha1","#alpha",1.32,-5,5);
-   RooRealVar nnn1("n1","n",5,1,200);
+   RooRealVar alpha1("alpha1","#alpha",1.,-5,5);
+   RooRealVar nnn1("n1","n",40,1,200);
    RooCBShape cbshape1("cbshape1","crystal ball",x,mean,sigma,alpha1,nnn1);
 
    RooAddPdf *sum;
@@ -328,8 +373,8 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    //RooDataHist *data_6pi;
  
    RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
-   TCanvas *c1=new TCanvas("","",800,600);
-	 
+   TCanvas *c1 = new TCanvas("","",800,600);
+
    char tmpchr[100];
    sprintf(tmpchr,"data_6pi_%s",namesfx);
    //data_6pi = new RooDataHist(tmpchr,"data_6pi",x,h);

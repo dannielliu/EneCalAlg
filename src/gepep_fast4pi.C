@@ -6,7 +6,30 @@
 #include <TMath.h>
 #include <TF1.h>
 #include "function.h"
+#include "EventClass.h"
 #include <fstream>
+#include "TGraphErrors.h"
+#include "TPaveText.h"
+#include "RooFit.h"
+#include "RooRealVar.h"
+#include "RooGaussian.h"
+#include "RooCBShape.h"
+#include "RooChebychev.h"
+#include "RooPolynomial.h"
+#include "RooDataHist.h"
+#include "RooDataSet.h"
+#include "RooAddPdf.h"
+#include "RooArgList.h"
+#include "RooPlot.h"
+//#include <iostream>
+extern std::string outputdir;
+using namespace RooFit;
+
+namespace PIPIKK{
+  void FitSpe(std::vector<PiPiKK> &evts, double beame,  char* namesfx);
+  void FitSpectrum(TTree *&dataraw,double beame, char* namesfx);
+  //double GetEnergy(int runNo);
+}
 
 void gepep_fast4pi::Loop()
 {
@@ -34,21 +57,38 @@ void gepep_fast4pi::Loop()
 //    fChain->GetEntry(jentry);       //read all branches
 //by  b_branchname->GetEntry(ientry); //read only this branch
    if (fChain == 0) return;
-   TH1D *h = new TH1D("h","invariant mass",100,3.,4.);
-   double factore,factoreerr;
-   double factorpi,factorpierr;
-   double me=0.000511;
-   double mmu=0.105658;
-   double mpi=0.13957;
-   
-   ifstream f;
-   f.open("par.txt");
-   f >> factore >> factoreerr;
-   f >> factorpi>> factorpierr;
-   f.close();
-   //factorpi =1.0;
-   std::cout<<"factor is "<<factorpi<<std::endl;
    Long64_t nentries = fChain->GetEntriesFast();
+   
+   fChain->GetEntry(1);
+   double beamene = GetEnergy(run);
+
+   //TH1D *h = new TH1D("h","invariant mass",100,3.,4.);
+   double mpi = 0.13957;
+   double mka = 0.493677;
+  
+  char fname[1000];
+  sprintf(fname,"%s/plot_kkpipi_nopid.root",outputdir.c_str());
+  TFile *f=new TFile(fname,"RECREATE");
+  
+  TTree *vars = new TTree("vars","vars");
+  double mass;
+  //double phi,phi1,phi2;
+  //double costheta,costheta1,costheta2;
+  double ppi1,ppi2,pk1,pk2;
+  double cospi1,cospi2,coska1,coska2;
+  vars->Branch("ppi1",&ppi1,"ppi1/D");
+  vars->Branch("ppi2",&ppi2,"ppi2/D");
+  vars->Branch("pk1",&pk1,"pk1/D");
+  vars->Branch("pk2",&pk2,"pk2/D");
+  vars->Branch("cospi1",&cospi1,"cospi1/D");
+  vars->Branch("cospi2",&cospi2,"cospi2/D");
+  vars->Branch("coska1",&coska1,"coska1/D");
+  vars->Branch("coska2",&coska2,"coska2/D");
+  vars->Branch("mass",&mass,"mass/D");
+
+
+   std::vector<PiPiKK> evts;
+   //std::cout<<"factor is "<<factorpi<<std::endl;
 
    Long64_t nbytes = 0, nb = 0;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
@@ -56,36 +96,257 @@ void gepep_fast4pi::Loop()
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;
-	  
-	  double totpx,totpy,totpz,tote;
-	  double pie[4];
-	  double mass;
-	  totpx = factorpi*factorpi*(pippx[0]+pippx[1]+pimpx[0]+pimpx[1]);
-	  totpy = factorpi*factorpi*(pippy[0]+pippy[1]+pimpy[0]+pimpy[1]);
-	  totpz = factorpi*factorpi*(pippz[0]+pippz[1]+pimpz[0]+pimpz[1]);
-	  pie[0]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pippx[0]*pippx[0]+pippy[0]*pippy[0]+pippz[0]*pippz[0]) );
-	  pie[1]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pippx[1]*pippx[1]+pippy[1]*pippy[1]+pippz[1]*pippz[1]) );
-	  pie[2]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pimpx[0]*pimpx[0]+pimpy[0]*pimpy[0]+pimpz[0]*pimpz[0]) );
-	  pie[3]=TMath::Sqrt(mpi*mpi+
-	         factorpi*factorpi*(pimpx[1]*pimpx[1]+pimpy[1]*pimpy[1]+pimpz[1]*pimpz[1]) );
-	  tote  = pie[0] +pie[1] +pie[2] +pie[3];
-	  mass = TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
-	  h->Fill(mass);
-   }
 
-   TCanvas *c1=new TCanvas("","",800,600);
-   gStyle->SetOptStat(0);
-   gStyle->SetOptFit(1111);
-   TF1 *fit=new TF1("fit",GausLineBack,3.75,4.0);
-   fit->SetParameters(1,3.8,0.02,10,1);
-   //h->Fit(fit,"","",3.75,4.0);
-   h->Draw();
-   h->Fit("gaus","","",3.75,4.0);
-   c1->Print("f4pi.eps");
+      PiPiKK evt;
+      HepLorentzVector pip,pim,kap,kam;
+      double deltamass1, deltamass2;
+
+//////pip.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mpi);
+//////kap.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mpi);
+//////pim.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mpi);
+//////kam.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mpi);
+//////evt.set(pip,pim,kap,kam);
+
+      pip.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mpi);
+      kap.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mka);
+      pim.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mpi);
+      kam.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mka);
+      evt.set(pip,pim,kap,kam);
+      deltamass1 = evt.m() - beamene;
+
+      pip.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mpi);
+      kap.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mka);
+      pim.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mpi);
+      kam.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mka);
+      deltamass2 = (pip+pim+kap+kam).m() - beamene;
+      if (fabs(deltamass2) < fabs(deltamass1)){
+          evt.set(pip,pim,kap,kam);
+          deltamass1 = deltamass2;
+      }
+
+      pip.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mpi);
+      kap.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mka);
+      pim.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mpi);
+      kam.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mka);
+      deltamass2 = (pip+pim+kap+kam).m() - beamene;
+      if (fabs(deltamass2) < fabs(deltamass1)){
+          evt.set(pip,pim,kap,kam);
+          deltamass1 = deltamass2;
+      }
+
+      pip.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mpi);
+      kap.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mka);
+      pim.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mpi);
+      kam.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mka);
+      deltamass2 = (pip+pim+kap+kam).m() - beamene;
+      if (fabs(deltamass2) < fabs(deltamass1)){
+          evt.set(pip,pim,kap,kam);
+          deltamass1 = deltamass2;
+      }
+      
+      ppi1 = evt.pip.rho();
+      ppi2 = evt.pim.rho();
+      pk1  = evt.kap.rho();
+      pk1  = evt.kam.rho();
+      cospi1 = evt.pip.cosTheta();
+      cospi2 = evt.pim.cosTheta();
+      coska1 = evt.kap.cosTheta();
+      coska2 = evt.kam.cosTheta();
+      mass = evt.m();
+      vars->Fill();
+
+      evts.push_back(evt);
+
+   }
+   vars->Write();
+   
+   PIPIKK::FitSpe(evts,beamene,0);
+
 }
+
+void PIPIKK::FitSpe(std::vector<PiPiKK> &evts, double beame, char *namesfx)
+{
+  double beamlow= beame-0.5;
+  double beamup = beame+0.5;
+  // for factor fit
+ 
+  TTree *datarawo = new TTree("datarawo","dataraw");
+  TTree *dataraw = new TTree("dataraw","dataraw");
+  TTree *datarawl = new TTree("datarawl","dataraw");
+//TTree *datarawu = new TTree("datarawu","dataraw");
+  double mass;
+  datarawo->Branch("x",&mass,"x/D");
+  dataraw->Branch("x",&mass,"x/D");
+  datarawl->Branch("x",&mass,"x/D");
+//datarawu->Branch("x",&mass,"x/D");
+ 
+  // try to correct the spectrum
+  // iniialize the fit function
+  //double factor4,factor4err;// for pi
+ 
+  //int Npart=20;
+  //double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
+		  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
+   //pcut[0]=0.1;
+   //pcut[1]=0.4;
+   //pcut[2]=0.9;
+   //double facmap[Npart];
+   //double facemap[Npart];
+
+   //  set normal factor in (0.2, 0.3) to 1.00061, get factor in different range
+//  only for r value data, combine both part
+// factor from Ks->pipi, pi corrected with vertex fit , low p range use factor from pipill
+     
+  char tmpchr[100];
+
+  //~~~~~~~~~~part start~~~~~~~~
+
+  for (Long64_t jentry=0; jentry<evts.size();jentry++) {
+     // total invariant mass
+	 // without correction
+     PiPiKK evt = evts.at(jentry);
+
+     mass = evt.m();
+     if (mass>beamlow-0.001 && mass<beamup+0.001) datarawo->Fill();
+     double fpi1 = 1.000769;
+     double fpi2 = 1.000769;
+     if (evt.pip.rho()<0.4) fpi1 = 1.000902;
+     if (evt.pim.rho()<0.4) fpi2 = 1.000902;
+     double fk  = 1.000257;
+     evt.setCorrectionFactors(fpi1,fpi2,fk,fk);
+     mass = evt.m();
+     if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
+   //fpi = 1.00061; fk = 1.00061  ;
+   //mass = evts.at(jentry).InvMass(fpi,fpi,fk,fk);
+   //if (mass>beamlow-0.001 && mass<beamup+0.001) datarawl->Fill();
+  }
+  //dataraw->Write();
+  // no correction
+  sprintf(tmpchr,"raw_%s",namesfx);
+  PIPIKK::FitSpectrum(datarawo,beame,tmpchr);
+  
+//sprintf(tmpchr,"cor_%s",namesfx);
+//PIPIKK::FitSpectrum(dataraw,beame,tmpchr);
+  
+  //~~~~~~~~~~ part end~~~~~~~~
+  return;
+}
+
+void PIPIKK::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
+{
+   int nBins=100;
+   bool largesample = false;
+   if (dataraw->GetEntries()>10000) largesample = true;
+   int Npar;
+   double peakvalue = beame;
+   double beamlow   = beame - 0.15;
+   double beamup    = beame + 0.15;
+   // try to use roofit
+   RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
+   RooRealVar mean("mean","mean of gaussian",peakvalue-0.005,beamlow,beamup);
+   RooRealVar sigma("sigma","width of gaussian",0.030,0.005,0.05);
+   RooRealVar sigma2("sigma2","width of gaussian",0.025,0.025,0.05);
+   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
+   RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
+     RooRealVar co1("co1","coefficient #1",0,-100.,100.);
+     RooRealVar co2("co2","coefficient #2",0,-100.,100.);
+     RooRealVar co3("co3","coefficient #3",0,-100.,100.);
+     RooRealVar co4("co4","coefficient #4",0);
+     RooChebychev ground("bkg","background",x,RooArgList(co1,co2,co3));
+   RooRealVar signal("signal"," ",200,0,10000000);//event number
+   RooRealVar signal2("signal2"," ",200,0,10000000);//event number
+   RooRealVar background("background"," ",200,0,1000000);
+// RooRealVar a0("a0","coefficient #0",100,-100000,100000);
+// RooRealVar a1("a1","coefficient #1",100,-100000,100000);
+// RooRealVar a2("a2","coefficient #2",10,-100000,100000);
+// RooRealVar a3("a3","coefficient #3",8,-100000,100000);
+// RooPolynomial ground("ground","ground",x,RooArgList(a0,a1,a2,a3));
+     
+   RooRealVar alpha1("alpha1","#alpha",1.32,-5,5);
+   RooRealVar nnn1("n1","n",5,1,200);
+   RooCBShape cbshape1("cbshape1","crystal ball",x,mean,sigma,alpha1,nnn1);
+   
+   RooAddPdf *sum;
+   RooDataSet *dataset;
+   RooPlot *xframe;
+   //RooDataHist *data_6pi;
+ 
+   RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
+   TCanvas *c1=new TCanvas("","",800,600);
+	 
+   char tmpchr[100];
+   sprintf(tmpchr,"data_kkpipi_%s",namesfx);
+   //data_6pi = new RooDataHist(tmpchr,"data_6pi",x,h);
+   xframe = x.frame(Title("fit kkpipi"));
+   dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
+   //if (!largesample) {
+     sum = new RooAddPdf("sum","sum",RooArgList(cbshape1,ground),RooArgList(signal,background));
+     //sum = new RooAddPdf("sum","sum",RooArgList(cbshape1,ground),RooArgList(signal,background));
+     Npar = 8;
+   //}
+   //else {
+     //sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
+     //sum = new RooAddPdf("sum","sum",RooArgList(cbshape1,gaus2,ground),RooArgList(signal,signal2,background));
+     //Npar=10;
+   //}
+   //sigma.setVal(0.035);
+   //signal.setVal(1200);
+   //background.setVal(200);
+   //co1.setVal(0);
+   sum->fitTo(*dataset,Range(beamlow,beamup));
+   //sum->fitTo(*dataset,Range(beame-0.05,beame+0.03));
+   //sum->fitTo(*dataset,Range(4.22,4.28));
+   dataset->plotOn(xframe);
+   sum->plotOn(xframe,Components(cbshape1),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(ground),LineStyle(2),LineColor(3));
+   //if (dataraw->GetEntries()>2000) sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(4));
+   sum->plotOn(xframe);
+   xframe->Draw();
+  TPaveText *pt = new TPaveText(0.60,0.5,0.90,0.90,"BRNDC");
+  pt->SetBorderSize(0);
+  pt->SetFillStyle(4000);
+  pt->SetTextAlign(12);
+  pt->SetTextFont(42);
+  pt->SetTextSize(0.035);
+  sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+  pt->AddText(tmpchr);
+//if (largesample){
+//  sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
+//  pt->AddText(tmpchr);
+//}
+  sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+  pt->AddText(tmpchr);
+ // if (largesample){
+   // sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+   // pt->AddText(tmpchr);
+  //}
+  sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
+  pt->AddText(tmpchr);
+  pt->Draw();
+  sprintf(tmpchr,"mass_spectrum_%s",namesfx);
+  c1->SetName(tmpchr);
+  c1->Write();
+
+   ofstream outf("fkkpipi",std::ios::app);
+   outf<<beame<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+   
+   //c1->Print("fit6pi.eps");
+   //delete data_6pi;
+   delete xframe;
+   delete dataset;
+   delete sum;
+   return;
+}
+
+
+
+
+
+
 
 #ifdef gepep_fast4pi_cxx
 gepep_fast4pi::gepep_fast4pi(TTree *tree) : fChain(0) 

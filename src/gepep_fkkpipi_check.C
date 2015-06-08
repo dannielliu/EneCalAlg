@@ -8,6 +8,7 @@
 #include "TGraphErrors.h"
 #include "TPaveText.h"
 #include <fstream>
+#include <sstream>
 #include "RooFit.h"
 #include "RooRealVar.h"
 #include "RooGaussian.h"
@@ -19,9 +20,11 @@
 #include "RooAddPdf.h"
 #include "RooArgList.h"
 #include "RooPlot.h"
-//#include <iostream>
+#include <iomanip>
+
 extern std::string outputdir;
 using namespace RooFit;
+using namespace std;
 namespace KKPIPI{
   void FitSpe(std::vector<KKpipi> &evts, double beame,  char* namesfx);
   void FitSpectrum(TTree *&dataraw,double beame, char* namesfx);
@@ -69,8 +72,8 @@ void gepep_fkkpipi::Loop()
    std::cout<<"Toral entry is "<<nentries<<std::endl;
    int nBins=100;
    double peakvalue=beamene;// mbeam
-   double beamlow=beamene-0.25;
-   double beamup=beamene+0.25;
+   double beamlow=beamene-0.2;
+   double beamup=beamene+0.2;
    double mpi=0.13957;
    double mk = 0.493677;
     
@@ -103,14 +106,20 @@ void gepep_fkkpipi::Loop()
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;	  
 	  
+   if (beamene == 4.26){
+   	if (run < 30368) continue;
+   }
+
 	  evt.SetVal(pippx,pippy,pippz,pimpx,pimpy,pimpz,
 	             kappx,kappy,kappz,kampx,kampy,kampz);
-      mass = evt.InvMass();
+          mass = evt.InvMass();
 	  ppi1 = evt.GetP1pi();
 	  ppi2 = evt.GetP2pi();
 	  pk1 = evt.GetP1k();
 	  pk2 = evt.GetP2k();
 	  chisq = kkm4;
+	  //if (pk1>1.3) continue;
+	  //if (pk2>1.3) continue;
 	  if (mass>beamlow && mass<beamup){
 	    //mass = mass/beamene;  Ecorrected/Enomial
 	    vars->Fill();
@@ -160,19 +169,60 @@ void KKPIPI::FitSpe(std::vector<KKpipi> &evts, double beame, char *namesfx)
   char tmpchr[100];
 
   //~~~~~~~~~~part start~~~~~~~~
+  double fpilow=0, fpih=0;
+  double fk=0;
+  ifstream inpar("CORF");
+  if (inpar.is_open()){
+    string line;
+    istringstream isstream;
+    while (!inpar.eof()){
+      getline(inpar,line);
+      if (line[0]=='#' || line[0]==' ') continue;
+      isstream.str(line.c_str());
+      sprintf(tmpchr,"%s",line.c_str());
+      if (strncmp(tmpchr,"f pi",4) == 0){
+        isstream.read(tmpchr,4);
+	while (!isstream.eof()){
+	  isstream >> line;
+	  if (line == ":") {isstream >> fpih; break;}
+	}
+      }
+      if (strncmp(tmpchr,"f k",3) == 0){
+        isstream.read(tmpchr,3);
+	while (!isstream.eof()){
+	  isstream >> line;
+	  if (line == ":") {isstream >> fk; break;}
+	}
+      }
+    }
+    if (fpih ==0 || fk==0){
+      std::cout<<" Can not find suitable correction factor in file: CORF"<<std::endl;
+    }
+  }
+  else {
+    std::cout<< " Can not open: CORF, will use defalut value"<<std::endl;
+    fpih = 1.000769;
+    fk = 1.000257;
+  }
+  std::cout << "fpih = " << fpih << ", fk = " << fk << std::endl;
+  inpar.close();
+  fpilow = 1.000902;
 
   for (Long64_t jentry=0; jentry<evts.size();jentry++) {
      // total invariant mass
 	 // without correction
-	 double fpi = 1.000815;
-	 double fk  = 1.000815;
+
      mass = evts.at(jentry).InvMass();
      if (mass>beamlow-0.001 && mass<beamup+0.001) datarawo->Fill();
-     mass = evts.at(jentry).InvMass(fpi,fpi,fk,fk);
+     double fpi1 = fpih;
+     double fpi2 = fpih;
+     if (evts.at(jentry).GetP1pi()<0.4) fpi1 = fpilow;
+     if (evts.at(jentry).GetP2pi()<0.4) fpi2 = fpilow;
+     mass = evts.at(jentry).InvMass(fpi1,fpi2,fk,fk);
      if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
-	 fpi = 1.00061; fk = 1.00061  ;
-     mass = evts.at(jentry).InvMass(fpi,fpi,fk,fk);
-     if (mass>beamlow-0.001 && mass<beamup+0.001) datarawl->Fill();
+   //fpi = 1.00061; fk = 1.00061  ;
+   //mass = evts.at(jentry).InvMass(fpi,fpi,fk,fk);
+   //if (mass>beamlow-0.001 && mass<beamup+0.001) datarawl->Fill();
   }
   //dataraw->Write();
   // no correction
@@ -182,8 +232,8 @@ void KKPIPI::FitSpe(std::vector<KKpipi> &evts, double beame, char *namesfx)
   sprintf(tmpchr,"cor_%s",namesfx);
   KKPIPI::FitSpectrum(dataraw,beame,tmpchr);
   
-  sprintf(tmpchr,"low_%s",namesfx);
-  KKPIPI::FitSpectrum(datarawl,beame,tmpchr);
+//sprintf(tmpchr,"low_%s",namesfx);
+//KKPIPI::FitSpectrum(datarawl,beame,tmpchr);
   //~~~~~~~~~~ part end~~~~~~~~
   return;
 }
@@ -195,12 +245,12 @@ void KKPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    if (dataraw->GetEntries()>10000) largesample = true;
    int Npar;
    double peakvalue = beame;
-   double beamlow=beame-0.2;
-   double beamup=beame+0.2;
+   double beamlow=beame-0.15;
+   double beamup=beame+0.15;
    // try to use roofit
    RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
    RooRealVar mean("mean","mean of gaussian",peakvalue,beamlow,beamup);
-   RooRealVar sigma("sigma","width of gaussian",0.014,0.005,0.02);
+   RooRealVar sigma("sigma","width of gaussian",0.014,0.005,0.20);
    RooRealVar sigma2("sigma2","width of gaussian",0.022,0.02,0.05);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
    RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
@@ -249,6 +299,7 @@ void KKPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    //sum->fitTo(*dataset,Range(4.22,4.28));
    dataset->plotOn(xframe);
    sum->plotOn(xframe,Components(cbshape1),LineStyle(2),LineColor(2));
+   //sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
    sum->plotOn(xframe,Components(ground),LineStyle(2),LineColor(3));
    if (dataraw->GetEntries()>2000) sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(4));
    sum->plotOn(xframe);

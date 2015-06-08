@@ -8,6 +8,7 @@
 #include "gepep_kpipi.h"
 #include "gepep_pipipp.h"
 #include "gepep_npi.h"
+#include "mumu.h"
 #include "Ks0Alg.h"
 //#include "TFile.h"
 #include <string>
@@ -43,6 +44,7 @@ int main(int argc,char **argv)
   bool usekpipi=false;
   bool usepipipp=false;
   bool usenpi=false;
+  bool usemumu=false;
   bool useKs0Alg=false;
   usefpipill = ( filename.find("fpipill")   != std::string::npos
               || filename.find("fastpipill")!= std::string::npos);
@@ -51,17 +53,19 @@ int main(int argc,char **argv)
   usef6pi    = ( filename.find("f6pi")      != std::string::npos
               || filename.find("fast6pi")   != std::string::npos);
   usefkkpipi = ( filename.find("fkkpipi")   != std::string::npos
-              || filename.find("fastkkpipi")!= std::string::npos);
-  usekk      = ( filename.find("kk")   != std::string::npos
-              || filename.find("kk")!= std::string::npos);
+              || filename.find("fastkkpipi")!= std::string::npos
+              || filename.find("kkpipi")    != std::string::npos);
+  usekk      = ( filename.find("_kk_")   != std::string::npos
+              || filename.find("_kk.")!= std::string::npos);
   usekpipi   = ( filename.find("_kpipi")   != std::string::npos
               || filename.find("_kpipi")!= std::string::npos);
   usepipipp  = ( filename.find("pipipp")   != std::string::npos
               || filename.find("pipipp")!= std::string::npos);
-  usekpi     = ( filename.find("kpi")   != std::string::npos
-              || filename.find("kpi")!= std::string::npos);
+  usekpi     = ( filename.find("kpi_")   != std::string::npos
+              || filename.find("kpi.")!= std::string::npos);
   usenpi     = ( filename.find("npi")   != std::string::npos
               || filename.find("npi")!= std::string::npos);
+  usemumu    = ( filename.find("mumu")   != std::string::npos);
   useKs0Alg  = ( filename.find("Ksto2pi")   != std::string::npos
 	          || filename.find("Ks")      != std::string::npos);
 
@@ -72,7 +76,7 @@ int main(int argc,char **argv)
   }
   else if( usef4pi ){
     gepep_fast4pi *a;
-    analysis(a,filename, "gepep_fast4pi");
+    analysis(a,filename, "gepep_fast4pi_v2");
   }
   else if( usef6pi){
     gepep_fast6pi *a;
@@ -101,6 +105,10 @@ int main(int argc,char **argv)
   else if( usenpi){
     gepep_npi *a;
     analysis(a,filename, "gepep_2pi");
+  }
+  else if( usemumu){
+    mumu *a;
+    analysis(a,filename, "mumu");
   }
   else if( useKs0Alg){
     Ks0Alg *a;

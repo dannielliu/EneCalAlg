@@ -318,177 +318,50 @@ bool gepep_fastpipill::Loop()
   char tmpchr[100];
 
   // ~~~~~~~~~lepton part
-/*
+
   std::cout<<"lepton part start"<<std::endl;
   // iniialize the fit function
-  
-  for (int loopj=0;loopj<partmap.size();loopj++){
-    int partj = partmap.at(loopj);
-    double factori=1.00;
-    factor=factorstart;
-    factori=factor;
-    fittimes=0;
- 
-    // for saving the fit result
-    //c1->Print(fiteps2_start.c_str());
-    //
-    //x.setVal(3.686);
-    x.setRange(psilow,psiup);
-    mean.setRange(psilow,psiup);
-    mean.setVal(3.097);
-    sigma.setRange(0.001,0.025);
-    sigma.setVal(0.0015);
-    //sigma2.setRange(0.003,0.08);
-    //sigma2.setVal(0.004);
-    
-    double factors2[pointNo];
-    double factorserr2[pointNo];
-    double deltapeaks2[pointNo];
-    double deltapeakserr2[pointNo];
-    for (int i=0;i<pointNo;i++){
-      //delete xframe;
-      xframe = x.frame(Title("fit pi"));
-      //h5->Reset();
-      dataraw->Reset();
-      std::cout<<"factor is "<<factor<<std::endl;
-      for (Long64_t jentry=0; jentry<evts.size();jentry++) {
-        Long64_t ientry = LoadTree(jentry);
-        if (ientry < 0) break;
-        nb = fChain->GetEntry(jentry);   nbytes += nb;
- 
-        //if(ngam>0) continue;
-        double mlepton;
-        // total invariant mass
-        p1 = evts.at(jentry).GetP1();
-        p2 = evts.at(jentry).GetP2();
-        if (!(p1>pcut[partj] && p1<pcut[partj+1])) continue;
-        if (!(p2>pcut[partj] && p2<pcut[partj+1])) continue;
-        mass = evts.at(jentry).InvMass(factor,factor);
-		//h5->Fill(mass);
+  // try to use roofit
+  RooRealVar xx("xx","energy",psilow,psiup,"GeV");
+  RooRealVar meanx("meanx","mean of gaussian",3.097,psilow,psiup);
+  RooRealVar sigmax("sigmax","width of gaussian",0.017,0.001,0.03);
+  RooRealVar sigmax2("sigmax2","width of gaussian",0.035,0.03,0.05);
+  RooGaussian gausx("gausx","gauss(x,m,s)",xx,meanx,sigmax);
+  RooGaussian gausx2("gausx2","gauss(x,m,s)",xx,meanx,sigmax2);
 
-        if (mass>psilow && mass<psiup){
-          dataraw->Fill();
-        }
-        // if (Cut(ientry) < 0) continue;
-      }
-      //dataraw->Write();
-      
-      sprintf(tmpchr,"data_pi_%2d",fittimes);
-      //dataset = new RooDataSet(tmpchr,"data",dataraw,x);
-      dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
-      //mean.setVal(3.686+0.44*(factor-1.0));
-      signal.setError(10);
-      signal2.setError(10);
-      background.setError(10);
-      sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
-      Npar=8;
-      sum->fitTo(*dataset,Range(psilow,psiup));
-      //data_pi->plotOn(xframe);
-      dataset->plotOn(xframe,Binning(nBins));
-      sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-      sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
-      sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
-      sum->plotOn(xframe);
-      xframe->Draw();
-      TPaveText *pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
-      pt->SetBorderSize(0);
-      pt->SetFillStyle(4000);
-      pt->SetTextAlign(12);
-      pt->SetTextFont(42);
-      pt->SetTextSize(0.035);
-      sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
-      pt->AddText(tmpchr);
-      pt->Draw();
-      c1->Update();
-      sprintf(tmpchr,"mass_pi_%2d",fittimes);
-      xframe->SetName(tmpchr);
-      //xframe->Write();
-	  //folder->Add(xframe);
-      // save pars
-      factors2[i]=factor;
-      factorserr2[i]=0;
-      deltapeaks2[i] = mean.getVal() - peakvalue;
-      deltapeakserr2[i] = mean.getError();
-      if (deltapeakserr2[i]<1e-5) deltapeakserr2[i]=5e-4;
-      sprintf(name,"part%d_fitFor%dTimes",partj,fittimes);
-      c1->SetName(name);
-      c1->Write();
-	  //folder->Add(c1);
-	  //folder->Write();
-	  //delete folder;
-      delete sum;
-      delete dataset;
-      delete xframe;
+  RooRealVar signalx("signalx"," ",500,0,1000000);//event number
+  RooRealVar signalx2("signalx2"," ",100,0,1000000);//event number
+  RooRealVar backgroundx("backgroundx"," ",10,0,1000000);
+  //RooAddPdf sum("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
+  
+  RooRealVar a0x("a0x","coefficient #0",100,-100000,100000);
+  RooRealVar a1x("a1x","coefficient #1",-1,-100000,100000);
+  RooPolynomial groundx("groundx","ground",xx,RooArgList(a0x,a1x));
+  
+  TTree *datarawx = new TTree("datarawx","dataraw");
+  datarawx->Branch("xx",&mass,"xx/D");
  
-      fittimes++;
-      factor += factorstep;
-      factori = factor;
-    }
-    //c1->Print(fiteps2_stop.c_str());
- 
-    c1->Clear();
-    TGraphErrors *graph3 = new TGraphErrors(pointNo,factors2,deltapeaks2,factorserr2,deltapeakserr2);
-    graph3->SetTitle("delta peak");
-    graph3->Draw("AP");
-    graph3->SetMarkerStyle(5);
-    gStyle->SetOptFit(1111);
-    facfit->SetParameters(1,0.4);
-    facfit->SetParNames("factor","slope");
-    graph3->Fit(facfit,"","",factors2[0],factors2[pointNo-1]);
-    factor4=facfit->GetParameter(0);
- 
-    tmpstr=outputdir+"/factorpi.eps";
-    //c1->Print(tmpstr.c_str());
-	sprintf(name,"factors_pi_part%d",fittimes);
-    graph3->SetName(name);
-    graph3->Write();
- 
+
     //delete xframe;
-    xframe = x.frame(Title("fit pi"));
-    dataraw->Reset();
-    factor = factor4;
-    factori = factor;
-    //factor = 1;
-    std::cout<<"factor is "<<factor<<std::endl;
-    for (Long64_t jentry=0; jentry<evts.size();jentry++) {
-       Long64_t ientry = LoadTree(jentry);
-       if (ientry < 0) break;
-       nb = fChain->GetEntry(jentry);   nbytes += nb;
-       //if(ngam>0) continue;
-       double mlepton;
-       // total invariant mass
-       p1 = evts.at(jentry).GetP1();
-       p2 = evts.at(jentry).GetP2();
-       if (!(p1>pcut[partj] && p1<pcut[partj+1])) continue;
-       if (!(p2>pcut[partj] && p2<pcut[partj+1])) continue;
-       mass = evts.at(jentry).InvMass(factor,factor);
+    xframe = xx.frame(Title("fit M(ll)"));
+    datarawx->Reset();
+    for (Long64_t jentry=0; jentry<evts_set[0].size();jentry++) {
+       PSIP evt = evts_set[0].at(jentry);
+       mass = evt.M_jpsi();
        if (mass>psilow && mass<psiup)
-         dataraw->Fill();
+         datarawx->Fill();
     }
-    dataraw->Write();
+    datarawx->Write();
  
     sprintf(tmpchr,"data_pi_%2d",fittimes);
-    dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
-    //mean.setVal(3.686+0.45*(factor-1.0));
-    sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
+    dataset = new RooDataSet(tmpchr,"data",RooArgSet(xx),Import(*datarawx));
+    sum = new RooAddPdf("sum","sum",RooArgList(gausx,gausx2,groundx),RooArgList(signalx,signalx2,backgroundx));
     Npar=8;
     sum->fitTo(*dataset,Range(psilow,psiup));
     dataset->plotOn(xframe,Binning(nBins));
-    sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-    sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
-    sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
+    sum->plotOn(xframe,Components(gausx),LineStyle(2),LineColor(2));
+    sum->plotOn(xframe,Components(gausx2),LineStyle(2),LineColor(2));
+    sum->plotOn(xframe,Components(groundx),LineStyle(3),LineColor(3));
     sum->plotOn(xframe);
     xframe->Draw();
     TPaveText *pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
@@ -497,45 +370,34 @@ bool gepep_fastpipill::Loop()
     pt->SetTextAlign(12);
     pt->SetTextFont(42);
     pt->SetTextSize(0.035);
-    sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+    sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",meanx.getVal(),meanx.getError());
     pt->AddText(tmpchr);
-    sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+    sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigmax.getVal(),sigmax.getError());
     pt->AddText(tmpchr);
-    sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
+    sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigmax2.getVal(),sigmax2.getError());
     pt->AddText(tmpchr);
-    sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+    sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signalx.getVal(),signalx.getError());
     pt->AddText(tmpchr);
-    sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+    sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signalx2.getVal(),signalx2.getError());
     pt->AddText(tmpchr);
-    sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+    sprintf(tmpchr,"backNo = %.2f #pm %.2f",backgroundx.getVal(),backgroundx.getError());
     pt->AddText(tmpchr);
     sprintf(tmpchr,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
     pt->AddText(tmpchr);
-    factor4err=TMath::Sqrt(TMath::Power(mean.getError()/facfit->GetParameter(1),2)
-               +TMath::Power(facfit->GetParError(0),2));
-    sprintf(tmpchr,"factor = %.6f #pm %.6f",factor,factor4err);
-    pt->AddText(tmpchr);
-	pt->Draw();
     c1->Update();
-    tmpstr=outputdir+"/fitpi_best.eps";
-    //c1->Print(tmpstr.c_str());
     xframe->SetName("mass_pi_best");
+    pt->Draw();
     //xframe->Write();
-    sprintf(name,"part%d_correct",partj);
-    c1->SetName(name);
     c1->Write();
     delete sum;
  
     // get factor and its error
-    factor4=facfit->GetParameter(0);
-    ofpar<<factor4<<"\t"<<factor4err<<std::endl;
-    ofpar<<"\tChisqure "<<xframe->chiSquare()<<" "<<xframe->chiSquare(Npar)<<std::endl;
-    ofpar<<signal.getVal()<<"\t"<<signal.getError()<<std::endl;
-    purepar<<"\t"<<factor4<<"\t"<<factor4err<<std::endl;
     delete dataset;
     delete xframe;
-	*/
+
   //~~~~~~~~~~~~~~ lepton part end
+
+return 0;
 
 //~~~~~~~~~~pion part start~~~~~~~~
 

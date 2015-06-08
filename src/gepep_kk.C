@@ -66,8 +66,8 @@ void gepep_kk::Loop()
    double D0up=1.90;
    double peakvalue=1.86484;// mD0
    // phi -> K K
-     double philow=1.005;
-     double phiup=1.035;
+     double philow=1.00;
+     double phiup=1.04;
      double phipeak=1.019455;// mphi
    int pointNo=10;
    double factors[pointNo];
@@ -640,7 +640,7 @@ void gepep_kk::Loop()
    //factor = facfit->GetParameter(0);
    //sprintf(name,"factors_kk_part%d",partj);
    //graph1f->SetName(name);
-   graph1f->Write("simpleFItVersion");
+   graph1f->Write("simpleFItVersion_phi");
 
 
    graph1f = new TGraphErrors(pointNo,factors,deltapeaks,factorserr,deltapeakserr);
@@ -656,7 +656,7 @@ void gepep_kk::Loop()
    factor = facfit->GetParameter(0);
    sprintf(name,"factors_kk_part%d",partj);
    graph1f->SetName(name);
-   graph1f->Write("RooFitVersion_graph");
+   graph1f->Write("RooFitVersion_phi_graph");
    
    
    // draw the best fitting
