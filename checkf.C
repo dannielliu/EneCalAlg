@@ -8,6 +8,7 @@
 #include "gepep_kpipi.h"
 #include "gepep_pipipp.h"
 #include "gepep_npi.h"
+#include "gepep_lambdac.h"
 #include "mumu.h"
 #include "Ks0Alg.h"
 //#include "TFile.h"
@@ -46,6 +47,7 @@ int main(int argc,char **argv)
   bool usenpi=false;
   bool usemumu=false;
   bool useKs0Alg=false;
+  bool uselambdac=false;
   usefpipill = ( filename.find("fpipill")   != std::string::npos
               || filename.find("fastpipill")!= std::string::npos);
   usef4pi    = ( filename.find("f4pi")      != std::string::npos
@@ -66,6 +68,7 @@ int main(int argc,char **argv)
   usenpi     = ( filename.find("npi")   != std::string::npos
               || filename.find("npi")!= std::string::npos);
   usemumu    = ( filename.find("mumu")   != std::string::npos);
+  uselambdac = ( filename.find("lambdac")   != std::string::npos);
   useKs0Alg  = ( filename.find("Ksto2pi")   != std::string::npos
 	          || filename.find("Ks")      != std::string::npos);
 
@@ -76,7 +79,7 @@ int main(int argc,char **argv)
   }
   else if( usef4pi ){
     gepep_fast4pi *a;
-    analysis(a,filename, "gepep_fast4pi_v2");
+    analysis(a,filename, "gepep_fast4pi");
   }
   else if( usef6pi){
     gepep_fast6pi *a;
@@ -109,6 +112,10 @@ int main(int argc,char **argv)
   else if( usemumu){
     mumu *a;
     analysis(a,filename, "mumu");
+  }
+  else if( uselambdac){
+    gepep_lambdac *a;
+    analysis(a,filename,"gepep_lambdac");
   }
   else if( useKs0Alg){
     Ks0Alg *a;

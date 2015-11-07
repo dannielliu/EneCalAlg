@@ -13,8 +13,8 @@
 #include "RooGaussian.h"
 #include "RooPolynomial.h"
 #include "RooCBShape.h"
-  #include "RooChebychev.h"
-//#include "RooDataHist.h"
+#include "RooChebychev.h"
+#include "RooDataHist.h"
 #include "RooDataSet.h"
 #include "RooAddPdf.h"
 #include "RooArgList.h"
@@ -26,9 +26,13 @@
 extern std::string outputdir;
 using namespace RooFit;
 using namespace std;
+
 namespace EEto6PI{
   void FitSpe(std::vector<EEto6pi> evts, double beame,  char* namesfx=0);
   void FitSpectrum(TTree *&dataraw, double beame, char* namesfx=0);
+  void FitSpectrum2(const TH1* h, double beame, char* namesfx=0);
+  void FitSpectrum3(const TH1* h, double beame, char* namesfx=0); // crystal ball
+  void FitSpectrum4(const TH1* h, double beame, char* namesfx=0); // gaus
   //double GetEnergy(int runNo);
 }
 
@@ -63,12 +67,17 @@ void gepep_fast6pi::Loop()
    fChain->GetEntry(1);
    double beamene = GetEnergy(run);
    //beamene = 4.415;
+   ifstream enefile("enetxt");
+   if(enefile.is_open()) {
+      enefile>>beamene;
+      beamene = beamene/1000;
+      enefile.close();
+   }
    std::cout<<"current beam energy is "<<beamene<<", run id "<<run<<std::endl;
    if (beamene < 0.1){
      std::cout<<"can not get a suitable beam energy!"<<std::endl;
 	 return;
    }
-
    std::cout<<"Toral entry is "<<nentries<<std::endl;
    int nBins=100;
    double peakvalue=beamene;// mbeam
@@ -105,25 +114,25 @@ void gepep_fast6pi::Loop()
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;	  
-	  //if (run > 30367) break;
 	 	  
-   if (beamene == 4.26){
+      if (beamene == 4.26){
    	if (run < 30368) continue;
-   }
+      }
 
-
-	 evt.Setval(pippx,pippy,pippz,pimpx,pimpy,pimpz);
+      evt.Setval(pippx,pippy,pippz,pimpx,pimpy,pimpz);
       mass = evt.InvMass();
-	  bool good=true;;
+      bool good=true;;
       for (int i=0; i<6;i++) {
-	    p[i] = evt.GetP(i);
-		if (p[i]<0.1 || p[i]>1.0) good = false;
-	  }
-	  if (mass>beamlow && mass<beamup){
-	    vars->Fill();
-	    //if (!good) continue;
-		evts.push_back(evt);
-	  }
+         p[i] = evt.GetP(i);
+         //if (p[i]<0.1 || p[i]>1.2) good = false;
+      }
+      //check error from p distribution
+      if (!good) continue;
+      
+      if (mass>beamlow && mass<beamup){
+          vars->Fill();
+          evts.push_back(evt);
+      }
    }//select end
    vars->Write();
    sprintf(name,"%f",peakvalue);
@@ -133,8 +142,8 @@ void gepep_fast6pi::Loop()
 
 void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
 {
-  double beamlow=beame-0.15;
-  double beamup=beame+0.15;
+  double beamlow=beame-0.20;
+  double beamup=beame+0.20;
   // for factor fit
  
   TTree *datarawo = new TTree("datarawo","dataraw");
@@ -146,7 +155,12 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
   dataraw->Branch("x",&mass,"x/D");
   datarawl->Branch("x",&mass,"x/D");
   datarawu->Branch("x",&mass,"x/D");
- 
+
+  TH1D *hm = new TH1D("hm","hm",100,beamlow,beamup);
+  TH1D *hmo = new TH1D("hmo","hm",100,beamlow,beamup);
+  TH1D *hml = new TH1D("hml","hm",100,beamlow,beamup);
+  TH1D *hmu = new TH1D("hmu","hm",100,beamlow,beamup);
+
   // try to correct the spectrum
   // iniialize the fit function
   //double factor4,factor4err;// for pi
@@ -163,29 +177,6 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
    //  set normal factor in (0.2, 0.3) to 1.00061, get factor in different range
 //  only for r value data, combine both part
 // factor from Ks->pipi, pi corrected with vertex fit , low p range use factor from pipill
-/*
-   pcut[0] =0.0 ;  facmap[0] =1.0;       facemap[0] =1.0;     
-   pcut[1] =0.05;  facmap[1] =1.00594 ;  facemap[1] =0.00146173 ;
-   pcut[2] =0.10;  facmap[2] =1.00345 ;  facemap[2] =0.000209543;
-   pcut[3] =0.15;  facmap[3] =1.00191 ;  facemap[3] =9.96687e-05;
-   pcut[4] =0.20;  facmap[4] =1.00074 ;  facemap[4] =7.83398e-05;
-   pcut[5] =0.25;  facmap[5] =0.99993 ;  facemap[5] =6.57175e-05;
-   pcut[6] =0.30;  facmap[6] =0.999425;  facemap[6] =6.42244e-05;
-   pcut[7] =0.35;  facmap[7] =0.999187;  facemap[7] =6.86471e-05;
-   pcut[8] =0.40;  facmap[8] =0.998956;  facemap[8] =7.52353e-05;
-   pcut[9] =0.45;  facmap[9] =0.998686;  facemap[9] =8.37434e-05;
-   pcut[10]=0.50;  facmap[10]=0.998865;  facemap[10]=6.97743e-05;
-   pcut[11]=0.60;  facmap[11]=0.99871 ;  facemap[11]=8.90833e-05;
-   pcut[12]=0.70;  facmap[12]=0.998473;  facemap[12]=0.000118579;
-   pcut[13]=0.80;  facmap[13]=0.99859 ;  facemap[13]=0.000153497;
-   pcut[14]=0.90;  facmap[14]=0.998797;  facemap[14]=0.000208148;
-   pcut[15]=1.00;  facmap[15]=0.999028;  facemap[15]=0.000232254;
-   pcut[16]=1.20;  facmap[16]=0.999368;  facemap[16]=0.000521802;
-   pcut[17]=1.40;  facmap[17]=0.999502;  facemap[17]=0.00190491 ;
-   pcut[18]=1.60;  facmap[18]=1.0;       facemap[18]=1.0;     
-   pcut[19]=1.80;  facmap[19]=1.0;       facemap[19]=1.0;     
-   pcut[20]=2.00;  //facmap[20]=2.00;
- */
 
  
 // factor from Ks dl/dle >2
@@ -282,14 +273,14 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
   for (Long64_t jentry=0; jentry<evts.size();jentry++) {
      
      double p[6];
-	 double f[6];
-	 double fl[6];
-	 double fu[6];
+     double f[6];
+     double fl[6];
+     double fu[6];
      // total invariant mass
 	 // without correction
      mass = evts.at(jentry).InvMass();
-     if (mass>beamlow-0.001 && mass<beamup+0.001) datarawo->Fill();
-	 for (int i=0;i<6;i++) p[i] = evts.at(jentry).GetP(i);
+     if (mass>beamlow-0.001 && mass<beamup+0.001) {datarawo->Fill();hmo->Fill(mass);}
+     for (int i=0;i<6;i++) p[i] = evts.at(jentry).GetP(i);
 
      short flag = 0x0;
      for (int pid=0;pid<6;pid++){
@@ -302,37 +293,46 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
            break;
          }
        }
-	 }
-	 if (flag!=0x3f){
-	   std::cout<<"Waring: not good event, factor map is "<<flag<<std::endl;
-	   continue;
-	 }
+     }
+     if (flag!=0x3f){
+        std::cout<<"Waring: not good event, factor map is "<<flag<<std::endl;
+        continue;
+     }
 	 // for average correction factor
      mass = evts.at(jentry).InvMass(f);
-     if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
+     if (mass>beamlow-0.001 && mass<beamup+0.001) {dataraw->Fill();hm->Fill(mass);}
 	 // factor at low edge
      mass = evts.at(jentry).InvMass(fl);
-     if (mass>beamlow-0.001 && mass<beamup+0.001) datarawl->Fill();
+     if (mass>beamlow-0.001 && mass<beamup+0.001) {datarawl->Fill();hml->Fill(mass);}
 	 // factor at up edge
      mass = evts.at(jentry).InvMass(fu);
-     if (mass>beamlow-0.001 && mass<beamup+0.001) datarawu->Fill();
+     if (mass>beamlow-0.001 && mass<beamup+0.001) {datarawu->Fill();hmu->Fill(mass);}
   }
   //dataraw->Write();
   // no correction
   sprintf(tmpchr,"raw_%s",namesfx);
-  EEto6PI::FitSpectrum(datarawo,beame,tmpchr);
+  //EEto6PI::FitSpectrum(datarawo,beame,tmpchr);
+  //EEto6PI::FitSpectrum2(hmo,beame,tmpchr);
+  //EEto6PI::FitSpectrum3(hmo,beame,tmpchr);
+  EEto6PI::FitSpectrum4(hmo,beame,tmpchr);
 
+  // for mc data
   // factor at average
   sprintf(tmpchr,"nom_%s",namesfx);
-  EEto6PI::FitSpectrum(dataraw,beame,tmpchr);
+  //EEto6PI::FitSpectrum(dataraw,beame,tmpchr);
+  //EEto6PI::FitSpectrum2(hm,beame,tmpchr);
+  //EEto6PI::FitSpectrum3(hm,beame,tmpchr);
+  EEto6PI::FitSpectrum4(hm,beame,tmpchr);
  
-  // factor at low edge
-  sprintf(tmpchr,"low_%s",namesfx);
-  EEto6PI::FitSpectrum(datarawl,beame,tmpchr);
+//// factor at low edge
+//sprintf(tmpchr,"low_%s",namesfx);
+////EEto6PI::FitSpectrum(datarawl,beame,tmpchr);
+//EEto6PI::FitSpectrum2(hml,beame,tmpchr);
 
-  // factor at up edge
-  sprintf(tmpchr,"upv_%s",namesfx);
-  EEto6PI::FitSpectrum(datarawu,beame,tmpchr);
+//// factor at up edge
+//sprintf(tmpchr,"upv_%s",namesfx);
+////EEto6PI::FitSpectrum(datarawu,beame,tmpchr);
+//EEto6PI::FitSpectrum2(hmu,beame,tmpchr);
 
   //~~~~~~~~~~ part end~~~~~~~~
   return;
@@ -343,20 +343,29 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    int nBins=100;
    int Npar;
    double peakvalue = beame;
+   //double beamlow=beame-0.15;
    double beamlow=beame-0.15;
    double beamup=beame+0.10;
    // try to use roofit
    RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
-   RooRealVar mean("mean","mean of gaussian",peakvalue-0.002,beamlow,beamup);
-   RooRealVar sigma("sigma","width of gaussian",0.01,0.005,0.02);
+   RooRealVar mean("mean","mean of gaussian",peakvalue -0.002,beamlow,beamup);
+   //RooRealVar mean2("mean2","mean of gaussian",peakvalue /*-0.002*/ ,beamlow,beamup);
+   RooRealVar sigma("sigma","width of gaussian",0.013,0.008,0.018);
+   //RooRealVar sigma2("sigma2","width of gaussian",0.03,0.02,0.05);
+   //RooRealVar sigma3("sigma3","width of gaussian",0.005,0.002,0.008);
+   if (strncmp(namesfx,"raw",3) == 0) mean.setVal(peakvalue - 0.005);
+
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
-     RooRealVar co1("co1","coefficient #1",-1,-100.,100.);
-     RooRealVar co2("co2","coefficient #1",0,-100.,100.);
-     RooRealVar co3("co3","coefficient #1",0,-100.,100.);
-     RooRealVar co4("co4","coefficient #4",0);
+   //RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean2,sigma2);
+   //RooGaussian gaus3("gaus3","gauss(x,m,s)",x,mean,sigma3);
+     RooRealVar co1("co1","coefficient #1",-0.8,-100.,100.);
+     RooRealVar co2("co2","coefficient #1",-0.2,-100.,100.);
+     RooRealVar co3("co3","coefficient #1",0.1,-100.,100.);
+     //RooRealVar co4("co4","coefficient #4",0);
      RooChebychev ground("ground","background",x,RooArgList(co1,co2,co3));
-   RooRealVar signal("signal"," ",200,0,1000000);//event number
-   RooRealVar background("background"," ",20,0,100000);
+   RooRealVar signal("signal"," ",300,0,1000000);//event number
+   //RooRealVar signal1("signal1"," ",20,0,1000000);//event number
+   RooRealVar background("background"," ",200,0,100000);
  //RooRealVar a0("a0","coefficient #0",100,-100000,100000);
  //RooRealVar a1("a1","coefficient #1",-10,-100000,100000);
  //RooRealVar a2("a2","coefficient #2",0,-100000,100000);
@@ -364,7 +373,7 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
  //RooPolynomial ground("ground","ground",x,RooArgList(a0,a1,a2));
      
    RooRealVar alpha1("alpha1","#alpha",1.,-5,5);
-   RooRealVar nnn1("n1","n",40,1,200);
+   RooRealVar nnn1("n1","n",100,1,200);
    RooCBShape cbshape1("cbshape1","crystal ball",x,mean,sigma,alpha1,nnn1);
 
    RooAddPdf *sum;
@@ -380,7 +389,8 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    //data_6pi = new RooDataHist(tmpchr,"data_6pi",x,h);
    xframe = x.frame(Title("fit 6 pi"));
    dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
-   //sum = new RooAddPdf("sum","sum",RooArgList(gaus,ground),RooArgList(signal,background));
+   //sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2),RooArgList(signal,background));
+   //sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,gaus3),RooArgList(signal,background,signal1));
    sum = new RooAddPdf("sum","sum",RooArgList(cbshape1,ground),RooArgList(signal,background));
    Npar = 8;
    //sigma.setVal(0.035);
@@ -391,6 +401,8 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    dataset->plotOn(xframe);
    sum->plotOn(xframe,Components(cbshape1),LineStyle(2),LineColor(2));
    sum->plotOn(xframe,Components(ground),LineStyle(2),LineColor(3));
+   //sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   //sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(3));
    sum->plotOn(xframe);
    xframe->Draw();
   TPaveText *pt = new TPaveText(0.60,0.5,0.90,0.90,"BRNDC");
@@ -424,6 +436,324 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    delete sum;
    return;
 }
+
+void EEto6PI::FitSpectrum2(const TH1* hm, double beame, char* namesfx)
+{
+   int nBins=100;
+   int Npar;
+   double peakvalue = beame;
+   //double beamlow=beame-0.15;
+   //double beamlow=beame-0.02;
+   //double beamup=beame+0.02;
+   double beamlow=beame-0.15;
+   double beamup=beame+0.10;
+   // try to use roofit
+   RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
+   RooRealVar mean("mean","mean of gaussian",peakvalue,beamlow,beamup);
+   //RooRealVar mean2("mean2","mean of gaussian",peakvalue /*-0.002*/ ,beamlow,beamup);
+   RooRealVar sigma("sigma","width of gaussian",0.012,0.008,0.015);
+   //RooRealVar sigma2("sigma2","width of gaussian",0.03,0.02,0.05);
+   //RooRealVar sigma3("sigma3","width of gaussian",0.005,0.002,0.008);
+   if (strncmp(namesfx,"raw",3) == 0) mean.setVal(peakvalue - 0.003);
+
+   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
+   //RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean2,sigma2);
+   //RooGaussian gaus3("gaus3","gauss(x,m,s)",x,mean,sigma3);
+     RooRealVar co1("co1","coefficient #1",-0.8,-100.,100.);
+     RooRealVar co2("co2","coefficient #1",-0.2,-100.,100.);
+     RooRealVar co3("co3","coefficient #1",0.1,-100.,100.);
+     //RooRealVar co4("co4","coefficient #4",0);
+     RooChebychev ground("ground","background",x,RooArgList(co1,co2,co3));
+   RooRealVar signal("signal"," ",300,0,1000000);//event number
+   //RooRealVar signal1("signal1"," ",20,0,1000000);//event number
+   RooRealVar background("background"," ",200,0,100000);
+ //RooRealVar a0("a0","coefficient #0",100,-100000,100000);
+ //RooRealVar a1("a1","coefficient #1",-10,-100000,100000);
+ //RooRealVar a2("a2","coefficient #2",0,-100000,100000);
+   //RooRealVar a3("a3","coefficient #2",0,-100000,100000);
+ //RooPolynomial ground("ground","ground",x,RooArgList(a0,a1,a2));
+     
+   RooRealVar alpha1("alpha1","#alpha",1.,-5,5);
+   RooRealVar nnn1("n1","n",100,1,200);
+   RooCBShape cbshape1("cbshape1","crystal ball",x,mean,sigma,alpha1,nnn1);
+
+   RooAddPdf *sum;
+   //RooDataSet *dataset;
+   RooDataHist *datahist;
+   RooPlot *xframe;
+   //RooDataHist *data_6pi;
+ 
+   RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
+   TCanvas *c1 = new TCanvas("","",800,600);
+
+   char tmpchr[100];
+   sprintf(tmpchr,"data_6pi_%s",namesfx);
+   //data_6pi = new RooDataHist(tmpchr,"data_6pi",x,h);
+   xframe = x.frame(Title("fit 6 pi"));
+   //dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
+   datahist = new RooDataHist(tmpchr,"data",RooArgSet(x),hm);
+   //sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2),RooArgList(signal,background));
+   //sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,gaus3),RooArgList(signal,background,signal1));
+   sum = new RooAddPdf("sum","sum",RooArgList(cbshape1,ground),RooArgList(signal,background));
+   Npar = 8;
+   //sigma.setVal(0.035);
+   //signal.setVal(1200);
+   //background.setVal(200);
+   //co1.setVal(0);
+   //sum->fitTo(*datahist,Range(beamlow,beamup));
+   gaus.fitTo(*datahist,Range(beame-0.012,beame+0.012));
+   datahist->plotOn(xframe);
+   gaus.plotOn(xframe);
+   //sum->plotOn(xframe,Components(cbshape1),LineStyle(2),LineColor(2));
+   //sum->plotOn(xframe,Components(ground),LineStyle(2),LineColor(3));
+   //sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   //sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(3));
+   //sum->plotOn(xframe);
+   xframe->Draw();
+  TPaveText *pt = new TPaveText(0.60,0.5,0.90,0.90,"BRNDC");
+  pt->SetBorderSize(0);
+  pt->SetFillStyle(4000);
+  pt->SetTextAlign(12);
+  pt->SetTextFont(42);
+  pt->SetTextSize(0.035);
+  sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+  pt->AddText(tmpchr);
+//sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+//pt->AddText(tmpchr);
+//sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+//pt->AddText(tmpchr);
+  sprintf(tmpchr,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
+  pt->AddText(tmpchr);
+  pt->Draw();
+  sprintf(tmpchr,"mass_spectrum_%s",namesfx);
+  c1->SetName(tmpchr);
+  c1->Write();
+
+   ofstream outf("f6pi",std::ios::app);
+   outf<<beame<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+   
+   //c1->Print("fit6pi.eps");
+   //delete data_6pi;
+   delete xframe;
+   delete datahist;
+   delete sum;
+   return;
+}
+
+void EEto6PI::FitSpectrum3(const TH1* hm, double beame, char* namesfx)
+{
+   int nBins=100;
+   int Npar;
+   double peakvalue = beame;
+   //double beamlow=beame-0.15;
+   //double beamlow=beame-0.02;
+   //double beamup=beame+0.02;
+   double beamlow=beame-0.15;
+   double beamup=beame+0.10;
+   // try to use roofit
+   RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
+   RooRealVar mean("mean","mean of gaussian",peakvalue,beamlow,beamup);
+   //RooRealVar mean2("mean2","mean of gaussian",peakvalue /*-0.002*/ ,beamlow,beamup);
+   RooRealVar sigma("sigma","width of gaussian",0.012,0.008,0.025);
+   RooRealVar sigma2("sigma2","width of gaussian",0.03,0.02,0.05);
+   //RooRealVar sigma3("sigma3","width of gaussian",0.005,0.002,0.008);
+   if (strncmp(namesfx,"raw",3) == 0) mean.setVal(peakvalue - 0.003);
+
+   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
+   RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
+   //RooGaussian gaus3("gaus3","gauss(x,m,s)",x,mean,sigma3);
+     RooRealVar co1("co1","coefficient #1",-0.8,-100.,100.);
+     RooRealVar co2("co2","coefficient #1",-0.2,-100.,100.);
+     RooRealVar co3("co3","coefficient #1",0.1,-100.,100.);
+     //RooRealVar co4("co4","coefficient #4",0);
+     RooChebychev ground("ground","background",x,RooArgList(co1,co2,co3));
+   RooRealVar signal("signal"," ",300,0,1000000);//event number
+   //RooRealVar signal1("signal1"," ",20,0,1000000);//event number
+   RooRealVar background("background"," ",200,0,100000);
+ //RooRealVar a0("a0","coefficient #0",100,-100000,100000);
+ //RooRealVar a1("a1","coefficient #1",-10,-100000,100000);
+ //RooRealVar a2("a2","coefficient #2",0,-100000,100000);
+   //RooRealVar a3("a3","coefficient #2",0,-100000,100000);
+ //RooPolynomial ground("ground","ground",x,RooArgList(a0,a1,a2));
+     
+   RooRealVar alpha1("alpha1","#alpha",1.,-5,5);
+   RooRealVar nnn1("n1","n",100,1,200);
+   RooCBShape cbshape1("cbshape1","crystal ball",x,mean,sigma,alpha1,nnn1);
+
+   RooAddPdf *sum;
+   //RooDataSet *dataset;
+   RooDataHist *datahist;
+   RooPlot *xframe;
+   //RooDataHist *data_6pi;
+ 
+   RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
+   TCanvas *c1 = new TCanvas("","",800,600);
+
+   char tmpchr[100];
+   sprintf(tmpchr,"data_6pi_%s",namesfx);
+   //data_6pi = new RooDataHist(tmpchr,"data_6pi",x,h);
+   xframe = x.frame(Title("fit 6 pi"));
+   //dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
+   datahist = new RooDataHist(tmpchr,"data",RooArgSet(x),hm);
+   //sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2),RooArgList(signal,background));
+   //sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,gaus3),RooArgList(signal,background,signal1));
+   sum = new RooAddPdf("sum","sum",RooArgList(cbshape1,ground),RooArgList(signal,background));
+   Npar = 8;
+   //sigma.setVal(0.035);
+   //signal.setVal(1200);
+   //background.setVal(200);
+   //co1.setVal(0);
+   sum->fitTo(*datahist,Range(beamlow,beamup));
+   //gaus.fitTo(*datahist,Range(beame-0.012,beame+0.012));
+   datahist->plotOn(xframe);
+   //gaus.plotOn(xframe);
+   sum->plotOn(xframe,Components(cbshape1),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(ground),LineStyle(2),LineColor(3));
+   //sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   //sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(3));
+   sum->plotOn(xframe);
+   xframe->Draw();
+  TPaveText *pt = new TPaveText(0.60,0.5,0.90,0.90,"BRNDC");
+  pt->SetBorderSize(0);
+  pt->SetFillStyle(4000);
+  pt->SetTextAlign(12);
+  pt->SetTextFont(42);
+  pt->SetTextSize(0.035);
+  sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
+  pt->AddText(tmpchr);
+  pt->Draw();
+  sprintf(tmpchr,"mass_spectrum_%s",namesfx);
+  c1->SetName(tmpchr);
+  c1->Write();
+
+   ofstream outf("f6pi",std::ios::app);
+   outf<<beame<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+   
+   //c1->Print("fit6pi.eps");
+   //delete data_6pi;
+   delete xframe;
+   delete datahist;
+   delete sum;
+   return;
+}
+
+void EEto6PI::FitSpectrum4(const TH1* hm, double beame, char* namesfx)
+{
+   int nBins=100;
+   int Npar;
+   double peakvalue = beame;
+   //double beamlow=beame-0.15;
+   //double beamlow=beame-0.02;
+   //double beamup=beame+0.02;
+   double beamlow=beame-0.15;
+   double beamup=beame+0.10;
+   // try to use roofit
+   RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
+   RooRealVar mean("mean","mean of gaussian",peakvalue,beamlow,beamup);
+   RooRealVar mean2("mean2","mean of gaussian",peakvalue /*-0.002*/ ,beamlow,beamup);
+   RooRealVar sigma("sigma","width of gaussian",0.012,0.008,0.015);
+   RooRealVar sigma2("sigma2","width of gaussian",0.03,0.02,0.05);
+   //RooRealVar sigma3("sigma3","width of gaussian",0.005,0.002,0.008);
+   if (strncmp(namesfx,"raw",3) == 0) mean.setVal(peakvalue - 0.003);
+
+   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
+   RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean2,sigma2);
+   //RooGaussian gaus3("gaus3","gauss(x,m,s)",x,mean,sigma3);
+     RooRealVar co1("co1","coefficient #1",-0.8,-100.,100.);
+     RooRealVar co2("co2","coefficient #1",-0.2,-100.,100.);
+     RooRealVar co3("co3","coefficient #1",0.1,-100.,100.);
+     //RooRealVar co4("co4","coefficient #4",0);
+     RooChebychev ground("ground","background",x,RooArgList(co1,co2,co3));
+   RooRealVar signal("signal"," ",300,0,1000000);//event number
+   //RooRealVar signal1("signal1"," ",20,0,1000000);//event number
+   RooRealVar background("background"," ",200,0,100000);
+ //RooRealVar a0("a0","coefficient #0",100,-100000,100000);
+ //RooRealVar a1("a1","coefficient #1",-10,-100000,100000);
+ //RooRealVar a2("a2","coefficient #2",0,-100000,100000);
+   //RooRealVar a3("a3","coefficient #2",0,-100000,100000);
+ //RooPolynomial ground("ground","ground",x,RooArgList(a0,a1,a2));
+     
+   RooRealVar alpha1("alpha1","#alpha",1.,-5,5);
+   RooRealVar nnn1("n1","n",100,1,200);
+   RooCBShape cbshape1("cbshape1","crystal ball",x,mean,sigma,alpha1,nnn1);
+
+   RooAddPdf *sum;
+   //RooDataSet *dataset;
+   RooDataHist *datahist;
+   RooPlot *xframe;
+   //RooDataHist *data_6pi;
+ 
+   RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
+   TCanvas *c1 = new TCanvas("","",800,600);
+
+   char tmpchr[100];
+   sprintf(tmpchr,"data_6pi_%s",namesfx);
+   //data_6pi = new RooDataHist(tmpchr,"data_6pi",x,h);
+   xframe = x.frame(Title("fit 6 pi"));
+   //dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
+   datahist = new RooDataHist(tmpchr,"data",RooArgSet(x),hm);
+   sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2),RooArgList(signal,background));
+   //sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,gaus3),RooArgList(signal,background,signal1));
+   //sum = new RooAddPdf("sum","sum",RooArgList(cbshape1,ground),RooArgList(signal,background));
+   Npar = 8;
+   //sigma.setVal(0.035);
+   //signal.setVal(1200);
+   //background.setVal(200);
+   //co1.setVal(0);
+   sum->fitTo(*datahist,Range(beamlow,beamup));
+   //gaus.fitTo(*datahist,Range(beame-0.012,beame+0.012));
+   datahist->plotOn(xframe);
+   //gaus.plotOn(xframe);
+   //sum->plotOn(xframe,Components(cbshape1),LineStyle(2),LineColor(2));
+   //sum->plotOn(xframe,Components(ground),LineStyle(2),LineColor(3));
+   sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+   sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(3));
+   sum->plotOn(xframe);
+   xframe->Draw();
+  TPaveText *pt = new TPaveText(0.60,0.5,0.90,0.90,"BRNDC");
+  pt->SetBorderSize(0);
+  pt->SetFillStyle(4000);
+  pt->SetTextAlign(12);
+  pt->SetTextFont(42);
+  pt->SetTextSize(0.035);
+  sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
+  pt->AddText(tmpchr);
+  pt->Draw();
+  sprintf(tmpchr,"mass_spectrum_%s",namesfx);
+  c1->SetName(tmpchr);
+  c1->Write();
+
+   ofstream outf("f6pi",std::ios::app);
+   outf<<beame<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
+   
+   //c1->Print("fit6pi.eps");
+   //delete data_6pi;
+   delete xframe;
+   delete datahist;
+   delete sum;
+   return;
+}
+
+
+
 
 
 #ifdef gepep_fast6pi_cxx

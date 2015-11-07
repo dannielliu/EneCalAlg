@@ -272,7 +272,7 @@ void MUMU::FitSpectrum(TTree *&dataraw,double beame, char* namesfx, double &peak
    sum->fitTo(*dataset,Range(beamlow,beamup));
    //sum->fitTo(*dataset,Range(beame-0.05,beame+0.03));
    //sum->fitTo(*dataset,Range(4.22,4.28));
-   dataset->plotOn(xframe);
+   dataset->plotOn(xframe,Binning(nBins));
    sum->plotOn(xframe,Components(cbshape1),LineStyle(2),LineColor(2));
    sum->plotOn(xframe,Components(ground),LineStyle(2),LineColor(3));
    //if (dataraw->GetEntries()>2000) sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(4));

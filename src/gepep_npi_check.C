@@ -5,6 +5,7 @@
 #include <TCanvas.h>
 #include "function.h"
 extern std::string outputdir;
+using namespace std;
 
 void gepep_npi::Loop()
 {
@@ -48,8 +49,12 @@ void gepep_npi::Loop()
    vars->Branch("costheta2",&costheta2,"costheta2/D");
    NPi evt;
 
+   TH1D *hmass = new TH1D("hmass","M(#pi #pi)",400,0,4);
+   TH1D *hp = new TH1D("hp","p_{#pi}",400,0,4);
+
    Long64_t nbytes = 0, nb = 0;
-   nentries = nentries > 100000? 100000: nentries;
+   //nentries = nentries > 100000? 100000: nentries;
+   int counter[2]={0,0};
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
@@ -81,24 +86,29 @@ void gepep_npi::Loop()
 	//  //std::cout<<"event id "<<jentry<<" is not a 4 pi event"<<std::endl;
 	//  continue;
 	//}
-	  
-	  if (npip==0 || npim==0) continue;
+	  counter[0] ++;
+	  if (npip!=2 || npim!=2) continue;
+	  counter[1] ++;
 	  NPi tmpEvt;
 	  double massgap =10;
 	  for (int i=0; i<npip; i++){
 	  for (int j=0; j<npim; j++){
 	    tmpEvt.AddParticle(pippx[i],pippy[i],pippz[i]);
 	    tmpEvt.AddParticle(pimpx[i],pimpy[i],pimpz[i]);
-		if (tmpEvt.InvMass()-mD0 > massgap) continue;
-		massgap = tmpEvt.InvMass() - mD0;
-		evt = tmpEvt;
+	    //  if (tmpEvt.InvMass()-mD0 > massgap) continue;
+	    //  massgap = tmpEvt.InvMass() - mD0;
+	    //  evt = tmpEvt;
 	  }
 	  }
-	  mass = evt.InvMass();
-	  vars->Fill();
+
+	  mass = tmpEvt.InvMass();
+	  hmass->Fill(mass);
+	  //vars->Fill();
 
    }
-   vars->Write();
+   cout<<counter[0]<<"\t"<<counter[1]<<endl;
+   //vars->Write();
+   hmass->Write();
    f->Close();
    return;
 }

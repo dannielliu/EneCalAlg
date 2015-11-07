@@ -25,6 +25,7 @@
 #include "RooDataHist.h"
 #include "RooDataSet.h"
 #include "RooAddPdf.h"
+#include "RooFFTConvPdf.h"
 #include "RooArgList.h"
 #include "RooPlot.h"
 #include "RooMsgService.h"
@@ -78,7 +79,8 @@ bool gepep_fastpipill::Loop()
   
   if (fChain == 0) return false;
   Long64_t nentries = fChain->GetEntriesFast();
-  
+  //if (nentries>1000000) nentries = 1000000;
+
   fChain->GetEntry(1);
   double beamene = GetEnergy(run);
   
@@ -102,7 +104,8 @@ bool gepep_fastpipill::Loop()
   sprintf(fname,"%s/plot_pipill.root",outputdir.c_str());
   TFile *f=new TFile(fname,"RECREATE");
   std::cout<<"Output file is "<<fname<<std::endl;
-
+  
+  TH1D *hm = new TH1D("hm","hm",100,psiplow,psipup);
   // try to use roofit
   RooRealVar x("x","energy",psiplow,psipup,"GeV");
   RooRealVar mean("mean","mean of gaussian",3.686,psiplow,psipup);
@@ -137,6 +140,12 @@ bool gepep_fastpipill::Loop()
   RooDataSet *dataset;
   RooPlot *xframe;  
   
+  RooDataHist *datahist;
+  RooRealVar mean2("mean2","mean of brewig",0,1,2);
+  RooRealVar brewid2("brewid2","width of breit wigner",0.0008,0.0005,0.005);
+  RooBreitWigner brewig2("brewig","brewig",x,mean,brewid2);
+  RooFFTConvPdf *convpdf = new RooFFTConvPdf("convpdf","conv pdf",x,gaus,brewig2);
+
   RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
   
   double par1[6];// for e
@@ -236,6 +245,8 @@ bool gepep_fastpipill::Loop()
   //std::vector<Event> evts;
   PSIP evt;
   std::vector<PSIP> evts_set[Npart];
+
+
   // loop the data
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
      Long64_t ientry = LoadTree(jentry);
@@ -280,7 +291,7 @@ bool gepep_fastpipill::Loop()
          }
      }
   }
-  vars->Write();
+  //vars->Write();
 	//TH1D *hp = new TH1D("hp","hp",200,0,2);
   for (int partj=0;partj<Npart;partj++){
     hmphi[partj]->Write();
@@ -300,7 +311,7 @@ bool gepep_fastpipill::Loop()
   double factor4,factor4err;// for pi
 
   // psi 3.097
-  const int pointNo=10;
+  const int pointNo=20;
   double factor=factorstart;
   double factorstep=(1.-factor)*2/pointNo;
   double peakvalue=3.096916;
@@ -318,7 +329,7 @@ bool gepep_fastpipill::Loop()
   char tmpchr[100];
 
   // ~~~~~~~~~lepton part
-
+/*
   std::cout<<"lepton part start"<<std::endl;
   // iniialize the fit function
   // try to use roofit
@@ -398,7 +409,7 @@ bool gepep_fastpipill::Loop()
   //~~~~~~~~~~~~~~ lepton part end
 
 return 0;
-
+*/
 //~~~~~~~~~~pion part start~~~~~~~~
 
   peakvalue=3.686109;
@@ -426,6 +437,7 @@ return 0;
       xframe = x.frame(Title("fit pi"));
       //h5->Reset();
       dataraw->Reset();
+      hm->Reset();
       std::cout<<"factor is "<<factor<<std::endl;
       for (Long64_t jentry=0; jentry<evts_set[partj].size();jentry++) {
         PSIP evt = evts_set[partj].at(jentry);
@@ -448,6 +460,7 @@ return 0;
 
         if (mass>psiplow && mass<psipup){
           dataraw->Fill();
+	  hm->Fill(mass);
         }
         // if (Cut(ientry) < 0) continue;
       }
@@ -471,19 +484,29 @@ return 0;
       sprintf(tmpchr,"data_pi_%2d",fittimes);
       //dataset = new RooDataSet(tmpchr,"data",dataraw,x);
       dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
+      datahist = new RooDataHist(tmpchr,"data",RooArgSet(x),hm);
       mean.setVal(3.686+0.43*(factor-1.0));
       signal.setError(10);
       signal2.setError(10);
       background.setError(10);
       sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
       Npar=8;
-      sum->fitTo(*dataset,Range(psiplow,psipup));
-      //data_pi->plotOn(xframe);
-      dataset->plotOn(xframe,Binning(nBins));
-      sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-      sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
-      sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
-      sum->plotOn(xframe);
+      if (nentries<10000){ 
+        sum->fitTo(*dataset,Range(psiplow,psipup));
+        dataset->plotOn(xframe,Binning(nBins));
+        sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+        sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
+        sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
+        sum->plotOn(xframe);
+      }
+      else {
+        (&brewig2)->fitTo(*datahist,Range(psiplow,psipup));
+	datahist->plotOn(xframe);
+        //convpdf->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+        //convpdf->plotOn(xframe,Components(brewig2),LineStyle(2),LineColor(2));
+        //sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
+        (&brewig2)->plotOn(xframe);     
+      }
       xframe->Draw();
       TPaveText *pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
       pt->SetBorderSize(0);
@@ -495,14 +518,14 @@ return 0;
       pt->AddText(tmpchr);
       sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
       pt->AddText(tmpchr);
-      sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
-      pt->AddText(tmpchr);
+ //   sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
+ //   pt->AddText(tmpchr);
+ //   sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+ //   pt->AddText(tmpchr);
+ //   sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+ //   pt->AddText(tmpchr);
+ //   sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
+ //   pt->AddText(tmpchr);
       sprintf(tmpchr,"#chi^{2}/(%d-%d) = %5.6f",nBins,Npar,xframe->chiSquare(Npar));
       pt->AddText(tmpchr);
       pt->Draw();
@@ -521,6 +544,7 @@ return 0;
       c1->Write();
       delete sum;
       delete dataset;
+      delete datahist;
       delete xframe;
  
       fittimes++;
@@ -539,23 +563,26 @@ return 0;
     graph3->Fit(facfit,"","",factors2[0],factors2[pointNo-1]);
     factor4=facfit->GetParameter(0);
  
-	sprintf(name,"factors_pi_part%d",partj);
+    sprintf(name,"factors_pi_part%d",partj);
     graph3->SetName(name);
     graph3->Write();
  
     //delete xframe;
     xframe = x.frame(Title("fit pi"));
     dataraw->Reset();
+    hm->Reset();
     factor = factor4;
     //factori = factor;
     //factor = 1;
     std::cout<<"factor is "<<factor<<std::endl;
     for (Long64_t jentry=0; jentry<evts_set[partj].size();jentry++) {
        PSIP evt = evts_set[partj].at(jentry);
-	   evt.setCorrectionFactors(factor,factor);
-	   mass = evt.m();
-       if (mass>psiplow && mass<psipup)
+       evt.setCorrectionFactors(factor,factor);
+       mass = evt.m();
+       if (mass>psiplow && mass<psipup) {
          dataraw->Fill();
+	 hm->Fill(mass);
+       }
     }
     //h2p->Write();
     //thedis2->Write();
@@ -567,24 +594,31 @@ return 0;
     mean.setRange(psiplow,psipup);
     //mean2.setRange(3.684,3.688);
     mean.setVal(3.686);
-	mean.setError(0.0005);
+    mean.setError(0.0005);
     //mean2.setVal(3.686);
     //sigma.setRange(0.002,0.004);
     sigma.setRange(0.001,0.0025);
     sigma.setVal(0.0015);
-	sigma.setError(0.0005);
+    sigma.setError(0.0005);
     //sigma2.setRange(0.003,0.08);
     sigma2.setVal(0.004);
-	sigma2.setError(0.001);
+    sigma2.setError(0.001);
  
     sprintf(tmpchr,"data_pi_%2d",fittimes);
     //data_pi = new RooDataHist(tmpchr,"data_pi",x,h4);
     dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
+    datahist = new RooDataHist(tmpchr,"data",RooArgSet(x),hm);
     mean.setVal(3.686+0.44*(factor-1.0));
     sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
     Npar=8;
-    sum->fitTo(*dataset,Range(psiplow,psipup));
-    dataset->plotOn(xframe,Binning(nBins));
+    if (nentries<10000){
+      sum->fitTo(*dataset,Range(psiplow,psipup));
+      dataset->plotOn(xframe,Binning(nBins));
+    }
+    else {
+      sum->fitTo(*datahist,Range(psiplow,psipup));
+      datahist->plotOn(xframe);
+    }
     sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
     sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
     sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
@@ -614,9 +648,9 @@ return 0;
                +TMath::Power(facfit->GetParError(0),2));
     sprintf(tmpchr,"factor = %.6f #pm %.6f",factor,factor4err);
     pt->AddText(tmpchr);
-	pt->Draw();
+    pt->Draw();
     c1->Update();
-    tmpstr=outputdir+"/fitpi_best.eps";
+    //tmpstr=outputdir+"/fitpi_best.eps";
     //c1->Print(tmpstr.c_str());
     xframe->SetName("mass_pi_best");
     //xframe->Write();
@@ -630,8 +664,9 @@ return 0;
     ofpar<<factor4<<"\t"<<factor4err<<std::endl;
     ofpar<<"\tChisqure "<<xframe->chiSquare()<<" "<<xframe->chiSquare(Npar)<<std::endl;
     ofpar<<signal.getVal()<<"\t"<<signal.getError()<<std::endl;
-    purepar<<beamene<<'\t'<<factor4<<"\t"<<factor4err<<std::endl;
+    purepar<<beamene<<'\t'<<factor4<<"\t"<<factor4err<<"\t"<<sigma.getVal()<<"\t"<<sigma.getError()<<std::endl;
     delete dataset;
+    delete datahist;
     delete xframe;
 
 	// pion part end

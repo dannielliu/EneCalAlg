@@ -171,6 +171,7 @@ void KKPIPI::FitSpe(std::vector<KKpipi> &evts, double beame, char *namesfx)
   //~~~~~~~~~~part start~~~~~~~~
   double fpilow=0, fpih=0;
   double fk=0;
+  // get correc†ion factor from "CORF"
   ifstream inpar("CORF");
   if (inpar.is_open()){
     string line;
@@ -246,11 +247,12 @@ void KKPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    int Npar;
    double peakvalue = beame;
    double beamlow=beame-0.15;
-   double beamup=beame+0.15;
+   double beamup=beame+0.10;
+   double sigmaup = 0.012 + (0.014-0.012)/(4.26-3.81)*(beame - 3.81);
    // try to use roofit
    RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
    RooRealVar mean("mean","mean of gaussian",peakvalue,beamlow,beamup);
-   RooRealVar sigma("sigma","width of gaussian",0.014,0.005,0.20);
+   RooRealVar sigma("sigma","width of gaussian",0.012,0.005,sigmaup);
    RooRealVar sigma2("sigma2","width of gaussian",0.022,0.02,0.05);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
    RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);

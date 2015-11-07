@@ -26,7 +26,7 @@ extern std::string outputdir;
 using namespace RooFit;
 
 namespace PIPIKK{
-  void FitSpe(std::vector<PiPiKK> &evts, double beame,  const char* namesfx);
+  void FitSpe(std::vector<FourPi> &evts, double beame,  const char* namesfx);
   void FitSpectrum(TTree *&dataraw,double beame, const char* namesfx);
   //double GetEnergy(int runNo);
 }
@@ -67,7 +67,7 @@ void gepep_fast4pi::Loop()
    double mka = 0.493677;
   
   char fname[1000];
-  sprintf(fname,"%s/plot_kkpipi_1.root",outputdir.c_str());
+  sprintf(fname,"%s/plot_4pi_1.root",outputdir.c_str());
   TFile *f=new TFile(fname,"RECREATE");
   
   TTree *vars = new TTree("vars","vars");
@@ -87,8 +87,8 @@ void gepep_fast4pi::Loop()
   vars->Branch("mass",&mass,"mass/D");
 
 
-   std::vector<PiPiKK> evts;
-   std::vector<PiPiKK> evts2;
+   std::vector<FourPi> evts;
+   std::vector<FourPi> evts2;
    //std::cout<<"factor is "<<factorpi<<std::endl;
 
    Long64_t nbytes = 0, nb = 0;
@@ -98,71 +98,72 @@ void gepep_fast4pi::Loop()
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;
 
-      PiPiKK evt,evt2;
+      FourPi evt,evt2;
       HepLorentzVector pip,pim,kap,kam;
-      double deltamass1=10, deltamass2=10, tmpmass;
+      //double deltamass1=10, deltamass2=10, tmpmass;
+
+      pip.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mpi);
+      kap.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mpi);
+      pim.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mpi);
+      kam.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mpi);
+      evt.set(pip,pim,kap,kam);
+
+/*
+   // pip.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mpi);
+   // kap.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mka);
+   // pim.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mpi);
+   // kam.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mka);
+   // evt.set(pip,pim,kap,kam);
+   // evt2.set(pip,pim,kap,kam);
+   // evts2.push_back(evt2);
+   // deltamass1 = evt.m() - beamene;
+   
+   // pip.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mpi);
+   // kap.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mka);
+   // pim.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mpi);
+   // kam.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mka);
+   // evt2.set(pip,pim,kap,kam);
+   // evts2.push_back(evt2);
+   // tmpmass = (pip+pim+kap+kam).m() - beamene;
+   // if (fabs(tmpmass) < fabs(deltamass1)){
+   //     evt.set(pip,pim,kap,kam);
+   //     deltamass1 = tmpmass;
+   // } 
+   // 
+
+   // pip.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mpi);
+   // kap.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mka);
+   // pim.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mpi);
+   // kam.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mka);
+   // evt2.set(pip,pim,kap,kam);
+   // evts2.push_back(evt2);
+   // tmpmass = (pip+pim+kap+kam).m() - beamene;
+   // if (fabs(tmpmass) < fabs(deltamass1)){
+   //     evt.set(pip,pim,kap,kam);
+   //     deltamass1 = tmpmass;
+   // } 
+   // 
 
    // pip.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mpi);
-   // kap.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mpi);
-   // pim.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mpi);
-   // kam.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mpi);
-   // evt.set(pip,pim,kap,kam);
-
-      pip.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mpi);
-      kap.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mka);
-      pim.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mpi);
-      kam.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mka);
-      evt.set(pip,pim,kap,kam);
-      evt2.set(pip,pim,kap,kam);
-      evts2.push_back(evt2);
-      deltamass1 = evt.m() - beamene;
-   
-      pip.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mpi);
-      kap.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mka);
-      pim.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mpi);
-      kam.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mka);
-      evt2.set(pip,pim,kap,kam);
-      evts2.push_back(evt2);
-      tmpmass = (pip+pim+kap+kam).m() - beamene;
-      if (fabs(tmpmass) < fabs(deltamass1)){
-          evt.set(pip,pim,kap,kam);
-          deltamass1 = tmpmass;
-      } 
-      
-
-      pip.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mpi);
-      kap.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mka);
-      pim.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mpi);
-      kam.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mka);
-      evt2.set(pip,pim,kap,kam);
-      evts2.push_back(evt2);
-      tmpmass = (pip+pim+kap+kam).m() - beamene;
-      if (fabs(tmpmass) < fabs(deltamass1)){
-          evt.set(pip,pim,kap,kam);
-          deltamass1 = tmpmass;
-      } 
-      
-
-      pip.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mpi);
-      kap.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mka);
-      pim.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mpi);
-      kam.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mka);
-      evt2.set(pip,pim,kap,kam);
-      evts2.push_back(evt2);
-      tmpmass = (pip+pim+kap+kam).m() - beamene;
-      if (fabs(tmpmass) < fabs(deltamass1)){
-          evt.set(pip,pim,kap,kam);
-          deltamass1 = tmpmass;
-      } 
-     
-      ppi1 = evt.pip.rho();
-      ppi2 = evt.pim.rho();
-      ppi3 = evt.kap.rho();
-      ppi4 = evt.kam.rho();
-      cospi1 = evt.pip.cosTheta();
-      cospi2 = evt.pim.cosTheta();
-      cospi3 = evt.kap.cosTheta();
-      cospi4 = evt.kam.cosTheta();
+   // kap.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mka);
+   // pim.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mpi);
+   // kam.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mka);
+   // evt2.set(pip,pim,kap,kam);
+   // evts2.push_back(evt2);
+   // tmpmass = (pip+pim+kap+kam).m() - beamene;
+   // if (fabs(tmpmass) < fabs(deltamass1)){
+   //     evt.set(pip,pim,kap,kam);
+   //     deltamass1 = tmpmass;
+   // } 
+  */    
+      ppi1 = evt.pip1.rho();
+      ppi2 = evt.pim1.rho();
+      ppi3 = evt.pip2.rho();
+      ppi4 = evt.pim2.rho();
+      cospi1 = evt.pip1.cosTheta();
+      cospi2 = evt.pim1.cosTheta();
+      cospi3 = evt.pip2.cosTheta();
+      cospi4 = evt.pim2.cosTheta();
       mass = evt.m();
       vars->Fill();
     //if (ppi3 > 1.5) continue;
@@ -173,12 +174,12 @@ void gepep_fast4pi::Loop()
    }
    vars->Write();
    
-   //PIPIKK::FitSpe(evts,beamene,"nearest");
-   PIPIKK::FitSpe(evts2,beamene,"secondnear");
+   PIPIKK::FitSpe(evts,beamene,"nearest");
+   //PIPIKK::FitSpe(evts2,beamene,"secondnear");
 
 }
 
-void PIPIKK::FitSpe(std::vector<PiPiKK> &evts, double beame, const char *namesfx)
+void PIPIKK::FitSpe(std::vector<FourPi> &evts, double beame, const char *namesfx)
 {
   double beamlow= beame-0.5;
   double beamup = beame+0.5;
@@ -218,16 +219,13 @@ void PIPIKK::FitSpe(std::vector<PiPiKK> &evts, double beame, const char *namesfx
   for (Long64_t jentry=0; jentry<evts.size();jentry++) {
      // total invariant mass
 	 // without correction
-     PiPiKK evt = evts.at(jentry);
+     FourPi evt = evts.at(jentry);
 
      mass = evt.m();
      if (mass>beamlow-0.001 && mass<beamup+0.001) datarawo->Fill();
-     double fpi1 = 1.000769;
-     double fpi2 = 1.000769;
-     double fka1 = 1.000257;
-     double fka2 = 1.000257;
-     if (evt.pip.rho()<0.4) fpi1 = 1.000902;
-     if (evt.pim.rho()<0.4) fpi2 = 1.000902;
+     double fpi1 = 1.000785;
+     //if (evt.pip.rho()<0.4) fpi1 = 1.000902;
+     //if (evt.pim.rho()<0.4) fpi2 = 1.000902;
      //if (evt.kap.rho()<0.4) fka1 = 1.000902;
      //if (evt.kam.rho()<0.4) fka2 = 1.000902;
      
@@ -235,7 +233,7 @@ void PIPIKK::FitSpe(std::vector<PiPiKK> &evts, double beame, const char *namesfx
   // double fpi2 = 1.00093;
   // double fka1 = 0.9992;
   // double fka2 = 0.9992;
-     evt.setCorrectionFactors(fpi1,fpi2,fka1,fka2);
+     evt.setCorrectionFactors(fpi1);
      mass = evt.m();
      if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
    //fpi = 1.00061; fk = 1.00061  ;
@@ -355,7 +353,7 @@ void PIPIKK::FitSpectrum(TTree *&dataraw, double beame, const char* namesfx)
   c1->SetName(tmpchr);
   c1->Write();
 
-   ofstream outf("fkkpipi_ppid",std::ios::app);
+   ofstream outf("par4pi",std::ios::app);
    outf<<beame<<"\t"<<mean.getVal()<<"\t"<<mean.getError()<<std::endl;
    
    //c1->Print("fit6pi.eps");

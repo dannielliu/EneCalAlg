@@ -133,6 +133,76 @@ public:
     return kam+pip;
   }
 };
+
+class D0K3PI{
+public:
+  HepLorentzVector kam;
+  HepLorentzVector pip1;
+  HepLorentzVector pip2;
+  HepLorentzVector pim;
+public:
+  D0K3PI() {}
+  ~D0K3PI() {}
+  
+  void set(HepLorentzVector fkm1, HepLorentzVector fp1, HepLorentzVector fp2, HepLorentzVector fpm1)
+  {
+    kam  = fkm1;
+    pip1 = fp1;
+    pip2 = fp2;
+    pim  = fpm1;
+  }
+  double m()
+  {
+    return (kam+pip1+pip2+pim).m();
+  }
+  inline Hep3Vector GetPkam(){return kam.vect();}
+  inline Hep3Vector GetPpip1(){return pip1.vect();}
+  inline Hep3Vector GetPpip2(){return pip2.vect();}
+  inline Hep3Vector GetPpim(){return pim.vect();}
+
+  D0K3PI &operator *= (const double f)
+  {
+    double mk = kam.m();
+    double mpi = pip1.m();
+    kam.setVectM(kam.vect()*f,mk);
+    pip1.setVectM(pip1.vect()*f,mpi);
+    pip2.setVectM(pip2.vect()*f,mpi);
+    pim.setVectM(pim.vect()*f,mpi);
+    return *this;
+  }
+  void setCorrectionFactors(double f)
+  {
+    double mk = kam.m();
+    double mpi = pip1.m();
+    kam.setVectM(kam.vect()*f,mk);
+    pip1.setVectM(pip1.vect()*f,mpi);
+    pip2.setVectM(pip2.vect()*f,mpi);
+    pim.setVectM(pim.vect()*f,mpi);
+  }
+  void setCorrectionFactors(double f1, double f2)
+  {
+    double mk = kam.m();
+    double mpi = pip1.m();
+    kam.setVectM(kam.vect()*f1,mk);
+    pip1.setVectM(pip1.vect()*f2,mpi);
+    pip2.setVectM(pip2.vect()*f2,mpi);
+    pim.setVectM(pim.vect()*f2,mpi);
+  }
+  void setCorrectionFactors(double f1, double f2, double f3, double f4)
+  {
+    double mk = kam.m();
+    double mpi = pip1.m();
+    kam.setVectM(kam.vect()*f1,mk);
+    pip1.setVectM(pip1.vect()*f2,mpi);
+    pip2.setVectM(pip2.vect()*f3,mpi);
+    pim.setVectM(pim.vect()*f4,mpi);
+  }
+  
+  HepLorentzVector Get4P()
+  {
+    return kam+pip1+pip2+pim;
+  }
+};
   
 class D2KPiPi{
 public:
@@ -289,6 +359,39 @@ public:
 
 };
 
+class FourPi{
+public:
+  HepLorentzVector pip1;
+  HepLorentzVector pim1;
+  HepLorentzVector pip2;
+  HepLorentzVector pim2;
+
+public:
+  FourPi() {}
+  ~FourPi() {}
+
+  void set( HepLorentzVector fpip, HepLorentzVector fpim, 
+            HepLorentzVector fkap, HepLorentzVector fkam) {
+	pip1 = fpip;
+	pim1 = fpim;
+	pip2 = fkap;
+	pim2 = fkam;
+  }
+  double m()
+  {
+    return (pip1+pim1+pip2+pim2).m();
+  }
+  void setCorrectionFactors(double fpi)
+  {
+    double mpi = pip1.m();
+    pip1.setVectM(pip1.vect()*fpi,mpi);
+    pim1.setVectM(pim1.vect()*fpi,mpi);
+    pip2.setVectM(pip2.vect()*fpi,mpi);
+    pim2.setVectM(pim2.vect()*fpi,mpi);
+  }
+
+};
+
 class APair{
 public:
   HepLorentzVector partilep;
@@ -320,5 +423,49 @@ public:
     partilem.setVectM(partilem.vect()*f2,mparticle2);
   }
 
+}; 
+
+class Lambdac{
+public:
+	HepLorentzVector proton;
+	HepLorentzVector kam;
+	HepLorentzVector pip;
+public:
+	Lambdac() {}
+	~Lambdac() {}
+
+	void set(HepLorentzVector fp, HepLorentzVector fkm, HepLorentzVector fpip){
+		proton = fp;
+		kam = fkm;
+		pip = fpip;
+	}
+	double m(){
+		return (proton+kam+pip).m();
+	}
+	void setCorrectionFactors(double f)
+	{
+		double mp = proton.m();
+		double mk = kam.m();
+		double mpi = pip.m();
+		proton.setVectM(proton.vect()*f, mp);
+		kam.setVectM(kam.vect()*f,mk);
+		pip.setVectM(pip.vect()*f,mpi);
+	}
+	void setCorrectionFactors(double fp,double fk, double fpi)
+	{
+		double mp = proton.m();
+		double mk = kam.m();
+		double mpi = pip.m();
+		proton.setVectM(proton.vect()*fp, mp);
+		kam.setVectM(kam.vect()*fk,mk);
+		pip.setVectM(pip.vect()*fpi,mpi);
+	}
+
+	HepLorentzVector get4P()
+	{
+	  return proton+kam+pip;
+	}
+
 };
+
 #endif

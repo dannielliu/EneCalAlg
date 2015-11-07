@@ -33,7 +33,7 @@ void gepep_2pi::Loop()
 
    double ratio=2;
    double mass;
-   TH1D *hmass = new TH1D("hmass","hmass",800,0,0.6);
+   TH1D *hmass = new TH1D("hmass","hmass",800,0,4.0);
    Long64_t nentries = fChain->GetEntriesFast();
 
    Long64_t nbytes = 0, nb = 0;
@@ -43,7 +43,7 @@ void gepep_2pi::Loop()
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;
 
-	  if (fabs(Ks_ratio)>ratio){
+	  if (fabs(Ks_ratio)<ratio){
 	    hmass->Fill(Ks_mass);
 	  }
 	  hmass->Draw();
