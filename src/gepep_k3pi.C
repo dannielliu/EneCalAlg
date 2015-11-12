@@ -129,6 +129,7 @@ void gepep_kpi::Loop()
    std::vector<int> partmap;
    std::vector<std::pair<int,double> > facmap;
    std::vector<D0K3PI> evts_set[Npart];
+   std::vector<D0K3PI> evts_set2;
 
    char name[100];
    // ~~~~~~~~ draw nxn histogram, m distribution in different p range
@@ -211,7 +212,8 @@ void gepep_kpi::Loop()
 	   //&&theta2>thetacut[partj]&&theta2<thetacut[partj+1])
 	   if (mass>m0-width/2.-0.02 && mass<m0+width/2.+0.02)
 	   {
-	     //if (p1<0.6 || p1>0.8) continue;
+	     evts_set2.push_back(evt);
+	     if (p1<0.6 || p1>0.8) continue;
 	     //if (p2<0.1||p2>0.36||p3<0.1||p3>0.36||p4<0.1||p4>0.36) continue;
 	/////h2p->Fill(p1,p2);
 	/////thedis->Fill(p1,theta1);
@@ -224,15 +226,15 @@ void gepep_kpi::Loop()
 	 }
 	 // if (Cut(ientry) < 0) continue;
 	
-	 if (pt1<0.4 || pt1>0.7) continue;
-	 //if (p1<0.6 || p1>0.8) continue;
+	 //if (pt1<0.6 || pt1>0.8) continue;
+	 if (p1<0.6 || p1>0.8) continue;
 	 hmD->Fill(mass);
 	 // fill momentum spectrum
 	 if (mass>m0-2*sigma_m && mass<m0+2*sigma_m){
-	   hpka->Fill(pt1);
-	   hppi->Fill(pt2);
-	   hppi->Fill(pt3);
-	   hppi->Fill(pt4);
+	   hpka->Fill(p1);
+	   hppi->Fill(p2);
+	   hppi->Fill(p3);
+	   hppi->Fill(p4);
 	 }
 	 if (p2>0.1 && p2<0.36 && p3>0.1 && p3<0.36 && p4>0.1 && p4<0.36 )
 	 	hmDc->Fill(mass);
@@ -243,26 +245,26 @@ void gepep_kpi::Loop()
    //thedis->Write();
    //thedis2->Write();
     
-   TFile *ftmp = new TFile("P_cmp.root","update");
-   ftmp->WriteTObject(hpka,"hptka_DKpipipi");
-   ftmp->WriteTObject(hppi,"hptpi_DKpipipi");
-   ftmp->WriteTObject(hmD,"hmD_DKpipipi");
-   ftmp->WriteTObject(hmDc,"hmDc_DKpipipi");
-   ftmp->Close();
-   delete ftmp;
-   f->cd();
-   return ;
+ //TFile *ftmp = new TFile("P_cmp.root","update");
+ //ftmp->WriteTObject(hpka,"hptka_DKpipipi");
+ //ftmp->WriteTObject(hppi,"hptpi_DKpipipi");
+ //ftmp->WriteTObject(hmD,"hmD_DKpipipi");
+ //ftmp->WriteTObject(hmDc,"hmDc_DKpipipi");
+ //ftmp->Close();
+ //delete ftmp;
+ //f->cd();
+ //return ;
 
-   
+   // for several parts, check the size first.
    for (int parti=0;parti<Npart;parti++){
-	 hmtheta[parti]->Write();
-	 std::cout<<"processed part "<<parti<<std::endl;
-	 std::cout<<"entry is "<<hmtheta[parti]->GetEntries()<<'\t'<<hmtheta[parti]->GetMaximumBin()<<std::endl;
-	 if (hmtheta[parti]->GetEntries() > 50
-	   &&hmtheta[parti]->GetMaximumBin()>20
-	   &&hmtheta[parti]->GetMaximumBin()<70){
-	   partmap.push_back(parti);
-	 }
+         hmtheta[parti]->Write();
+         std::cout<<"processed part "<<parti<<std::endl;
+         std::cout<<"entry is "<<hmtheta[parti]->GetEntries()<<'\t'<<hmtheta[parti]->GetMaximumBin()<<std::endl;
+         if (hmtheta[parti]->GetEntries() > 50
+           &&hmtheta[parti]->GetMaximumBin()>20
+           &&hmtheta[parti]->GetMaximumBin()<70){
+           partmap.push_back(parti);
+         }
    }
    // ~~~~~~~~ draw end
    
@@ -271,6 +273,8 @@ void gepep_kpi::Loop()
      char namesfx[100];
      sprintf(namesfx,"%d",ipart);
      K3PI::FitSpe(evts_set[ipart],beamene,namesfx);
+     sprintf(namesfx,"%d_nocut",ipart);
+     K3PI::FitSpe(evts_set2,beamene,namesfx);
    }
 }
 
@@ -320,7 +324,7 @@ void K3PI::FitSpe(std::vector<D0K3PI> &evts, double beame, char *namesfx)
       mass = evt.m();
       if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
     }
-    sprintf(tmpchr,"factor_0");
+    sprintf(tmpchr,"%s_factor_0",namesfx);
     double peakt,errt;
     K3PI::FitSpectrum(dataraw,beame,tmpchr,peakt,errt);
 

@@ -71,7 +71,8 @@ int main(int argc,char **argv)
     use4k      = ( namenopa.find("4k")        != std::string::npos);
     usekk      = ( namenopa.find("_kk_")      != std::string::npos
                 || namenopa.find("kk_")       != std::string::npos);
-    usekpi     = ( namenopa.find("_kpi_")     != std::string::npos);
+    usekpi     = ( namenopa.find("_kpi_")     != std::string::npos
+                || namenopa.find("Kpi.")     != std::string::npos);
     useppi     = ( namenopa.find("_ppi_")     != std::string::npos);
     usekpi2    = ( namenopa.find("_kpi2_")    != std::string::npos);
     usekpipi   = ( namenopa.find("_kpipi_")   != std::string::npos);
@@ -105,7 +106,7 @@ int main(int argc,char **argv)
     }
     else if( usekpi){
       gepep_kpi *a;
-      analysis(a,filename);
+      analysis(a,filename,"gepep_kpi");
     }
     else if( useppi){
       gepep_ppi *a;

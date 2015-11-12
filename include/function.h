@@ -4,6 +4,7 @@
 #include "TF1.h"
 #include "TF2.h"
 #include <vector>
+#include "EventClass.h"
 
 double BreitWigner(double *x, double *par);
 
@@ -99,98 +100,98 @@ public:
 
 struct Psip
 {
+  HepLorentzVector pip;
+  HepLorentzVector pim;
+  HepLorentzVector ele;
+  HepLorentzVector pos;
   double mpi;
-  double pipx1;
-  double pipy1;
-  double pipz1;
-  double pipx2;
-  double pipy2;
-  double pipz2;
+//double pipx1;
+//double pipy1;
+//double pipz1;
+//double pipx2;
+//double pipy2;
+//double pipz2;
   double ml;
-  double lpx1;
-  double lpy1;
-  double lpz1;
-  double lpx2;
-  double lpy2;
-  double lpz2;
+//double lpx1;
+//double lpy1;
+//double lpz1;
+//double lpx2;
+//double lpy2;
+//double lpz2;
 
 public:
   Psip(){
     mpi = 0.13957;
-	ml = 0.000511;
+    ml = 0.000511;
   }
   void Setval(double px1,double py1,double pz1,
               double px2,double py2,double pz2,
               double px3,double py3,double pz3,
               double px4,double py4,double pz4 )
   {
-    pipx1 = px1;
-    pipy1 = py1;
-    pipz1 = pz1;
-    pipx2 = px2;
-    pipy2 = py2;
-    pipz2 = pz2;
-    lpx1  = px3;
-    lpy1  = py3;
-    lpz1  = pz3;
-    lpx2  = px4;
-    lpy2  = py4;
-    lpz2  = pz4;
+    pip.setVectM(Hep3Vector(px1,py1,pz1),mpi);
+    pim.setVectM(Hep3Vector(px2,py2,pz2),mpi);
+    ele.setVectM(Hep3Vector(px3,py3,pz3),ml);
+    pos.setVectM(Hep3Vector(px4,py4,pz4),ml);
   }
   void SetLeptonM(double m)
   {
     ml = m;
   }
+  void setCorrectionFactors(double f1, double f2)
+  {
+    double mpi = pip.m();
+    pip.setVectM(pip.vect()*f1,mpi);
+    pim.setVectM(pim.vect()*f2,mpi);
+  }
+
+
   double InvMass(double f1=1.0,double f2=1.0,double f3=1.00,double f4=1.00)
   {
-    double totpx,totpy,totpz,tote;
-	double lee[2],pie[2];
-	double mass;
-    totpx = (f1*pipx1+f2*pipx2)+(f3*lpx1+f4*lpx2);
-    totpy = (f1*pipy1+f2*pipy2)+(f3*lpy1+f4*lpy2);
-    totpz = (f1*pipz1+f2*pipz2)+(f3*lpz1+f4*lpz2);
-    lee[0]=CalEne(ml,f3*lpx1,f3*lpy1,f3*lpz1);
-    lee[1]=CalEne(ml,f4*lpx2,f4*lpy2,f4*lpz2);
-    //double massjpsi = CalInvMass(ml,lpx1,lpy1,lpz1,ml,lpx2,lpy2,lpz2);
-    pie[0]=CalEne(mpi,f1*pipx1,f1*pipy1,f1*pipz1);
-    pie[1]=CalEne(mpi,f2*pipx2,f2*pipy2,f2*pipz2);
-    tote=lee[0]+lee[1]+pie[0]+pie[1];
-    mass=TMath::Sqrt(tote*tote-totpx*totpx-totpy*totpy-totpz*totpz);
+    setCorrectionFactors(f1,f2);
+    double mass = (pip+pim+ele+pos).m();
     mass = mass-PsiM(f3,f4)+3.096916;
-	return mass;
+    return mass;
   } 
   double PsiM(double f3=1.00, double f4 = 1.00)
   {
     double f[2];
-	f[0] = f3;
-	f[1] = f4;
-    return CalInvMass(ml,lpx1,lpy1,lpz1,ml,lpx2,lpy2,lpz2,-2,f);
+    f[0] = f3;
+    f[1] = f4;
+    //return CalInvMass(ml,lpx1,lpy1,lpz1,ml,lpx2,lpy2,lpz2,-2,f);
+    return (ele+pos).m();
   }
   double GetP1()
   {
-    return CalMom(pipx1,pipy1,pipz1);
+    return pip.rho();
+    //return CalMom(pipx1,pipy1,pipz1);
   }
   double GetP2()
   {
-    return CalMom(pipx2,pipy2,pipz2);
+    return pim.rho();
+    //return CalMom(pipx2,pipy2,pipz2);
   }
   double GetCostheta1()
   {
-    return pipz1/GetP1();
+    return pip.cosTheta();
+    //return pipz1/GetP1();
   }
   double GetCostheta2()
   {
-    return pipz2/GetP2();
+    return pim.cosTheta();
+    //return pipz2/GetP2();
   }
   double GetPhi1()
   {
-    if (pipy1>0) return acos(pipx1/sqrt(pipx1*pipx1+pipy1*pipy1));
-    else return 2*TMath::Pi()-acos(pipx1/sqrt(pipx1*pipx1+pipy1*pipy1)); 
+    return pip.phi();
+    //if (pipy1>0) return acos(pipx1/sqrt(pipx1*pipx1+pipy1*pipy1));
+    //else return 2*TMath::Pi()-acos(pipx1/sqrt(pipx1*pipx1+pipy1*pipy1)); 
   }
   double GetPhi2()
   {
-    if (pipy2>0) return acos(pipx2/sqrt(pipx2*pipx2+pipy2*pipy2));
-    else return 2*TMath::Pi()-acos(pipx2/sqrt(pipx2*pipx2+pipy2*pipy2)); 
+    return pip.phi();
+    //if (pipy2>0) return acos(pipx2/sqrt(pipx2*pipx2+pipy2*pipy2));
+    //else return 2*TMath::Pi()-acos(pipx2/sqrt(pipx2*pipx2+pipy2*pipy2)); 
   }
 
 };

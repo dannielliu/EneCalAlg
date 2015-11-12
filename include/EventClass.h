@@ -20,9 +20,9 @@ public:
   void set(HepLorentzVector fp1, HepLorentzVector fp2, HepLorentzVector fp3, HepLorentzVector fp4)
   {
     pip = fp1;
-	pim = fp2;
-	ele = fp3;
-	pos = fp4;
+    pim = fp2;
+    ele = fp3;
+    pos = fp4;
   }
   double m()
   {
@@ -96,7 +96,7 @@ public:
   void set(HepLorentzVector fp1, HepLorentzVector fp2)
   {
     kam = fp1;
-	pip = fp2;
+    pip = fp2;
   }
   double m()
   {
@@ -108,7 +108,7 @@ public:
   D0KPI &operator *= (const double f)
   {
     double mk = kam.m();
-	double mpi = pip.m();
+    double mpi = pip.m();
     kam.setVectM(kam.vect()*f,mk);
     pip.setVectM(pip.vect()*f,mpi);
     return *this;
@@ -116,14 +116,14 @@ public:
   void setCorrectionFactors(double f)
   {
     double mk = kam.m();
-	double mpi = pip.m();
+    double mpi = pip.m();
     kam.setVectM(kam.vect()*f,mk);
     pip.setVectM(pip.vect()*f,mpi);
   }
   void setCorrectionFactors(double f1, double f2)
   {
     double mk = kam.m();
-	double mpi = pip.m();
+    double mpi = pip.m();
     kam.setVectM(kam.vect()*f1,mk);
     pip.setVectM(pip.vect()*f2,mpi);
   }

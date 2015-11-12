@@ -13,6 +13,7 @@
 #include "RooGaussian.h"
 #include "RooPolynomial.h"
 #include "RooCBShape.h"
+#include "RooArgusBG.h"
 #include "RooChebychev.h"
 #include "RooDataHist.h"
 #include "RooDataSet.h"
@@ -86,8 +87,8 @@ void gepep_fast6pi::Loop()
    double mpi=0.13957;
     
   char fname[1000];
-  sprintf(fname,"%s/plot_6pi_DDbar.root",outputdir.c_str());
-  TFile *f=new TFile(fname,"RECREATE");
+  sprintf(fname,"%s/plot_6pi_xyz.root",outputdir.c_str());
+  TFile *f=new TFile(fname,"update");
 
   char name[100];
   TCanvas *c1=new TCanvas("c1","",800,600);
@@ -234,6 +235,7 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
 
   // psi 3.097
      
+  
   char tmpchr[100];
   double fpilow=0, fpih=0, fpier = 0;
   ifstream inpar("CORF");
@@ -269,6 +271,7 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
   inpar.close();
 
   //~~~~~~~~~~part start~~~~~~~~
+  TF1 ff("ff","1.00065+0.000630*x",0,2);
 
   for (Long64_t jentry=0; jentry<evts.size();jentry++) {
      
@@ -284,20 +287,23 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
 
      short flag = 0x0;
      for (int pid=0;pid<6;pid++){
-       for (int i=0;i<Npart;i++){
-         if (p[pid]>=pcut[i]&&p[pid]<pcut[i+1]){
-           f[pid]  = facmap[i];
-           fl[pid] = facmap[i]-facemap[i];
-           fu[pid] = facmap[i]+facemap[i];
-	   flag = (flag<<1) +1; //if factor find, the flag should be 00111111
-           break;
-         }
-       }
+       f[pid] = ff.Eval(p[pid]);
+       fl[pid] = ff.Eval(p[pid]);
+       fu[pid] = ff.Eval(p[pid]);
+     //for (int i=0;i<Npart;i++){
+     //  if (p[pid]>=pcut[i]&&p[pid]<pcut[i+1]){
+     //    f[pid]  = facmap[i];
+     //    fl[pid] = facmap[i]-facemap[i];
+     //    fu[pid] = facmap[i]+facemap[i];
+     //    flag = (flag<<1) +1; //if factor find, the flag should be 00111111
+     //    break;
+     //  }
+     //}
      }
-     if (flag!=0x3f){
-        std::cout<<"Waring: not good event, factor map is "<<flag<<std::endl;
-        continue;
-     }
+   //if (flag!=0x3f){
+   //   std::cout<<"Waring: not good event, factor map is "<<flag<<std::endl;
+   //   continue;
+   //}
 	 // for average correction factor
      mass = evts.at(jentry).InvMass(f);
      if (mass>beamlow-0.001 && mass<beamup+0.001) {dataraw->Fill();hm->Fill(mass);}
@@ -311,18 +317,18 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
   //dataraw->Write();
   // no correction
   sprintf(tmpchr,"raw_%s",namesfx);
-  //EEto6PI::FitSpectrum(datarawo,beame,tmpchr);
+  EEto6PI::FitSpectrum(datarawo,beame,tmpchr);
   //EEto6PI::FitSpectrum2(hmo,beame,tmpchr);
   //EEto6PI::FitSpectrum3(hmo,beame,tmpchr);
-  EEto6PI::FitSpectrum4(hmo,beame,tmpchr);
+  //EEto6PI::FitSpectrum4(hmo,beame,tmpchr);
 
   // for mc data
   // factor at average
   sprintf(tmpchr,"nom_%s",namesfx);
-  //EEto6PI::FitSpectrum(dataraw,beame,tmpchr);
+  EEto6PI::FitSpectrum(dataraw,beame,tmpchr);
   //EEto6PI::FitSpectrum2(hm,beame,tmpchr);
   //EEto6PI::FitSpectrum3(hm,beame,tmpchr);
-  EEto6PI::FitSpectrum4(hm,beame,tmpchr);
+  //EEto6PI::FitSpectrum4(hm,beame,tmpchr);
  
 //// factor at low edge
 //sprintf(tmpchr,"low_%s",namesfx);
@@ -362,7 +368,13 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
      RooRealVar co2("co2","coefficient #1",-0.2,-100.,100.);
      RooRealVar co3("co3","coefficient #1",0.1,-100.,100.);
      //RooRealVar co4("co4","coefficient #4",0);
-     RooChebychev ground("ground","background",x,RooArgList(co1,co2,co3));
+     //RooChebychev ground("ground","background",x,RooArgList(co1,co2,co3));
+   
+   RooRealVar am("am","argus m", beame+0.05, 0, 10);
+   RooRealVar ac("ac","argus c", 0, 0, 10);
+   RooRealVar ap("ap","argus p", 0.2, 0, 10);
+   RooArgusBG ground("ground","background",x,am,ac,ap);
+   
    RooRealVar signal("signal"," ",300,0,1000000);//event number
    //RooRealVar signal1("signal1"," ",20,0,1000000);//event number
    RooRealVar background("background"," ",200,0,100000);

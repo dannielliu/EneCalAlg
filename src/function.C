@@ -202,9 +202,9 @@ double GetEnergy(int runNo)
   {
     PeakEstPar *par = PeakEstPar::GetInstance();
     par->p1dismean  = m1;
-	par->p1dissigma = s1;
-	par->p2dismean  = m2;
-	par->p2dissigma = s2;
+    par->p1dissigma = s1;
+    par->p2dismean  = m2;
+    par->p2dissigma = s2;
   }
   void PeakEstimate::SetMResonace(double m)
   {
@@ -241,9 +241,9 @@ double GetEnergy(int runNo)
   double PeakEstimate::Gauss2D(double *x, double *par)
   {
     if (par[2]<=0 || par[4]<=0) return 0;
-	double rx = (x[0]-par[1])/par[2];
-	double ry = (x[1]-par[3])/par[4];
-	return par[0]*TMath::Exp(-(rx*rx+ry*ry)/2.0);
+    double rx = (x[0]-par[1])/par[2];
+    double ry = (x[1]-par[3])/par[4];
+    return par[0]*TMath::Exp(-(rx*rx+ry*ry)/2.0);
   }
   double PeakEstimate::Maxwell(double *x, double *par)
   {
@@ -259,28 +259,28 @@ double GetEnergy(int runNo)
   {
     //return par[0]*x[0];
     PeakEstPar *ins = PeakEstPar::GetInstance();
-	double pars[4];
+    double pars[4];
     pars[0] = ins->p1dismean;
-	pars[1] = ins->p1dissigma;
-	pars[2] = ins->p2dismean;
-	pars[3] = ins->p2dissigma;
-	if (pars[1]<0 || pars[3]<0) return 0;
-	if (x[0]<0 || x[1]<0) return 0;
-	  
-	//double rx = (x[0]-pars[0])/pars[1];
-	if (x[0]<pars[0]) return 0;
-	//if (x[1]<pars[2]) return 0;
-	double rx = sqrt(x[0]-pars[0])*exp(-(x[0]-pars[0])/(pars[1]));
-	double ry = (x[1]-pars[2])*exp(-(x[1]-pars[2])*(x[1]-pars[2])/pars[3]);
-	//double ry = (x[1]-pars[2])/pars[3];
-	//double ry = TMath::Gaus(x[1],pars[2],pars[3],true);
-	//double rx = TMath::Gaus(x[0],pars[0],pars[1],true);
-	//double ry = TMath::Gaus(x[1],pars[2],pars[3],true);
+    pars[1] = ins->p1dissigma;
+    pars[2] = ins->p2dismean;
+    pars[3] = ins->p2dissigma;
+    if (pars[1]<0 || pars[3]<0) return 0;
+    if (x[0]<0 || x[1]<0) return 0;
+          
+    //double rx = (x[0]-pars[0])/pars[1];
+    if (x[0]<pars[0]) return 0;
+    //if (x[1]<pars[2]) return 0;
+    double rx = sqrt(x[0]-pars[0])*exp(-(x[0]-pars[0])/(pars[1]));
+    double ry = (x[1]-pars[2])*exp(-(x[1]-pars[2])*(x[1]-pars[2])/pars[3]);
+    //double ry = (x[1]-pars[2])/pars[3];
+    //double ry = TMath::Gaus(x[1],pars[2],pars[3],true);
+    //double rx = TMath::Gaus(x[0],pars[0],pars[1],true);
+    //double ry = TMath::Gaus(x[1],pars[2],pars[3],true);
 
-	//double res = TMath::Gaus(x[0],par[0],par[1],true);
-	//double res = TMath::Exp(-(rx*rx+ry*ry)/2.);
-	
-	double res = rx*ry;
+    //double res = TMath::Gaus(x[0],par[0],par[1],true);
+    //double res = TMath::Exp(-(rx*rx+ry*ry)/2.);
+    
+    double res = rx*ry;
     //std::cout<<"in ppdf, p1 is "<<x[0]<<", mean is "<<pars[0]<<", sigma is "<< pars[1] <<", value is "<<rx<< std::endl;
     //std::cout<<"in ppdf, p2 is "<<x[1]<<", mean is "<<pars[2]<<", sigma is "<< pars[3] <<", value is "<<ry<< std::endl;
 	return res;
@@ -294,10 +294,10 @@ double GetEnergy(int runNo)
     //std::cout<<w2<<' '<<s1<<' ' <<s2<<std::endl;
     double gaus1 = TMath::Gaus(x[0],par[0],s1*par[0],true);
     double gaus2 = TMath::Gaus(x[0],par[0],s2*par[0],true);
-	//double xp = (x[0]-par[0])/par[0];
-	//double gaus1 = 1/(sqrt(2*TMath::Pi())*s1*par[0])*TMath::Exp(-xp*xp/(2*s1*s1));
-	//double gaus2 = 1/(sqrt(2*TMath::Pi())*s2*par[0])*TMath::Exp(-xp*xp/(2*s2*s2));
-	return (gaus1+w2*gaus2)/(1+w2);
+    //double xp = (x[0]-par[0])/par[0];
+    //double gaus1 = 1/(sqrt(2*TMath::Pi())*s1*par[0])*TMath::Exp(-xp*xp/(2*s1*s1));
+    //double gaus2 = 1/(sqrt(2*TMath::Pi())*s2*par[0])*TMath::Exp(-xp*xp/(2*s2*s2));
+    return (gaus1+w2*gaus2)/(1+w2);
     //return (TMath::Gaus(xp,0,s1,true)+w2*TMath::Gaus(xp,0,s2,true))/(1+w2); // need to be normalized
 
 	//double res = TMath::Gaus(par[0],x[0],sigma,true);
@@ -310,23 +310,23 @@ double GetEnergy(int runNo)
     PeakEstPar *ins = PeakEstPar::GetInstance();
     double m,E1,E2,p1,p2,costheta;
     m = ins->mresonace;
-	double mk = ins->mfinal;
+    double mk = ins->mfinal;
     //std::cout<<"in deltam  aaa"<<std::endl;
-	p1 = par[0];
+    p1 = par[0];
     p2 = par[1];
     //std::cout<<"in deltam bbb"<<std::endl;
-	double p1r = x[0]; // p1 real position, smear to par[0]
-	double p2r = x[1];
-	E1 = sqrt(mk*mk + p1r*p1r);
-	E2 = sqrt(mk*mk + p2r*p2r);
+    double p1r = x[0]; // p1 real position, smear to par[0]
+    double p2r = x[1];
+    E1 = sqrt(mk*mk + p1r*p1r);
+    E2 = sqrt(mk*mk + p2r*p2r);
     costheta = ((E1+E2)*(E1+E2)-m*m-(p1r*p1r + p2r*p2r))/(2*p1r*p2r);
     //std::cout<<"E1: "<<E1<<"\tE2: "<<E2 <<"\tp1: "<<p1<<"\tp2: "<<p2<<"\tcostheta: "<<costheta<< std::endl;
     //std::cout<<"in multifgdelta return"<<std::endl;
-	if (fabs(costheta)>1) return -1.e100;
+    if (fabs(costheta)>1) return -1.e100;
 
     double delta;
     double dp1 = p1 - x[0];
-	double dp2 = p2 - x[1];
+    double dp2 = p2 - x[1];
     delta = 1/m*((E1+E2)*(p1r*dp1/E1+p2r*dp2/E2)-(p1r*dp1+p2r*dp2+p2r*dp1*costheta+p1r*dp2*costheta));
     //std::cout<<"in delta m, p1 is "<<p1<<", dp1 is "<<dp1<<", delta m is "<< delta << std::endl;
 
@@ -445,15 +445,15 @@ double GetEnergy(int runNo)
 ////double fdmint = ig1.Integral(xmin,xmax);
 ////double pdisint = ig2.Integral(xmin,xmax);
 
-	double fdmint = IntegralTF2User(fdm,p1low,p1up,p2low,p2up,100);
-	double pdisint = IntegralTF2User(pdis,p1low,p1up,p2low,p2up,100);
-	//double fdmint = fdm.Integral(p1low,p1up,p2low,p2up);
+    double fdmint = IntegralTF2User(fdm,p1low,p1up,p2low,p2up,100);
+    double pdisint = IntegralTF2User(pdis,p1low,p1up,p2low,p2up,100);
+    //double fdmint = fdm.Integral(p1low,p1up,p2low,p2up);
     //std::cout<<"peak shift ..." <<std::endl;
-	//double pdisint= pdis.Integral(p1low,p1up,p2low,p2up);
-	double ps=0;
+    //double pdisint= pdis.Integral(p1low,p1up,p2low,p2up);
+    double ps=0;
     if (fabs(pdisint)>1e-100) ps = fdmint/pdisint;
-	std::cout<<"int1 int2 : "<<fdmint<<" " <<pdisint<<std::endl;
+    std::cout<<"int1 int2 : "<<fdmint<<" " <<pdisint<<std::endl;
     std::cout<<"peak shift is "<< ps <<std::endl;
     if (idx ==0 ) return ps+PeakEstPar::GetInstance()->mresonace;
-	return ps;
+    return ps;
   }

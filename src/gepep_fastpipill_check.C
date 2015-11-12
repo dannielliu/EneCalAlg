@@ -26,7 +26,7 @@
 #include <vector>
 extern std::string outputdir;
 using namespace RooFit;
-namespace PSIP{
+namespace PSIP_ns{
   void FitSpectrum(TTree *&dataraw, char* namesfx, bool out=false);
 }
 
@@ -97,7 +97,7 @@ bool gepep_fastpipill::Loop()
   // for initial spectrum
   Long64_t nbytes = 0, nb = 0;
 
-  TH1D *hppi = new TH1D("hppi","p_{#pi}",200,0,1);
+  TH1D *hppi = new TH1D("hppi","pt_{#pi}",200,0,1);
   TH1D *hmpsip  = new TH1D("hm" ,"M(#pi#pi J/#psi)",200,3,4);
   
   const int Npart=1;
@@ -150,15 +150,17 @@ bool gepep_fastpipill::Loop()
        continue;;
      } 
      // if (Cut(ientry) < 0) continue;
-	 //int parti, partj;
-	 mass = evt.InvMass();
+     //int parti, partj;
+     mass = evt.InvMass();
      //std::cout<<"jentry "<< jentry <<", mass "<<mass<<std::endl;
      //std::cout<<evt.pipx1<<" "<<evt.pipy1<<" "<<evt.pipz1<<" "<<evt.ml<<std::endl;
      p1 = evt.GetP1();
      p2 = evt.GetP2();
+     double pt1 = evt.pip.perp();
+     double pt2 = evt.pim.perp();
      //if (p1<0.10 || p1>0.4) continue;
      //if (p2<0.10 || p2>0.4) continue;
-	 //if (p1+p2<0.4 || p1+p2>0.6) continue;
+     //if (p1+p2<0.4 || p1+p2>0.6) continue;
      costheta1 = evt.GetCostheta1();
      costheta2 = evt.GetCostheta2();
      phi1 = evt.GetPhi1();
@@ -187,8 +189,8 @@ bool gepep_fastpipill::Loop()
 
      hmpsip->Fill(mass);
      if (mass>psiplow && mass<psipup){
-       hppi->Fill(p1);
-       hppi->Fill(p2);
+       hppi->Fill(pt1);
+       hppi->Fill(pt2);
      }
 
   }
@@ -582,27 +584,27 @@ void gepep_fastpipill::FitSpe(std::vector<Psip> &evts,const char *namesfx)
   //dataraw->Write();
   // no correction
   sprintf(tmpchr,"raw_%s",namesfx);
-  PSIP::FitSpectrum(datarawo,tmpchr,true);
+  PSIP_ns::FitSpectrum(datarawo,tmpchr,true);
   std::cout<<"cccccccccca"<<std::endl;
 
   // factor at average
   sprintf(tmpchr,"nom_%s",namesfx);
-  PSIP::FitSpectrum(dataraw,tmpchr,true);
+  PSIP_ns::FitSpectrum(dataraw,tmpchr,true);
   std::cout<<"dddddddddda"<<std::endl;
  
 //// factor at low edge
 //sprintf(tmpchr,"low_%s",namesfx);
-//PSIP::FitSpectrum(datarawl,tmpchr,true);
+//PSIP_ns::FitSpectrum(datarawl,tmpchr,true);
 
 //// factor at up edge
 //sprintf(tmpchr,"up_%s",namesfx);
-//PSIP::FitSpectrum(datarawu,tmpchr,true);
+//PSIP_ns::FitSpectrum(datarawu,tmpchr,true);
 
 //~~~~~~~~~~pion part end~~~~~~~~
   return;
 }
 
-void PSIP::FitSpectrum(TTree *&dataraw, char* namesfx, bool out)
+void PSIP_ns::FitSpectrum(TTree *&dataraw, char* namesfx, bool out)
 {
   int nBins=100;
   double mparticle = 3.686109;

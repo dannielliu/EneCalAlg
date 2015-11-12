@@ -49,8 +49,8 @@ void gepep_npi::Loop()
    vars->Branch("costheta2",&costheta2,"costheta2/D");
    NPi evt;
 
-   TH1D *hmass = new TH1D("hmass","M(#pi #pi)",400,0,4);
-   TH1D *hp = new TH1D("hp","p_{#pi}",400,0,4);
+   TH1D *hmass = new TH1D("hmass","M(#pi #pi)",1000,0,5);
+   TH1D *hp = new TH1D("hp","p_{#pi}",1000,0,5);
 
    Long64_t nbytes = 0, nb = 0;
    //nentries = nentries > 100000? 100000: nentries;
@@ -87,7 +87,7 @@ void gepep_npi::Loop()
 	//  continue;
 	//}
 	  counter[0] ++;
-	  if (npip!=2 || npim!=2) continue;
+	  if (npip!=1 || npim!=1) continue;
 	  counter[1] ++;
 	  NPi tmpEvt;
 	  double massgap =10;

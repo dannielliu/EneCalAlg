@@ -107,19 +107,21 @@ void gepep_kpi::Loop()
    TH2D *h2p = new TH2D("h2p","#pi K momentum",200,0,2,200,0,2);
    TH2D *thedis = new TH2D("thedis","#theta",200,0,2,100,0,TMath::Pi());
    TH2D *thedis2= new TH2D("thedis2","#theta",100,0,TMath::Pi(),100,0,TMath::Pi());
-   const  int Npart=1;
+   const  int Npart=5;
  //double thetacut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
  //double start=0.0;
  //double stop =TMath::Pi();
  //for(int i=0;i<Npart+1;i++){
  //  thetacut[i] = (stop-start)/Npart*i+start;
  //}
-   double coscut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
-   double start=-1;
-   double stop =1;
-   for(int i=0;i<Npart+1;i++){
-	 coscut[i] = (stop-start)/Npart*i+start;
-   }
+ //double coscut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
+ //double start=-1;
+ //double stop =1;
+ //for(int i=0;i<Npart+1;i++){
+ //      coscut[i] = (stop-start)/Npart*i+start;
+ //}
+   double pcut[Npart+1]={0.4, 0.6, 0.8, 1.0, 1.2, 1.4};
+
    double m0=peakvalue;
    double sigma_m = 0.0068;//0.0024 for phi,
    double width = 20.*sigma_m;
@@ -127,6 +129,7 @@ void gepep_kpi::Loop()
    std::vector<int> partmap;
    std::vector<std::pair<int,double> > facmap;
    std::vector<D0KPI> evts_set[Npart];
+   std::vector<D0KPI> evts_set2;
 
    char name[100];
    // ~~~~~~~~ draw nxn histogram, m distribution in different p range
@@ -192,11 +195,13 @@ void gepep_kpi::Loop()
 	 mass = evt.m();
 	 //if (parti>=Npart || partj>=Npart || parti<0 || partj<0) continue;
 	 for (int parti=0; parti<Npart; parti++){
-	 if (costheta1>coscut[parti]&&costheta1<coscut[parti+1])
+	 if (p1>pcut[parti]&&p1<pcut[parti+1])
+	 //if (costheta1>coscut[parti]&&costheta1<coscut[parti+1])
 	   //&&theta2>thetacut[partj]&&theta2<thetacut[partj+1])
 	   if (mass>m0-width/2.-0.02 && mass<m0+width/2.+0.02)
 	   {
-	      	 if (pt1<0.6 || pt1>0.8) continue;
+		 evts_set2.push_back(evt);
+	      	 //if (p1<0.6 || p1>0.8) continue;
 	/////////h2p->Fill(p1,p2);
 	/////////thedis->Fill(p1,theta1);
 	/////////thedis->Fill(p2,theta2);
@@ -208,12 +213,12 @@ void gepep_kpi::Loop()
 	 }
 
 	// fill momentum spectrum
-	 if (pt1<0.4 || pt1>0.7) continue;
-	 //if (p1<0.6 || p1>0.8) continue;
+	 //if (pt1<0.4 || pt1>0.8) continue;
+	 if (p1<0.6 || p1>0.8) continue;
 	 hmD0->Fill(mass);
 	 if (mass>m0-2*sigma_m && mass<m0+2*sigma_m){
-	   hpka->Fill(pt1);
-	   hppi->Fill(pt2);
+	   hpka->Fill(p1);
+	   hppi->Fill(p2);
 	 }
 	 // if (Cut(ientry) < 0) continue;
    }
@@ -225,7 +230,7 @@ void gepep_kpi::Loop()
    ftmp->Close();
    delete ftmp;
    f->cd();
-   return ;
+//   return ;
 
    //vars->Write();
    //h2p->Write();
@@ -243,9 +248,11 @@ void gepep_kpi::Loop()
    }
    // ~~~~~~~~ draw end
    
+     char namesfx[100];
+     sprintf(namesfx,"nocut");
+     KPI::FitSpe(evts_set2,beamene,namesfx);
    for (int ip=0;ip<partmap.size();ip++){
      int ipart = partmap.at(ip);
-     char namesfx[100];
      sprintf(namesfx,"%d",ipart);
      KPI::FitSpe(evts_set[ipart],beamene,namesfx);
    }
@@ -840,7 +847,7 @@ void KPI::FitSpe(std::vector<D0KPI> &evts, double beame, char *namesfx)
   */
 
   // dm Vs fpi
-  fk = 0.999830;
+  //fk = 0.999830;
 //for (int i=0; i<np; i++){
 //  dataraw->Reset();
 //  for (int evtid=0; evtid<evts.size();evtid++){
@@ -902,24 +909,24 @@ void KPI::FitSpe(std::vector<D0KPI> &evts, double beame, char *namesfx)
       if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
     }
     double factor =1;
-    sprintf(tmpchr,"factor_%f",factor);
+    sprintf(tmpchr,"%s_factor_%f",namesfx,factor);
     double peakt,errt;
     KPI::FitSpectrum(dataraw,beame,tmpchr,peakt,errt);
    
-    dataraw->Reset();
-    TF1 ff("ff","1.00065+0.000630*x",0,2);
-    for (int evtid=0; evtid<evts.size();evtid++){
-      D0KPI evt = evts.at(evtid);
-      double fpi = ff.Eval(evt.pip.rho());
-      evt.setCorrectionFactors(fk,fpi);
-      mass = evt.m();
-      if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
-    }
-    //double 
-    factor =0;
-    sprintf(tmpchr,"factor_%f",factor);
-    //double peakt,errt;
-    KPI::FitSpectrum(dataraw,beame,tmpchr,peakt,errt);
+ // dataraw->Reset();
+ // TF1 ff("ff","1.00065+0.000630*x",0,2);
+ // for (int evtid=0; evtid<evts.size();evtid++){
+ //   D0KPI evt = evts.at(evtid);
+ //   double fpi = ff.Eval(evt.pip.rho());
+ //   evt.setCorrectionFactors(fk,fpi);
+ //   mass = evt.m();
+ //   if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
+ // }
+ // //double 
+ // factor =0;
+ // sprintf(tmpchr,"factor_%f",factor);
+ // //double peakt,errt;
+ // KPI::FitSpectrum(dataraw,beame,tmpchr,peakt,errt);
 
 
 /*
@@ -1072,9 +1079,9 @@ void KPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx, double &peak
    double beamlow = 1.82;
    double beamup  = 1.90;
    // try to use roofit
-   RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
+   RooRealVar x("x","M(K#pi)",peakvalue,beamlow,beamup,"GeV");
    RooRealVar mean("mean","mean of gaussian",peakvalue,beamlow,beamup);
-   RooRealVar sigma("sigma","width of gaussian",0.0060,0.0055,0.0075);
+   RooRealVar sigma("sigma","width of gaussian",0.0050,0.0045,0.0075);
    RooRealVar sigma2("sigma2","width of gaussian",0.0075,0.0075,0.010);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
    RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
@@ -1083,7 +1090,7 @@ void KPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx, double &peak
    //RooChebychev bkg("bkg","background",x,RooArgList(co1));
    RooRealVar signal("signal"," ",5000,0,10000000);//event number
    //RooRealVar signal2("signal2"," ",200,0,10000000);//event number
-   RooRealVar sigfra("sigfra"," ",0.5,0.3,1.0);//event number
+   RooRealVar sigfra("sigfra"," ",0.5,0.2,1.0);//event number
    RooRealVar background("background"," ",1000,0,1000000);
    RooRealVar a0("a0","coefficient #0",100,-100000,100000);
    RooRealVar a1("a1","coefficient #1",-1,-100000,100000);
@@ -1102,7 +1109,7 @@ void KPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx, double &peak
    char tmpchr[100];
    sprintf(tmpchr,"data_kpi_%s",namesfx);
    //data_6pi = new RooDataHist(tmpchr,"data_6pi",x,h);
-   xframe = x.frame(Title("fit kpipi"));
+   xframe = x.frame(Title("M(K #pi)"));
    dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
    //if (!largesample) {
      sum = new RooAddPdf("sum","sum",RooArgList(sig,ground),RooArgList(signal,background));
