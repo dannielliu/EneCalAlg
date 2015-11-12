@@ -25,10 +25,16 @@ bin/checkf:checkf.C ${OBJS2}
 
 
 k3pi: bin/analysis_k3pi
+kpitruth: bin/analysis_kpitruth
 
 bin/analysis_k3pi: analysis_k3pi.C obj/gepep_k3pi.o obj/function.o
 	@echo "compling analysis algorithm, linking objects..."
 	$(CC) -lRooFitCore -lRooFit -lMathMore $^ -o $@
+
+bin/analysis_kpitruth: analysis_kpitruth.C obj/gepep_kpi_truth.o obj/function.o obj/mctruth.o
+	@echo "compling analysis algorithm, linking objects..."
+	$(CC) -lRooFitCore -lRooFit -lMathMore $^ -o $@
+	
 
 kstar: bin/analysis_kstar
 bin/analysis_kstar: analysis_kstar.C obj/gepep_kpi_Kstar.o obj/function.o
