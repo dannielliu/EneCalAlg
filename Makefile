@@ -1,11 +1,11 @@
 ROOTINCLUDE = $(shell root-config --cflags)
-ROOTLIB = $(shell root-config --libs)
+ROOTLIB = $(shell root-config --libs --glibs)
 INCDIR = -I./include -I$(shell echo ${G4INCLUDE})
 vpath %.h ./include
 vpath %.o obj
 VPATH = src
 CC = g++ $(ROOTINCLUDE) $(ROOTLIB) $(INCDIR)
-OBJS= function.o bes3plotstyle.o gepep_fastpipill.o gepep_fast4pi.o gepep_4k.o gepep_kk.o gepep_kpi.o gepep_ppi.o gepep_kpi2.o gepep_kpipi.o gepep_fkkpipi.o gepep_pipipp.o Ks0Alg.o mumu.o
+OBJS= function.o bes3plotstyle.o gepep_fastpipill.o gepep_fast4pi.o gepep_4k.o gepep_kk.o gepep_kpi.o gepep_ppi.o gepep_kpi2.o gepep_kpipi.o gepep_fkkpipi.o gepep_pipipp.o Ks0Alg.o mumu.o RooRelativisticBW.o rooDict.o
 OBJS2= function.o gepep_fastpipill_check.o gepep_fast4pi_check.o gepep_fast6pi.o  gepep_kk_check.o gepep_npi_check.o gepep_kpipi_check.o gepep_fkkpipi_check.o gepep_pipipp.o Ks0Alg_check.o gepep_kpi_check.o mumu_check.o gepep_lambdac.o
 OBJS := $(addprefix obj/,$(OBJS))
 OBJS2 := $(addprefix obj/,$(OBJS2))
@@ -17,6 +17,7 @@ all: $(targets)
 
 bin/analysis:analysis.C $(OBJS)
 	@echo "compling analysis algorithm, linking objects..."
+	#rootcint -f rooDict.C -c include/RooRelativisticBW.h include/LinkDef.h
 	$(CC) -lRooFitCore -lRooFit -lMathMore $^ -o $@
 
 bin/checkf:checkf.C ${OBJS2}
@@ -27,7 +28,7 @@ bin/checkf:checkf.C ${OBJS2}
 k3pi: bin/analysis_k3pi
 kpitruth: bin/analysis_kpitruth
 
-bin/analysis_k3pi: analysis_k3pi.C obj/gepep_k3pi.o obj/function.o
+bin/analysis_k3pi: analysis_k3pi.C obj/gepep_k3pi.o obj/function.o obj/mctruth.o
 	@echo "compling analysis algorithm, linking objects..."
 	$(CC) -lRooFitCore -lRooFit -lMathMore $^ -o $@
 
@@ -42,6 +43,10 @@ bin/analysis_kstar: analysis_kstar.C obj/gepep_kpi_Kstar.o obj/function.o
 	$(CC) -lRooFitCore -lRooFit -lMathMore $^ -o $@
 
 #$(OBJS): %.o: %.C
+obj/RooRelativisticBW.o : RooRelativisticBW.cxx
+	@echo "making object $@"
+	@g++ $(ROOTINCLUDE) $(INCDIR) -c $< -o $@
+
 obj/%.o: %.C
 	@echo "making object $@"
 	@g++ $(ROOTINCLUDE) $(INCDIR) -c $< -o $@

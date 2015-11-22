@@ -1,5 +1,6 @@
 #include "function.h"
 #include "TMath.h"
+#include <fstream>
 
 double BreitWigner(double *x, double *par)
 {
@@ -82,7 +83,13 @@ double CalEne(double m, double px,double py,double pz,double factor)
  
 
 double GetEnergy(int runNo)
-{ 
+{
+  ifstream inene("curene");
+  if (inene.is_open()) {
+    double tmpene=0;
+    inene >> tmpene;
+    if (fabs(tmpene-0)>1e-10) return tmpene;
+  }
   //runNo=runNo%10000;
   //int a[2] = {1, 2};
   runNo = abs(runNo);

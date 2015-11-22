@@ -97,7 +97,7 @@ bool gepep_fastpipill::Loop()
   // for initial spectrum
   Long64_t nbytes = 0, nb = 0;
 
-  TH1D *hppi = new TH1D("hppi","pt_{#pi}",200,0,1);
+  TH1D *hppi = new TH1D("hppi","p_{#pi}",200,0,1);
   TH1D *hmpsip  = new TH1D("hm" ,"M(#pi#pi J/#psi)",200,3,4);
   
   const int Npart=1;
@@ -197,7 +197,7 @@ bool gepep_fastpipill::Loop()
   //vars->Write();
    
    TFile *ftmp = new TFile("P_cmp.root","update");
-   ftmp->WriteTObject(hppi,"hptpi_psip");
+   ftmp->WriteTObject(hppi,"hppi_psip");
    ftmp->WriteTObject(hmpsip,"hmpsip_psip");
    ftmp->Close();
    delete ftmp;

@@ -23,8 +23,13 @@
 #include "RooAddPdf.h"
 #include "RooArgList.h"
 #include "RooPlot.h"
+
+#include "RooRelativisticBW.h"
+#include "RooFFTConvPdf.h"
+
 extern std::string outputdir;
 using namespace RooFit;
+using namespace std;
 
 void gepep_kk::Loop()
 {
@@ -66,8 +71,8 @@ void gepep_kk::Loop()
    double D0up=1.90;
    double peakvalue=1.86484;// mD0
    // phi -> K K
-     double philow=1.00;
-     double phiup=1.04;
+     double philow=1.005;
+     double phiup=1.05;
      double phipeak=1.019455;// mphi
    int pointNo=10;
    double factors[pointNo];
@@ -112,7 +117,7 @@ void gepep_kk::Loop()
    int Npar;
    char fname[1000];
    ofstream ofpar;
-   sprintf(fname,"%s/pars.txt",outputdir.c_str());
+   sprintf(fname,"%s/parskk.txt",outputdir.c_str());
    ofpar.open(fname,std::ios::app);
    ofstream purepar;
    sprintf(fname,"parkk");
@@ -208,6 +213,8 @@ void gepep_kk::Loop()
      sprintf(name,"massphi_part%0d",partj);
      hmphi[partj] = new TH1D(name,name,100,philow,phiup);
    }
+   TH1D* hpKD0 = new TH1D("hpKD0","p_{K} (D0)",200,0,2);
+   TH1D* hpKphi = new TH1D("hpKphi","p_{K} (phi)",200,0,2);
  
    // loop data
    Event evt(mk);
@@ -220,52 +227,62 @@ void gepep_kk::Loop()
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;
      
-	    evt.SetVal(kappx,kappy,kappz,kampx,kampy,kampz);
+	evt.SetVal(kappx,kappy,kappz,kampx,kampy,kampz);
         mass = evt.InvMass();
         p1 = evt.GetP1();
         p2 = evt.GetP2();
         costheta1 = evt.GetCostheta1();
-		costheta2 = evt.GetCostheta2();
+	costheta2 = evt.GetCostheta2();
         phi1 = evt.GetPhi1();
         phi2 = evt.GetPhi2();
 		
-		//if (fabs(costheta1)>0.7) continue;
-		//if (fabs(costheta2)>0.7) continue;
-        if (mass>D0low && mass<D0up){
-          vars->Fill();
-        }
-        if (mass>philow && mass<phiup){
-          vars->Fill();
-        }
+	//if (fabs(costheta1)>0.7) continue;
+	//if (fabs(costheta2)>0.7) continue;
+    //  if (mass>D0low && mass<D0up){
+    //    vars->Fill();
+    //  }
+    //  if (mass>philow && mass<phiup){
+    //    vars->Fill();
+    //  }
         //if (costheta1 > 0.8 && costheta2 <-0.8) continue;
-		//if (p1<0.5 || p1>1.3) continue;
-		//if (p1<0.4 || p1>1.3) continue;
-		//if (p2<0.4 || p2>1.3) continue;
+	//if (p1<0.5 || p1>1.3) continue;
+	//if (p1<0.4 || p1>1.3) continue;
+	//if (p2<0.4 || p2>1.3) continue;
 
         //if ( partj>=Npart || partj<0 ) continue;
         for (int partj=0;partj<Npart;partj++){
           //if (p1<pcut[partj] || p1>pcut[partj+1]) continue;
           //if (p2<pcut[partj] || p2>pcut[partj+1]) continue;
           
-          if ( costheta1>costhecut[partj] && costheta1<costhecut[partj+1] )
-		  if (mass>D0low-0.02 && mass<D0up+0.02){
+          //if ( costheta1>costhecut[partj] && costheta1<costhecut[partj+1] )
+	  if (mass>D0low-0.02 && mass<D0up+0.02){
             hmD0[partj]->Fill(mass);
-			evts[partj].push_back(evt);
-            break;
-		  }
+  	    evts[partj].push_back(evt);
+            if (mass > peakvalue-0.007 && mass < peakvalue+0.007) {
+	      hpKD0->Fill(p1);
+	      hpKD0->Fill(p2);
+	    }
+	    break;
+	  }
           if (mass>philow-0.02 && mass<phiup+0.02){
             hmphi[partj]->Fill(mass);
-			evtsphi[partj].push_back(evt);
+	    evtsphi[partj].push_back(evt);
+            if (mass > phipeak-0.0024 && mass < phipeak+0.0024) {
+	      hpKphi->Fill(p1);
+	      hpKphi->Fill(p2);
+	    }
             break;
-		  }
-		}
+	  }
+	}
    
    }
+   cout<<" D0: ave pK = "<<hpKD0->GetMean()<<" +/- "<<hpKD0->GetRMS()<<endl;
+   cout<<"phi: ave pK = "<<hpKphi->GetMean()<<" +/- "<<hpKphi->GetRMS()<<endl;
    std::cout<<"part No: "<< Npart<<std::endl;
-   vars->Write();
+   //vars->Write();
    for (int partj=0;partj<Npart;partj++){
      hmD0[partj]->Write();
-	 std::cout<<"histogram part "<<partj<<" has entries: "<<hmD0[partj]->GetEntries()<<std::endl;
+     std::cout<<"histogram part "<<partj<<" has entries: "<<hmD0[partj]->GetEntries()<<std::endl;
      if (hmD0[partj]->GetEntries() > 100
        &&hmD0[partj]->GetMaximumBin()> 30 //check the the peak position,
        &&hmD0[partj]->GetMaximumBin()< 70 
@@ -301,8 +318,8 @@ void gepep_kk::Loop()
 	   	//double mpeak = hmD0[partj]->GetFunction("gaus")->GetParameter(1);
 	   	//std::cout<<"fit peak is "<< mpeak << ", est peak is "<<ps<<std::endl;
 
-	   	peakest[partj] = peakvalue;
-	 }
+	 peakest[partj] = peakvalue;
+     }
    
    }
 
@@ -392,8 +409,8 @@ void gepep_kk::Loop()
       // save pars
       factors[i]=factor;
       factorserr[i]=0;
-	  deltapeaks[i] = mean.getVal() - peakest[partj];
-	  //deltapeaks[i] = mean.getVal() - peakvalue;
+      deltapeaks[i] = mean.getVal() - peakest[partj];
+      //deltapeaks[i] = mean.getVal() - peakvalue;
       deltapeakserr[i] = mean.getError();
 
       fittimes++;
@@ -502,17 +519,21 @@ void gepep_kk::Loop()
 //return;
    // ~~~~~~~~~~ phi part ~~~~~~~~~~~~~
    RooRealVar xx("xx","energy",phipeak,philow,phiup,"GeV");
-   RooRealVar meanf("meanf","mean of gaussian",phipeak,philow,phiup);
-   RooRealVar sigmaf("sigmaf","width of gaussian",0.004,0.001,0.008);//phi version
-  // RooRealVar sigmaf("sigmaf","width of gaussian",0.0024,0.001,0.003);//phi version
-  // RooRealVar sigma2f("sigma2f","width of gaussian",0.004,0.003,0.005);
-  // RooGaussian gausf("gausf","gauss(x,m,s)",xx,meanf,sigmaf);
+   RooRealVar meanf("meanf","mean of breitwigner",phipeak,philow,phiup);
+   RooRealVar sigmaf("sigmaf","width of breitwiger",0.00426);//phi version
+   RooRealVar meang("meang","mean of breitwigner",0);
+   RooRealVar sigmag("sigmag","width of gaussian",0.002,0.001,0.03);//phi version
+   //RooRealVar sigma2f("sigma2f","width of gaussian",0.004,0.003,0.005);
+   RooGaussian gausg("gausg","gauss(x,m,s)",xx,meang,sigmag);
   // RooGaussian gaus2f("gaus2f","gauss(x,m,s)",xx,meanf,sigma2f);
    
-   RooBreitWigner brewig("brewig","breitwigner",xx,meanf,sigmaf);
+   //RooBreitWigner brewig("brewig","breitwigner",xx,meanf,sigmaf);
+   RooRelativisticBW brewig("brewig","breitwigner",xx,meanf,sigmaf);
+
+   RooFFTConvPdf sig("sig","signal function",xx, brewig, gausg);
    
-   RooRealVar co1f("co1f","coefficient #1",0,-0.5,0.5);
-   RooRealVar co2f("co2f","coefficient #2",0,-0.01,0.5);
+   RooRealVar co1f("co1f","coefficient #1",0,-1000,1000);
+   RooRealVar co2f("co2f","coefficient #2",-1,-1000,1000);
    RooChebychev bkgf("bkgf","background",xx,RooArgList(co1f,co2f));
    
    RooRealVar signalf("signalf"," ",1200,10,1000000);//event number
@@ -556,7 +577,7 @@ void gepep_kk::Loop()
       sprintf(tmpchr,"data_kf_%02d",fittimes);
       //sum = new RooAddPdf("sumf","sum",RooArgList(gausf,gaus2f,bkgf),RooArgList(signalf,signal2f,backgroundf));
       Npar=6;
-      sum = new RooAddPdf("sum","sum",RooArgList(brewig,bkgf),RooArgList(signalf,backgroundf));
+      sum = new RooAddPdf("sum","sum",RooArgList(sig,bkgf),RooArgList(signalf,backgroundf));
       meanf.setVal(phipeak+0.06*(factor-1.0));
       sum->fitTo(*dataset,Range(philow,phiup));
       dataset->plotOn(xframe);
@@ -574,7 +595,7 @@ void gepep_kk::Loop()
       pt->SetTextSize(0.035);
       sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",meanf.getVal(),meanf.getError());
       pt->AddText(tmpchr);
-      sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigmaf.getVal(),sigmaf.getError());
+      sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigmag.getVal(),sigmag.getError());
       pt->AddText(tmpchr);
     //sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2f.getVal(),sigma2f.getError());
     //pt->AddText(tmpchr);
@@ -664,8 +685,8 @@ void gepep_kk::Loop()
       datarawf->Reset();
       std::cout<<"factor is "<<factor<<std::endl;
       for (Long64_t jentry=0; jentry<evtsphi[partj].size();jentry++) {
-		 p1 = evtsphi[partj].at(jentry).GetP1();
-		 p2 = evtsphi[partj].at(jentry).GetP2();
+	 p1 = evtsphi[partj].at(jentry).GetP1();
+	 p2 = evtsphi[partj].at(jentry).GetP2();
        //for (int i=0;i<Npart;i++){
        //   if (p1>=pcut[i]&&p1<pcut[i+1]){
        //     factori = facv[i];
@@ -683,7 +704,7 @@ void gepep_kk::Loop()
       sprintf(tmpchr,"data_k");
       dataset = new RooDataSet("dataset","data",datarawf,xx);
       //sum = new RooAddPdf("sum","sum",RooArgList(gausf,gaus2f,bkgf),RooArgList(signalf,signal2f,backgroundf));
-      sum = new RooAddPdf("sum","sum",RooArgList(brewig,bkgf),RooArgList(signalf,backgroundf));
+      sum = new RooAddPdf("sum","sum",RooArgList(sig,bkgf),RooArgList(signalf,backgroundf));
       //Npar=6;
       //sum = new RooAddPdf("sum","sum",RooArgList(gaus,ground),RooArgList(signal,background2));
       meanf.setVal(phipeak+0.06*(factor-1.0));
@@ -703,7 +724,7 @@ void gepep_kk::Loop()
       pt->SetTextSize(0.035);
       sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",meanf.getVal(),meanf.getError());
       pt->AddText(tmpchr);
-      sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigmaf.getVal(),sigmaf.getError());
+      sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigmag.getVal(),sigmag.getError());
       pt->AddText(tmpchr);
     //sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2f.getVal(),sigma2f.getError());
     //pt->AddText(tmpchr);

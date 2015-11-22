@@ -271,7 +271,8 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
   inpar.close();
 
   //~~~~~~~~~~part start~~~~~~~~
-  TF1 ff("ff","1.00065+0.000630*x",0,2);
+  //TF1 ff("ff","1.00065+0.000630*x",0,2);
+  TF1 ff("ff","1.00258-0.00669*x",0,2);
 
   for (Long64_t jentry=0; jentry<evts.size();jentry++) {
      

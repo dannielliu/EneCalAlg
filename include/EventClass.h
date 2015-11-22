@@ -140,8 +140,9 @@ public:
   HepLorentzVector pip1;
   HepLorentzVector pip2;
   HepLorentzVector pim;
+  bool exist;
 public:
-  D0K3PI() {}
+  D0K3PI() {exist = false;}
   ~D0K3PI() {}
   
   void set(HepLorentzVector fkm1, HepLorentzVector fp1, HepLorentzVector fp2, HepLorentzVector fpm1)
@@ -150,10 +151,12 @@ public:
     pip1 = fp1;
     pip2 = fp2;
     pim  = fpm1;
+    exist = true;
   }
   double m()
   {
-    return (kam+pip1+pip2+pim).m();
+    if(exist) return (kam+pip1+pip2+pim).m();
+    else return 0;
   }
   inline Hep3Vector GetPkam(){return kam.vect();}
   inline Hep3Vector GetPpip1(){return pip1.vect();}

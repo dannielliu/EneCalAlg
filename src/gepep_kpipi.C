@@ -146,14 +146,14 @@ void gepep_kpipi::Loop()
 
 	  
 	  if (mass>beamlow-0.01 && mass<beamup+0.01){
-            evts2.push_back(evt);
-	    if (pk1<0.6 || pk1>0.8) continue;
+            //evts2.push_back(evt);
+	    //if (pk1<0.6 || pk1>0.8) continue;
             evts.push_back(evt);
 	 
 	    //vars->Fill();
 	  }
 
-	  if (ptk1<0.4 || ptk1>0.8) continue;
+	  //if (ptk1<0.4 || ptk1>0.8) continue;
 	  //if (pk1<0.6 || pk1>0.8) continue;
 	  hmD->Fill(mass);
 	  if (mass>peakvalue-0.01 && mass<peakvalue+0.01){
@@ -174,10 +174,19 @@ void gepep_kpipi::Loop()
 // f->cd();
 // return ;
 
+   double pka_tot = hpka->GetMean();
+   double pkasig_tot = hpka->GetRMS();
+   double ppi_tot = hppi->GetMean();
+   double ppisig_tot = hppi->GetRMS();
+   ofstream ofpar("parkpipi.txt",std::ios::app);
+   ofpar<<"p_K = " << pka_tot << " +/- "<< pkasig_tot <<"\t";
+   ofpar<<"p_pi = " << ppi_tot << " +/- "<< ppisig_tot <<endl;
+   ofpar.close();
+   
    sprintf(name,"cut");
    KPIPI::FitSpe(evts,beamene,name);
-   sprintf(name,"nocut");
-   KPIPI::FitSpe(evts2,beamene,name);
+// sprintf(name,"nocut");
+// KPIPI::FitSpe(evts2,beamene,name);
    return;
 
 }
@@ -234,7 +243,7 @@ void KPIPI::FitSpe(std::vector<D2KPiPi> &evts, double beame, char *namesfx)
   double deltapeaks[np];
   double peakerrors[np];
 
-/*
+
   // dm Vs fk
   fpi = 1.0;
   for (int i=0; i<np; i++){
@@ -245,10 +254,10 @@ void KPIPI::FitSpe(std::vector<D2KPiPi> &evts, double beame, char *namesfx)
       mass = evt.m();
       if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
     }
-    sprintf(tmpchr,"factor_%f",factors[i]);
+    sprintf(tmpchr,"fk_%f",factors[i]);
     KPIPI::FitSpectrum(dataraw,beame,tmpchr,peaks[i],peakerrors[i]);
-	deltapeaks[i] = peaks[i] - peak;
-	if (peakerrors[i]<2e-5) peakerrors[i] = 1e-2;
+    deltapeaks[i] = peaks[i] - peak;
+    if (peakerrors[i]<2e-5) peakerrors[i] = 1e-2;
   }
 
    TCanvas *c1 = new TCanvas("c1_fk","c1_fpi1.0");
@@ -279,7 +288,7 @@ void KPIPI::FitSpe(std::vector<D2KPiPi> &evts, double beame, char *namesfx)
   pt->Draw();
   c1->Write("de_fk");
 
-  ofstream ofpar("parkpipi",std::ios::app);
+  ofstream ofpar("parkpipi.txt",std::ios::app);
   ofpar<< beame << setiosflags(ios::fixed)<<setprecision(6)
    << '\t' <<factor<<"\t"<<factorerr<<"\t"<<facfit->GetParError(0)<<'\t'
    <<"dE = "<< a <<"*(x-1) + "<< b
@@ -288,17 +297,18 @@ void KPIPI::FitSpe(std::vector<D2KPiPi> &evts, double beame, char *namesfx)
 
     dataraw->Reset();
     for (int evtid=0; evtid<evts.size();evtid++){
-	  D2KPiPi evt = evts.at(evtid);
-	  evt.setCorrectionFactors(factor,fpi);
-	  mass = evt.m();
+      D2KPiPi evt = evts.at(evtid);
+      evt.setCorrectionFactors(factor,fpi);
+      mass = evt.m();
       if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
-	}
-    sprintf(tmpchr,"factor_%f",factor);
+    }
+    sprintf(tmpchr,"fk_%f",factor);
     double peakt,errt;
     KPIPI::FitSpectrum(dataraw,beame,tmpchr,peakt,errt);
 
  // dm Vs fk
   fpi = 1.001;
+  /*
   for (int i=0; i<np; i++){
     dataraw->Reset();
     for (int evtid=0; evtid<evts.size();evtid++){
@@ -429,70 +439,75 @@ void KPIPI::FitSpe(std::vector<D2KPiPi> &evts, double beame, char *namesfx)
 
 
   // dm Vs fpi
-  fk = 0.999830;
-//for (int i=0; i<np; i++){
-//  dataraw->Reset();
-//  for (int evtid=0; evtid<evts.size();evtid++){
-//     D2KPiPi evt = evts.at(evtid);
-//     evt.setCorrectionFactors(fk,factors[i]);
-//     mass = evt.m();
-//     if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
-//  }
-//  sprintf(tmpchr,"factor_%f",factors[i]);
-//  KPIPI::FitSpectrum(dataraw,beame,tmpchr,peaks[i],peakerrors[i]);
-//  deltapeaks[i] = peaks[i] - peak;
-//  if (peakerrors[i]<2e-5) peakerrors[i] = 1e-2;
-//}
+  //fk = 0.999830;
+  fk = 1.0;
+  for (int i=0; i<np; i++){
+    dataraw->Reset();
+    for (int evtid=0; evtid<evts.size();evtid++){
+       D2KPiPi evt = evts.at(evtid);
+       evt.setCorrectionFactors(fk,factors[i]);
+       mass = evt.m();
+       if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
+    }
+    sprintf(tmpchr,"factor_%f",factors[i]);
+    KPIPI::FitSpectrum(dataraw,beame,tmpchr,peaks[i],peakerrors[i]);
+    deltapeaks[i] = peaks[i] - peak;
+    if (peakerrors[i]<2e-5) peakerrors[i] = 1e-2;
+  }
 
-// TCanvas *c1 = new TCanvas("c1_1","c1");
-// c1 = new TCanvas("c1_fpi","c1_fk1.00");
-// c1->Clear();
-// TGraphErrors *
-// graph1 = new TGraphErrors(np,factors,deltapeaks,factorserr,peakerrors);
-// graph1->SetTitle("delta peak");
-// graph1->SetMarkerStyle(5);
-// graph1->Draw("AP");
-// gStyle->SetOptFit(1111);
-// TF1 *
-// facfit = new TF1("facfit","[0]*(x-1)+[1]");
-// facfit->SetParameters(0.3,1);
-// facfit->SetParNames("slope","interupt");
-// graph1->Fit(facfit,"","",factors[0],factors[np-1]);
-// double a = facfit->GetParameter(0);
-// double ae= facfit->GetParError(0);
-// double b = facfit->GetParameter(1);
-// double be= facfit->GetParError(1);
-// double factor = 1 - b/a;
-// double factorerr = sqrt(TMath::Power(ae/a,2)+TMath::Power(be/b,2))*fabs(b/a);
-// graph1->SetName("PsVF");
-// graph1->Draw();
+   //TCanvas *c1 = new TCanvas("c1_1","c1");
+   delete c1;
+   c1 = new TCanvas("c1_fpi","c1_fk1.00");
+   c1->Clear();
+   //TGraphErrors *
+   delete graph1;
+   graph1 = new TGraphErrors(np,factors,deltapeaks,factorserr,peakerrors);
+   graph1->SetTitle("delta peak");
+   graph1->SetMarkerStyle(5);
+   graph1->Draw("AP");
+   gStyle->SetOptFit(1111);
+   //TF1 *
+   delete facfit;
+   facfit = new TF1("facfit","[0]*(x-1)+[1]");
+   facfit->SetParameters(0.3,1);
+   facfit->SetParNames("slope","interupt");
+   graph1->Fit(facfit,"","",factors[0],factors[np-1]);
+   a = facfit->GetParameter(0);
+   ae= facfit->GetParError(0);
+   b = facfit->GetParameter(1);
+   be= facfit->GetParError(1);
+   factor = 1 - b/a;
+   factorerr = sqrt(TMath::Power(ae/a,2)+TMath::Power(be/b,2))*fabs(b/a);
+   graph1->SetName("PsVF");
+   graph1->Draw();
 
-//TPaveText *
-//pt = new TPaveText(0.12,0.7,0.50,0.80,"BRNDC");
-//sprintf(tmpchr,"factor = %1.6f #pm %1.6f",factor,factorerr);
-//pt->AddText(tmpchr);
-//sprintf(tmpchr,"interupt = %1.6f #pm %1.6f",b,be);
-//pt->AddText(tmpchr);
-//pt->Draw();
-//c1->Write("de_fpi");
+  //TPaveText *
+  delete pt;
+  pt = new TPaveText(0.12,0.7,0.50,0.80,"BRNDC");
+  sprintf(tmpchr,"factor = %1.6f #pm %1.6f",factor,factorerr);
+  pt->AddText(tmpchr);
+  sprintf(tmpchr,"interupt = %1.6f #pm %1.6f",b,be);
+  pt->AddText(tmpchr);
+  pt->Draw();
+  c1->Write("de_fpi");
 
-//ofstream ofpar("parkpipi",std::ios::app);
-//ofpar<< beame << setiosflags(ios::fixed)<<setprecision(6)
-// << '\t' <<factor<<"\t"<<factorerr<<"\t"<<facfit->GetParError(0)<<'\t'
-// <<"dE = "<< a <<"*(x-1) + "<< b 
-// <<", ae = "<< ae << " be = "<< be  << " perr  = " << peakerrors[(np-1)/2]
-// <<resetiosflags(ios::fixed)<<std::endl;
+  //ofstream ofpar("parkpipi",std::ios::app);
+  ofpar<< beame << setiosflags(ios::fixed)<<setprecision(6)
+   << '\t' <<factor<<"\t"<<factorerr<<"\t"<<facfit->GetParError(0)<<'\t'
+   <<"dE = "<< a <<"*(x-1) + "<< b 
+   <<", ae = "<< ae << " be = "<< be  << " perr  = " << peakerrors[(np-1)/2]
+   <<resetiosflags(ios::fixed)<<std::endl;
     
     dataraw->Reset();
     for (int evtid=0; evtid<evts.size();evtid++){
       D2KPiPi evt = evts.at(evtid);
-      evt.setCorrectionFactors(fk,1,1);
+      evt.setCorrectionFactors(1,factor);
       mass = evt.m();
       if (mass>beamlow-0.001 && mass<beamup+0.001) dataraw->Fill();
     }
-    double factor =1;
-    sprintf(tmpchr,"%s_factor_%f",namesfx,factor);
-    double peakt,errt;
+    //double factor =1;
+    sprintf(tmpchr,"%s_fpi_%f",namesfx,factor);
+    //double peakt,errt;
     KPIPI::FitSpectrum(dataraw,beame,tmpchr,peakt,errt);
 
 //  dataraw->Reset();
@@ -655,7 +670,7 @@ void KPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx, double &pe
 {
    int nBins=100;
    bool largesample = false;
-   //if (dataraw->GetEntries()>10000) largesample = true;
+   if (dataraw->GetEntries()>10000) largesample = true;
    int Npar;
    double peakvalue = 1.86962;
    double beamlow = peakvalue-0.03;
@@ -684,6 +699,11 @@ void KPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx, double &pe
    RooDataSet *dataset;
    RooPlot *xframe;
    //RooDataHist *data_6pi;
+   TH1D *hmass = new TH1D("hmass","M(K #pi #pi)",100, beamlow, beamup);
+   RooDataHist *datahist;
+   if (largesample) {
+     dataraw->Draw("x>>hmass");
+   }
  
    RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
    TCanvas *c1=new TCanvas("","",800,600);
@@ -693,22 +713,25 @@ void KPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx, double &pe
    //data_6pi = new RooDataHist(tmpchr,"data_6pi",x,h);
    xframe = x.frame(Title("M(K#pi#pi)"));
    dataset = new RooDataSet(tmpchr,"data",RooArgSet(x),Import(*dataraw));
-   //if (!largesample) {
-     sum = new RooAddPdf("sum","sum",RooArgList(sig,ground),RooArgList(signal,background));
-     Npar = 8;
-   //}
-   //else {
-   //  sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,ground),RooArgList(signal,signal2,background));
-//	 Npar=8;
-  // }
+   if (largesample)  datahist = new RooDataHist(tmpchr,"data",RooArgSet(x),hmass);
+   sum = new RooAddPdf("sum","sum",RooArgList(sig,ground),RooArgList(signal,background));
+   Npar = 8;
    //sigma.setVal(0.035);
    //signal.setVal(1200);
    //background.setVal(200);
    //co1.setVal(0);
-   sum->fitTo(*dataset,Range(beamlow,beamup));
+   if (largesample) {sum->fitTo(*datahist);datahist->plotOn(xframe);}
+   else {
+     sum->fitTo(*dataset,Range(beamlow,beamup));
+     dataset->plotOn(xframe);
+   }
+   //sum->fitTo(*dataset,Range(beamlow,beamup));
+   //dataset->plotOn(xframe);
+   //sum->plotOn(xframe,Components(sig),LineStyle(2),LineColor(2));
+   //sum->fitTo(*dataset,Range(beamlow,beamup));
    //sum->fitTo(*dataset,Range(beame-0.05,beame+0.03));
    //sum->fitTo(*dataset,Range(4.22,4.28));
-   dataset->plotOn(xframe);
+   //dataset->plotOn(xframe);
    sum->plotOn(xframe,Components(sig),LineStyle(2),LineColor(2));
    sum->plotOn(xframe,Components(ground),LineStyle(2),LineColor(3));
    //if (dataraw->GetEntries()>2000) sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(4));
@@ -750,6 +773,7 @@ void KPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx, double &pe
    
    //c1->Print("fit6pi.eps");
    //delete data_6pi;
+   if (largesample) delete hmass;
    delete xframe;
    delete dataset;
    delete sum;

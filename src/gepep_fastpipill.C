@@ -31,6 +31,7 @@
 #include "RooMsgService.h"
 #include "EventClass.h"
 extern std::string outputdir;
+using namespace std;
 using namespace RooFit;
 namespace PIPILL{
   void FitAndSave(TH1D *&hmass, RooPlot *&xframe, RooDataHist *&data,
@@ -128,7 +129,7 @@ bool gepep_fastpipill::Loop()
   
   RooRealVar signal("signal"," ",500,0,1000000);//event number
   RooRealVar signal2("signal2"," ",100,0,1000000);//event number
-  RooRealVar background("background"," ",10,0,1000000);
+  RooRealVar background("background"," ",100,0,1000000);
   //RooAddPdf sum("sum","sum",RooArgList(gaus,bkg),RooArgList(signal,background));
   
   RooRealVar a0("a0","coefficient #0",100,-100000,100000);
@@ -246,6 +247,7 @@ bool gepep_fastpipill::Loop()
   PSIP evt;
   std::vector<PSIP> evts_set[Npart];
 
+   TH1D *hppi = new TH1D("hppi","p_{#pi}",200,0,2);
 
   // loop the data
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
@@ -284,13 +286,21 @@ bool gepep_fastpipill::Loop()
 	 //if (fabs(costheta2)>0.5) continue; // check theta effect
      if ( mass>psiplow-0.01 && mass<psipup+0.01 ) vars->Fill();
      for (int partj=0;partj<Npart;partj++){
-         if ( costheta1>costhecut[partj] && costheta1<costhecut[partj+1] )
+         //if ( costheta1>costhecut[partj] && costheta1<costhecut[partj+1] )
          if ( mass>psiplow-0.01 && mass<psipup+0.01 ) {
            hmphi[partj]->Fill(mass);
-		   evts_set[partj].push_back(evt);
+	   evts_set[partj].push_back(evt);
+	   hppi->Fill(p1);
+	   hppi->Fill(p2);
          }
      }
   }
+  hppi->Write();
+   double ppi_tot = hppi->GetMean();
+   double ppisig_tot = hppi->GetRMS();
+   ofstream outf("parpsip.txt",std::ios::app);
+   outf<<"p_pi = " << ppi_tot << " +/- "<< ppisig_tot <<endl;
+   outf.close();
   //vars->Write();
 	//TH1D *hp = new TH1D("hp","hp",200,0,2);
   for (int partj=0;partj<Npart;partj++){
@@ -500,12 +510,16 @@ return 0;
         sum->plotOn(xframe);
       }
       else {
-        (&brewig2)->fitTo(*datahist,Range(psiplow,psipup));
+        //(&brewig2)->fitTo(*datahist,Range(psiplow,psipup));
+        sum->fitTo(*datahist,Range(psiplow,psipup));
 	datahist->plotOn(xframe);
         //convpdf->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
         //convpdf->plotOn(xframe,Components(brewig2),LineStyle(2),LineColor(2));
-        //sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
-        (&brewig2)->plotOn(xframe);     
+        sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+        sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
+        sum->plotOn(xframe,Components(ground),LineStyle(3),LineColor(3));
+        sum->plotOn(xframe);
+        //(&brewig2)->plotOn(xframe);     
       }
       xframe->Draw();
       TPaveText *pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");

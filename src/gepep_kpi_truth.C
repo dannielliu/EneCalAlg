@@ -139,9 +139,15 @@ void gepep_kpi::Loop()
    char name[100];
    // ~~~~~~~~ draw nxn histogram, m distribution in different p range
    TH1D *hmtheta[Npart];
+   TH1D *hpkaires[Npart];
+   TH1D *hppiires[Npart];
    for (int partj=0;partj<Npart;partj++){
 	 sprintf(name,"mass_part%d",partj);
 	 hmtheta[partj] = new TH1D(name,name,100,D0low,D0up);
+	 sprintf(name,"pkares_part%d",partj);
+	 hpkaires[partj] = new TH1D(name,name,200,-0.1,0.1);
+	 sprintf(name,"ppires_part%d",partj);
+	 hppiires[partj] = new TH1D(name,name,200,-0.1,0.1);
    }
 
    h2p->Reset();
@@ -159,61 +165,67 @@ void gepep_kpi::Loop()
 	 int besidx=0;
 	 double tmpdeltaold=100;
 	 double tmpmass;
-	 D0KPI evt;
-	 D0KPI evtmc;
+	 D0KPI evt, evtda,evtmc;
+         std::vector<D0KPI> tmpv,tmpvmc;
 	 HepLorentzVector kam, pip;
 	 //if (npip==1){
 	 //for(int i=0; i<1;i++){
-	 int i=0;
-	 if (npim==1 && nkap==1){
+	 //int i=0;
+	 if (npim>=1 && nkap==1){
 	   kam.setVectM(Hep3Vector(kappx[0],kappy[0],kappz[0]),mk);
-	 //pip.setVectM(Hep3Vector(pimpx[i],pimpy[i],pimpz[i]),mpi);
-	 //kam.setVectM(Hep3Vector(kappx[0],kappy[0],kappz[0]),mk);
-	   pip.setVectM(Hep3Vector(truthalg->mcpimpx[0],
-	                           truthalg->mcpimpy[0],
-	                           truthalg->mcpimpz[0]),
-                        mpi);
-	   evt.set(kam,pip);
+	   pip.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mpi);
+	   evtda.set(kam,pip);
+	   for (int i=1;i<npim;i++){
+	     pip.setVectM(Hep3Vector(pimpx[i],pimpy[i],pimpz[i]),mpi);
+	     D0KPI tmpevt;
+	     tmpevt.set(kam,pip);
+	     if (fabs(tmpevt.m()-m0)<fabs(evtda.m()-m0)) evtda = tmpevt;
+	   }
+	   tmpv.push_back(evtda);
 	   kam.setVectM(Hep3Vector(truthalg->truthpkap[0],
 	                           truthalg->truthpkap[1],
 				   truthalg->truthpkap[2]),
 		        mk);
-	   evtmc.set(kam,pip);
-	   pip.setVectM(Hep3Vector(pimpx[i],pimpy[i],pimpz[i]),mpi);
-	   hppires->Fill(pip.rho()-evtmc.pip.rho());
-	 }
-	 if (npip==1 && nkam==1){
-	   kam.setVectM(Hep3Vector(kampx[0],kampy[0],kampz[0]),mk);
-	 //pip.setVectM(Hep3Vector(pippx[i],pippy[i],pippz[i]),mpi);
-	 //kam.setVectM(Hep3Vector(kappx[0],kappy[0],kappz[0]),mk);
-	   pip.setVectM(Hep3Vector(truthalg->mcpippx[0],
-	                           truthalg->mcpippy[0],
-	                           truthalg->mcpippz[0]),
+	   pip.setVectM(Hep3Vector(truthalg->mcpimpx[0],
+	                           truthalg->mcpimpy[0],
+	                           truthalg->mcpimpz[0]),
                         mpi);
-	   evt.set(kam,pip);
+	   evtmc.set(kam,pip);
+	   tmpvmc.push_back(evtmc);
+	   //hppires->Fill(evtda.pip.rho()-evtmc.pip.rho());
+	 }
+	 if (npip>=1 && nkam==1){
+	   kam.setVectM(Hep3Vector(kampx[0],kampy[0],kampz[0]),mk);
+	   pip.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mpi);
+	   evtda.set(kam,pip);
+	   for (int i=1;i<npip;i++){
+	     pip.setVectM(Hep3Vector(pippx[i],pippy[i],pippz[i]),mpi);
+	     D0KPI tmpevt;
+	     tmpevt.set(kam,pip);
+	     if (fabs(tmpevt.m()-m0)<fabs(evtda.m()-m0)) evtda = tmpevt;
+	   }
+	   tmpv.push_back(evtda);
 	   kam.setVectM(Hep3Vector(truthalg->truthpkam[0],
 	                           truthalg->truthpkam[1],
 				   truthalg->truthpkam[2]),
 		        mk);
+	   pip.setVectM(Hep3Vector(truthalg->mcpippx[0],
+	                           truthalg->mcpippy[0],
+	                           truthalg->mcpippz[0]),
+                        mpi);
 	   evtmc.set(kam,pip);
-	   pip.setVectM(Hep3Vector(pippx[i],pippy[i],pippz[i]),mpi);
-	   hppires->Fill(pip.rho()-evtmc.pip.rho());
+	   tmpvmc.push_back(evtmc);
+	   //hppires->Fill(evtda.pip.rho()-evtmc.pip.rho());
 	 }
 	   
-////////   tmpmass = evt.m();
-////////   if(fabs(tmpmass-peakvalue)<tmpdeltaold){
-////////         tmpdeltaold = fabs(tmpmass-peakvalue);
-////////         besidx = i;
-////////   }
-//////// }
-//////// 
-//////// pip.setVectM(Hep3Vector(pippx[besidx],pippy[besidx],pippz[besidx]),mpi);
-//////// evt.set(kam,pip);
+	 for (int ie=0;ie<tmpv.size();ie++){
+	   evt = tmpv.at(ie);
+	   evtmc = tmpvmc.at(ie);
 	 
-	 costheta1 = cos(evt.kam.theta());
-	 costheta2 = cos(evt.pip.theta());
-	 phi1 = evt.kam.phi();
-	 phi2 = evt.pip.phi();
+/////////costheta1 = cos(evt.kam.theta());
+/////////costheta2 = cos(evt.pip.theta());
+/////////phi1 = evt.kam.phi();
+/////////phi2 = evt.pip.phi();
 	 //if (fabs(costheta1)>0.5) continue;
 	 //if (fabs(costheta2)>0.5) continue;
 	 
@@ -222,28 +234,31 @@ void gepep_kpi::Loop()
 	 p2 = evt.pip.rho();
 	 double pt1 = evt.kam.perp();
 	 double pt2 = evt.pip.perp();
-	 theta1= evt.kam.theta();
-	 theta2= evt.pip.theta();
+//////// theta1= evt.kam.theta();
+//////// theta2= evt.pip.theta();
 	 mass = evt.m();
 	 //if (parti>=Npart || partj>=Npart || parti<0 || partj<0) continue;
 	 for (int parti=0; parti<Npart; parti++){
-	 if (p1>pcut[parti]&&p1<pcut[parti+1])
-	 //if (costheta1>coscut[parti]&&costheta1<coscut[parti+1])
-	   //&&theta2>thetacut[partj]&&theta2<thetacut[partj+1])
-	   if (mass>m0-width/2.-0.02 && mass<m0+width/2.+0.02)
-	   {
-		 evts_set2.push_back(evt);
-	      	 evts_setmc.push_back(evtmc);
-		 //if (p1<0.6 || p1>0.8) continue;
-		 hpkares->Fill(evt.kam.rho()-evtmc.kam.rho());
-	/////////h2p->Fill(p1,p2);
-	/////////thedis->Fill(p1,theta1);
-	/////////thedis->Fill(p2,theta2);
-	/////////thedis2->Fill(theta1,theta2);
-	         hmtheta[parti]->Fill(mass);
-		 evts_set[parti].push_back(evt);
-		 //vars->Fill();
-	   }
+	    if (evtmc.kam.rho()>pcut[parti]&&evtmc.kam.rho()<pcut[parti+1]) {
+	      hmtheta[parti]->Fill(mass);
+	    //if (costheta1>coscut[parti]&&costheta1<coscut[parti+1])
+	      //&&theta2>thetacut[partj]&&theta2<thetacut[partj+1])
+	      if (mass>m0-width/2.-0.02 && mass<m0+width/2.+0.02)
+	      {
+	            evts_set2.push_back(evt);
+	            evts_setmc.push_back(evtmc);
+	            hpkares->Fill(evt.kam.rho()-evtmc.kam.rho());
+	            hppires->Fill(evt.pip.rho()-evtmc.pip.rho());
+	            hpkaires[parti]->Fill(evt.kam.rho()-evtmc.kam.rho());
+	            hppiires[parti]->Fill(evt.pip.rho()-evtmc.pip.rho());
+	    ////////h2p->Fill(p1,p2);
+	    ////////thedis->Fill(p1,theta1);
+	    ////////thedis->Fill(p2,theta2);
+	    ////////thedis2->Fill(theta1,theta2);
+	            evts_set[parti].push_back(evt);
+	            //vars->Fill();
+	      }
+	    }
 	 }
 
 	// fill momentum spectrum
@@ -255,18 +270,65 @@ void gepep_kpi::Loop()
 	   hppi->Fill(p2);
 	 }
 	 // if (Cut(ientry) < 0) continue;
+       }
    }
 
    TFile *ftmp = new TFile("P_cmp.root","recreate");
+   double xxka[5] = {0.5,0.7,0.9,1.1,1.3};
+   double xeka[5] = {0.1,0.1,0.1,0.1,0.1};
+   double yyka[5],yeka[5];
+   double yykaave, yekaave;
+   double yypi[5],yepi[5];
+   double yypiave, yepiave;
+   double yymm[5],yemm[5];
+   double yymmave, yemmave;
    ftmp->WriteTObject(hpka,"hpka_DKpi");
    ftmp->WriteTObject(hppi,"hppi_DKpi");
-   ftmp->WriteTObject(hppires,"hppires_DKpi");
+   hpkares->Fit("gaus","R","",-0.01,0.01);
+   yykaave = hpkares->GetFunction("gaus")->GetParameter(1);
+   yekaave = hpkares->GetFunction("gaus")->GetParError(1);
    ftmp->WriteTObject(hpkares,"hpkares_DKpi");
+   hppires->Fit("gaus","R","",-0.01,0.01);
+   yypiave = hppires->GetFunction("gaus")->GetParameter(1);
+   yepiave = hppires->GetFunction("gaus")->GetParError(1);
+   ftmp->WriteTObject(hppires,"hppires_DKpi");
    ftmp->WriteTObject(hmD0,"hmD0_DKpi");
+   for (int parti=0; parti<Npart;parti++){
+     hpkaires[parti]->Fit("gaus","R","",-0.01,0.01);
+     yyka[parti] = hpkaires[parti]->GetFunction("gaus")->GetParameter(1);
+     yeka[parti] = hpkaires[parti]->GetFunction("gaus")->GetParError(1);
+     ftmp->WriteTObject(hpkaires[parti]);
+     hppiires[parti]->Fit("gaus","R","",-0.01,0.01);
+     yypi[parti] = hppiires[parti]->GetFunction("gaus")->GetParameter(1);
+     yepi[parti] = hppiires[parti]->GetFunction("gaus")->GetParError(1);
+     ftmp->WriteTObject(hppiires[parti]);
+     hmtheta[parti]->Fit("gaus","R","",m0-sigma_m,m0+sigma_m);
+     yymm[parti] = hmtheta[parti]->GetFunction("gaus")->GetParameter(1);
+     yemm[parti] = hmtheta[parti]->GetFunction("gaus")->GetParError(1);
+   }
+   TGraphErrors* greshka = new TGraphErrors(5,xxka,yyka,xeka,yeka);
+   greshka->SetName("pkresolutionshift_pk");
+   greshka->GetXaxis()->SetTitle("p_{K} (GeV/c)");
+   greshka->GetYaxis()->SetTitle("average p_{K}(data)-p_{K}(MC) (GeV/c)");
+   greshka->Write();
+   delete greshka;
+   TGraphErrors* greshpi = new TGraphErrors(5,xxka,yypi,xeka,yepi);
+   greshpi->SetName("ppiresolutionshift_pka");
+   greshpi->GetXaxis()->SetTitle("p_{K} (GeV/c)");
+   greshpi->GetYaxis()->SetTitle("average p_{#pi}(data)-p_{#pi}(MC) (GeV/c)");
+   greshpi->Write();
+   delete greshpi;
+   TGraphErrors* greshmm = new TGraphErrors(5,xxka,yymm,xeka,yemm);
+   greshmm->SetName("massshift_pka");
+   greshmm->GetXaxis()->SetTitle("p_{K} (GeV/c)");
+   greshmm->GetYaxis()->SetTitle("mass shift(MC) (GeV/c)");
+   greshmm->Write();
+   delete greshmm;
+
    ftmp->Close();
    delete ftmp;
    f->cd();
-//   return ;
+   return ;
 
    //vars->Write();
    //h2p->Write();

@@ -70,7 +70,8 @@ int main(int argc,char **argv)
                 || namenopa.find("fast4pi")   != std::string::npos);
     use4k      = ( namenopa.find("4k")        != std::string::npos);
     usekk      = ( namenopa.find("_kk_")      != std::string::npos
-                || namenopa.find("kk_")       != std::string::npos);
+                || namenopa.find("kk_")       != std::string::npos
+                || namenopa.find("KK.")       != std::string::npos);
     usekpi     = ( namenopa.find("_kpi_")     != std::string::npos
                 || namenopa.find("Kpi.")     != std::string::npos);
     useppi     = ( namenopa.find("_ppi_")     != std::string::npos);
