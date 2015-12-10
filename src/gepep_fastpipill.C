@@ -92,6 +92,7 @@ bool gepep_fastpipill::Loop()
   double me=0.000511;
   double mmu=0.105658;
   double mpi=0.13957;
+  double mpsip=3.686109;
   double psilow=3.0;
   double psiup=3.2;
   //double psiplow=3.67;
@@ -176,6 +177,9 @@ bool gepep_fastpipill::Loop()
   double phi,phi1,phi2;
   double costheta,costheta1,costheta2;
   double p1,p2;
+   vars->Branch("indexmc", &indexmc, "indexmc/I");
+   vars->Branch("pdgid", pdgid, "pdgid[indexmc]/I");
+   vars->Branch("motheridx", motheridx, "motheridx[indexmc]/I");
   vars->Branch("phi",&phi,"phi/D");
   vars->Branch("phi1",&phi1,"phi1/D");
   vars->Branch("phi2",&phi2,"phi2/D");
@@ -284,7 +288,7 @@ bool gepep_fastpipill::Loop()
      phi2 = evt.GetPpim().phi();
 	 //if (fabs(costheta1)>0.5) continue; // check theta effect
 	 //if (fabs(costheta2)>0.5) continue; // check theta effect
-     if ( mass>psiplow-0.01 && mass<psipup+0.01 ) vars->Fill();
+     if ( mass>mpsip-0.005 && mass<mpsip+0.005 ) vars->Fill();
      for (int partj=0;partj<Npart;partj++){
          //if ( costheta1>costhecut[partj] && costheta1<costhecut[partj+1] )
          if ( mass>psiplow-0.01 && mass<psipup+0.01 ) {
@@ -301,7 +305,7 @@ bool gepep_fastpipill::Loop()
    ofstream outf("parpsip.txt",std::ios::app);
    outf<<"p_pi = " << ppi_tot << " +/- "<< ppisig_tot <<endl;
    outf.close();
-  //vars->Write();
+  vars->Write();
 	//TH1D *hp = new TH1D("hp","hp",200,0,2);
   for (int partj=0;partj<Npart;partj++){
     hmphi[partj]->Write();
@@ -544,7 +548,7 @@ return 0;
       pt->AddText(tmpchr);
       pt->Draw();
       c1->Update();
-      sprintf(tmpchr,"mass_pi_%2d",fittimes);
+      sprintf(tmpchr,"mass_pi_%.4f",factor);
       xframe->SetName(tmpchr);
       //xframe->Write();
       // save pars
@@ -553,7 +557,7 @@ return 0;
       deltapeaks2[i] = mean.getVal() - peakvalue;
       deltapeakserr2[i] = mean.getError();
       //if (deltapeakserr2[i]<1e-5) deltapeakserr2[i]=5e-4;
-      sprintf(name,"part%d_fitFor%dTimes",partj,fittimes);
+      sprintf(name,"part%d_factor_%.4f",partj,factor);
       c1->SetName(name);
       c1->Write();
       delete sum;

@@ -90,6 +90,9 @@ void gepep_kpipi::Loop()
   //double phi,phi1,phi2;
   //double costheta,costheta1,costheta2;
   double ppi1,ppi2,pk1,pk2;
+   vars->Branch("indexmc", &indexmc, "indexmc/I");
+   vars->Branch("pdgid", pdgid, "pdgid[indexmc]/I");
+   vars->Branch("motheridx", motheridx, "motheridx[indexmc]/I");
   vars->Branch("ppi1",&ppi1,"ppi1/D");
   vars->Branch("ppi2",&ppi2,"ppi2/D");
   vars->Branch("pk1",&pk1,"pk1/D");
@@ -109,6 +112,7 @@ void gepep_kpipi::Loop()
 
    // select useful events
    Long64_t nbytes = 0, nb = 0;
+   //nentries = 29085;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
@@ -156,23 +160,25 @@ void gepep_kpipi::Loop()
 	  //if (ptk1<0.4 || ptk1>0.8) continue;
 	  //if (pk1<0.6 || pk1>0.8) continue;
 	  hmD->Fill(mass);
-	  if (mass>peakvalue-0.01 && mass<peakvalue+0.01){
-	    hppi->Fill(ptpi1);
-	    hppi->Fill(ptpi2);
-	    hpka->Fill(ptk1);
+	  if (mass>peakvalue-0.003 && mass<peakvalue+0.003){
+	    hppi->Fill(ppi1);
+	    hppi->Fill(ppi2);
+	    hpka->Fill(pk1);
+	    
+	    //vars->Fill();
 	  }
    }//select end
    //vars->Write();
    //sprintf(name,"%f",peakvalue);
  
-// TFile *ftmp = new TFile("P_cmp.root","update");
-// ftmp->WriteTObject(hpka,"hptka_DKpipi");
-// ftmp->WriteTObject(hppi,"hptpi_DKpipi");
-// ftmp->WriteTObject(hmD ,"hmD_DKpipi");
-// ftmp->Close();
-// delete ftmp;
-// f->cd();
-// return ;
+   TFile *ftmp = new TFile("P_cmp.root","update");
+   ftmp->WriteTObject(hpka,"hptka_DKpipi");
+   ftmp->WriteTObject(hppi,"hptpi_DKpipi");
+   ftmp->WriteTObject(hmD ,"hmD_DKpipi");
+   ftmp->Close();
+   delete ftmp;
+   f->cd();
+   return ;
 
    double pka_tot = hpka->GetMean();
    double pkasig_tot = hpka->GetRMS();
@@ -676,18 +682,18 @@ void KPIPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx, double &pe
    double beamlow = peakvalue-0.03;
    double beamup  = peakvalue+0.03;
    // try to use roofit
-   RooRealVar x("x","M(K#pi#pi)",peakvalue,beamlow,beamup,"GeV");
+   RooRealVar x("x","M(K#pi#pi)",peakvalue+0.0005,beamlow,beamup,"GeV");
    RooRealVar mean("mean","mean of gaussian",peakvalue,beamlow,beamup);
-   RooRealVar sigma("sigma","width of gaussian",0.003,0.001,0.005);
+   RooRealVar sigma("sigma","width of gaussian",0.004,0.001,0.005);
    RooRealVar sigma2("sigma2","width of gaussian",0.006,0.005,0.01);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
    RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
    //RooRealVar co1("co1","coefficient #1",0,-100.,100.);
    //RooRealVar co4("co4","coefficient #4",0);
    //RooChebychev bkg("bkg","background",x,RooArgList(co1));
-   RooRealVar signal("signal"," ",200,0,10000000);//event number
+   RooRealVar signal("signal"," ",20000,0,10000000);//event number
    RooRealVar sigfra("sigfra"," ",0.5,0.3,1.0);//event number
-   RooRealVar signal2("signal2"," ",200,0,10000000);//event number
+   //RooRealVar signal2("signal2"," ",20000,0,10000000);//event number
    RooRealVar background("background"," ",20,0,1000000);
    RooRealVar a0("a0","coefficient #0",100,-100000,100000);
    RooRealVar a1("a1","coefficient #1",-1,-100000,100000);

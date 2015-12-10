@@ -78,8 +78,8 @@ void Ks0Alg::Loop()
    double peakvalue = mparticle;
    //double kslow=0.45;
    //double ksup =0.55;
-   double kslow=0.475;
-   double ksup =0.525;
+   double kslow=0.455;
+   double ksup =0.545;
    TF1 *facfit = new TF1("facfit",line2,kslow,ksup,2);
    char fname[1000];
    sprintf(fname,"%s/plot_ks.root",outputdir.c_str());
@@ -138,11 +138,11 @@ void Ks0Alg::Loop()
    vars->Branch("pt2",&pt2,"pt2/D");
    vars->Branch("mass",&mass,"mass/D");
 
-   const int Npart= 10;
-   double coscut[Npart+1];
-   for (int i=0; i<Npart+1; i++){
-     coscut[i] = 2./Npart*i - 1;
-   }
+   const int Npart= 1;
+ //double coscut[Npart+1];
+ //for (int i=0; i<Npart+1; i++){
+ //  coscut[i] = 2./Npart*i - 1;
+ //}
    //int Npart1 = 20;
    //int Npartcos = 10;
    int realsize=0;
@@ -156,8 +156,9 @@ void Ks0Alg::Loop()
    double corerr[Npart];
    double start=0;
    double stop =2.0;
-   double pcut[Npart+1];//={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
-		  // 0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
+   double pcut[Npart+1] = {0,3};
+   //double pcut[Npart+1]={0,0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,
+//		   0.60,0.70,0.80,0.90,1.00,1.20,1.40,1.60,1.80,2.00};//={0.0,0.5,1.0,1.5,2.0};
    double facv[Npart];
    double facev[Npart];
    //pcut[0]=0.1;
@@ -213,7 +214,7 @@ void Ks0Alg::Loop()
    int counts[10]={0,0,0,0,0,0,0,0,0,0};
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       counts[0]++;
-	  Long64_t ientry = LoadTree(jentry);
+      Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;
@@ -269,16 +270,16 @@ void Ks0Alg::Loop()
         mass = evt.InvMass();
         double chi2 = m_chisq0[ipip*npim+ipim]+m_chisqvtxnd[ipip*npim+ipim];
         if (chi2 > 100) continue;
-		counts[1]++;
+	  counts[1]++;
         double ratio = m_decayL[ipip*npim+ipim]/m_decayLerr[ipip*npim+ipim];
         //if (ratio>2 || ratio<1) continue;//select Ks from ip
         if (ratio<2 ) continue;//select Ks from ip
-		counts[2]++;
+	  counts[2]++;
         if (Ks_id[ipip*npim+ipim]==0){
           hmassU->Fill(mass);
           continue;
         } 
-		counts[3]++;
+	counts[3]++;
         hmass->Fill(Mpippim[ipip*npim+ipim]);
         hmassc->Fill(mass);
         p1 = evt.GetP1();
@@ -295,22 +296,23 @@ void Ks0Alg::Loop()
         phi1 = evt.GetPhi1();
         phi2 = evt.GetPhi2();
         if (mass>kslow && mass<ksup){
-		counts[4]++;
+	  counts[4]++;
           vars->Fill();
         }
 
         //if ( partj>=Npart || partj<0 ) continue;
         for (int partj=0;partj<Npart;partj++){
-          //if (p1<pcut[partj] || p1>pcut[partj+1]) continue;
+          if (p1<pcut[partj] || p1>pcut[partj+1]) continue;
+          if (p2<pcut[partj] || p2>pcut[partj+1]) continue;
           //if (pt2<pcut[partj] || pt2>pcut[partj+1]) continue;
-          if (costheta1>coscut[partj] && costheta1<coscut[partj+1])
-          if (costheta2>coscut[partj] && costheta2<coscut[partj+1])
-		  if (mass>kslow-0.02 && mass<ksup+0.02){
-            hmKs[partj]->Fill(mass);
-			evts[partj].push_back(evt);
-            break;
-	      }
-		}
+          //if (costheta1>coscut[partj] && costheta1<coscut[partj+1])
+          //if (costheta2>coscut[partj] && costheta2<coscut[partj+1])
+	    if (mass>kslow-0.02 && mass<ksup+0.02){
+              hmKs[partj]->Fill(mass);
+		evts[partj].push_back(evt);
+              break;
+	    }
+	}
        }
    }
    std::cout<<"ffffffffff cut flow: "<<counts[0]<<' '<<counts[1]<<' '<<counts[2]<<' '<<counts[3]<<' '<<counts[4]<<std::endl;
@@ -390,7 +392,7 @@ void Ks0Alg::Loop()
    std::cout<<"part map size is "<<partmap.size()<<std::endl;
    for (int loopj=0;loopj<partmap.size();loopj++){
      int partj = partmap.at(loopj);
-	 //int cosj  = partmap.at(loopj).second;
+     //int cosj  = partmap.at(loopj).second;
      std::cout<<"part is "<<partj<<std::endl;
      double factori=1.000  ;
      double factorj=1.000  ;
@@ -423,7 +425,7 @@ void Ks0Alg::Loop()
        for (Long64_t jin=0; jin<evts[partj].size();jin++) {
 		  //factori = factor;
 		  //factori = 1.0;
-		  factorj = factor;
+		  //factorj = factor;
 		//p1 = evts[partj].at(jin).GetP1();
 		//p2 = evts[partj].at(jin).GetP2();
 	  //  pt1 = evts[partj].at(jin).GetPt1();
@@ -443,7 +445,8 @@ void Ks0Alg::Loop()
           //if (p1 < pcut[partj] || p1> pcut[partj+1]) continue;
           //if (p2 < pcut1[partj] || p2> pcut1[partj+1]) continue;
           mass = evts[partj].at(jin).InvMass(factor,factor);
-		  if (mass>kslow && mass<ksup){
+          //mass = evts[partj].at(jin).InvMass(factor,1);
+	    if (mass>kslow && mass<ksup){
             dataraw->Fill();
           }
        }// loop data end
@@ -509,7 +512,7 @@ void Ks0Alg::Loop()
        factorserr[fittimes]=0;
        deltapeaks[fittimes] = mean.getVal() - peakest[partj];
        deltapeakserr[fittimes] = mean.getError();
-	   if (chi2>10) deltapeakserr[fittimes] = 1.0;
+	// if (chi2>10) deltapeakserr[fittimes] = 1.0;
       
        factor += factorstep;
        //factori = factor;
@@ -518,13 +521,13 @@ void Ks0Alg::Loop()
        delete dataset;
        delete xframe;
 
-	   if (factor == 1.0){
-	     double s1 = sigma.getVal();
-		 double s2 = sigma2.getVal();
-		 double n1 = signal.getVal();
-		 double n2 = signal2.getVal();
-	     comsgm[loopj][0] = sqrt((s1*s1*n1+s2*s2*n2)/(n1+n2));
-	   } 
+        if (factor == 1.0){
+          double s1 = sigma.getVal();
+          double s2 = sigma2.getVal();
+          double n1 = signal.getVal();
+          double n2 = signal2.getVal();
+          comsgm[loopj][0] = sqrt((s1*s1*n1+s2*s2*n2)/(n1+n2));
+        } 
     }// n point end
     //will fit linear, get factor needed
     c1->Clear();
@@ -582,7 +585,7 @@ void Ks0Alg::Loop()
           //if (p1 < pcut[partj] || p1> pcut[partj+1]) continue;
           //if (p2 < pcut1[partj] || p2> pcut1[partj+1]) continue;
           mass = evts[partj].at(jin).InvMass(factor,factor);
-		  if (mass>kslow && mass<ksup){
+	    if (mass>kslow && mass<ksup){
             dataraw->Fill();
           }
        }// loop data end
@@ -646,7 +649,7 @@ void Ks0Alg::Loop()
     c1->SetName(name);
     c1->Write();
 
-    partid[loopj] = partj;//pcut[partj]+(pcut[partj+1]-pcut[partj])/2;
+    partid[loopj] = pcut[partj]+(pcut[partj+1]-pcut[partj])/2;
 	//partjd[loopj] = coscut[cosj]+(coscut[cosj+1]-coscut[cosj])/2;
     ofpar<<"p="<<partid[loopj]<<"\tpeak estimate : "<<peakest[partj]<<std::endl;
     parter[loopj] = 0;

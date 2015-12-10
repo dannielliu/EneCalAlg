@@ -97,6 +97,9 @@ void gepep_fast6pi::Loop()
   //double phi,phi1,phi2;
   //double costheta,costheta1,costheta2;
   double p[6];
+   vars->Branch("indexmc", &indexmc, "indexmc/I");
+   vars->Branch("pdgid", pdgid, "pdgid[indexmc]/I");
+   vars->Branch("motheridx", motheridx, "motheridx[indexmc]/I");
   vars->Branch("p1",&p[0],"p1/D");
   vars->Branch("p2",&p[1],"p2/D");
   vars->Branch("p3",&p[2],"p3/D");
@@ -131,9 +134,9 @@ void gepep_fast6pi::Loop()
       if (!good) continue;
       
       if (mass>beamlow && mass<beamup){
-          vars->Fill();
           evts.push_back(evt);
       }
+      if (mass>peakvalue-0.1 && mass<peakvalue+0.1)    vars->Fill();
    }//select end
    vars->Write();
    sprintf(name,"%f",peakvalue);
@@ -272,7 +275,7 @@ void EEto6PI::FitSpe(std::vector<EEto6pi> evts, double beame, char *namesfx)
 
   //~~~~~~~~~~part start~~~~~~~~
   //TF1 ff("ff","1.00065+0.000630*x",0,2);
-  TF1 ff("ff","1.00258-0.00669*x",0,2);
+  TF1 ff("ff","1.00113-0.00091738*x",0,2);
 
   for (Long64_t jentry=0; jentry<evts.size();jentry++) {
      
@@ -351,16 +354,16 @@ void EEto6PI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx)
    int Npar;
    double peakvalue = beame;
    //double beamlow=beame-0.15;
-   double beamlow=beame-0.15;
-   double beamup=beame+0.10;
+   double beamlow=beame-0.10;
+   double beamup=beame+0.05;
    // try to use roofit
    RooRealVar x("x","energy",peakvalue,beamlow,beamup,"GeV");
-   RooRealVar mean("mean","mean of gaussian",peakvalue -0.002,beamlow,beamup);
+   RooRealVar mean("mean","mean of gaussian",peakvalue+0.003,beamlow,beamup);
    //RooRealVar mean2("mean2","mean of gaussian",peakvalue /*-0.002*/ ,beamlow,beamup);
-   RooRealVar sigma("sigma","width of gaussian",0.013,0.008,0.018);
+   RooRealVar sigma("sigma","width of gaussian",0.010,0.005,0.013);
    //RooRealVar sigma2("sigma2","width of gaussian",0.03,0.02,0.05);
    //RooRealVar sigma3("sigma3","width of gaussian",0.005,0.002,0.008);
-   if (strncmp(namesfx,"raw",3) == 0) mean.setVal(peakvalue - 0.005);
+   //if (strncmp(namesfx,"raw",3) == 0) mean.setVal(peakvalue - 0.005);
 
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
    //RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean2,sigma2);

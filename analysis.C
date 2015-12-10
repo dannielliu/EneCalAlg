@@ -119,7 +119,7 @@ int main(int argc,char **argv)
     }
     else if( usekpipi){
       gepep_kpipi *a;
-      analysis(a,filename);
+      analysis(a,filename,"gepep_kpi");
     }
     else if( usefkkpipi){
       gepep_fkkpipi *a;

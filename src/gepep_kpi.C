@@ -89,6 +89,9 @@ void gepep_kpi::Loop()
    double phi1,phi2;
    double costheta1,costheta2;
    double p1,p2;
+   vars->Branch("indexmc", &indexmc, "indexmc/I");
+   vars->Branch("pdgid", pdgid, "pdgid[indexmc]/I");
+   vars->Branch("motheridx", motheridx, "motheridx[indexmc]/I");
    vars->Branch("phi1",&phi1,"phi1/D");
    vars->Branch("phi2",&phi2,"phi2/D");
    vars->Branch("costheta1",&costheta1,"costheta1/D");
@@ -210,11 +213,11 @@ void gepep_kpi::Loop()
 	/////////thedis2->Fill(theta1,theta2);
 	         hmtheta[parti]->Fill(mass);
 		 evts_set[parti].push_back(evt);
-		 //vars->Fill();
 	   }
 	   if (mass>m0-2*sigma_m && mass<m0+2*sigma_m){
 	     hpka->Fill(p1);
 	     hppi->Fill(p2);
+	     //vars->Fill();
 	   }
 	 }
 
@@ -229,14 +232,14 @@ void gepep_kpi::Loop()
 	 // if (Cut(ientry) < 0) continue;
    }
 
-// TFile *ftmp = new TFile("P_cmp.root","update");
-// ftmp->WriteTObject(hpka,"hptka_DKpi");
-// ftmp->WriteTObject(hppi,"hptpi_DKpi");
-// ftmp->WriteTObject(hmD0,"hmD0_DKpi");
-// ftmp->Close();
-// delete ftmp;
-// f->cd();
-//   return ;
+   TFile *ftmp = new TFile("P_cmp.root","update");
+   ftmp->WriteTObject(hpka,"hptka_DKpi");
+   ftmp->WriteTObject(hppi,"hptpi_DKpi");
+   ftmp->WriteTObject(hmD0,"hmD0_DKpi");
+   ftmp->Close();
+   delete ftmp;
+   f->cd();
+     return ;
 
    //vars->Write();
    //h2p->Write();
@@ -1102,7 +1105,7 @@ void KPI::FitSpectrum(TTree *&dataraw, double beame, char* namesfx, double &peak
    double beamup  = 1.90;
    // try to use roofit
    RooRealVar x("x","M(K#pi)",peakvalue,beamlow,beamup,"GeV");
-   RooRealVar mean("mean","mean of gaussian",peakvalue,beamlow,beamup);
+   RooRealVar mean("mean","mean of gaussian",peakvalue+0.0005,beamlow,beamup);
    RooRealVar sigma("sigma","width of gaussian",0.0050,0.0045,0.0075);
    RooRealVar sigma2("sigma2","width of gaussian",0.0075,0.0075,0.010);
    RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);

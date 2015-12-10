@@ -9,13 +9,13 @@
 //int main()
 {
   // D0 and D+
-//double a1 = 0.742502	;	/*	0.740901;	*/	double a2 = 0.384245;
-//double b1 = 0.849109	;	/*	0.847603;	*/	double b2 = 1.058387;
-//double c1 = -.000812	;	/*	-0.0008415;	*/	double c2 = -0.000912;
+  double a1 = 0.742502	;	/*	0.740901;	*/	double a2 = 0.384245;
+  double b1 = 0.849109	;	/*	0.847603;	*/	double b2 = 1.058387;
+  double c1 = -.000812	;	/*	-0.0008415;	*/	double c2 = -0.000912;
 
-//double a1e = 	0.004775;	/*	0.004073;	*/	double a2e = 0.005133;
-//double b1e = 	0.004775;	/*	0.004073;	*/	double b2e = 0.005007;
-//double c1e = 	0.000061;	/*	-0.000052;	*/	double c2e = -0.000067;
+  double a1e = 	0.004775;	/*	0.004073;	*/	double a2e = 0.005133;
+  double b1e = 	0.004775;	/*	0.004073;	*/	double b2e = 0.005007;
+  double c1e = 	0.000061;	/*	-0.000052;	*/	double c2e = -0.000067;
   
   // D0bar and D-
 //double a1 = 0.741767	;		double a2 = 0.395000;
@@ -28,13 +28,13 @@
 
 // D0D0bar and D+D-
 // 4230
-  double a1 = 0.739945	;		double a2 = 0.390051;
-  double b1 = 0.847342	;		double b2 = 1.052556;
-  double c1 = -0.000921	;		double c2 = -0.000781;
+//double a1 = 0.739945	;		double a2 = 0.390051;
+//double b1 = 0.847342	;		double b2 = 1.052556;
+//double c1 = -0.000921	;		double c2 = -0.000781;
 
-  double a1e = 	0.003574;		double a2e = 0.003294;
-  double b1e = 	0.003574;		double b2e = 0.002890;
-  double c1e = 	0.000042;		double c2e = 0.000042;
+//double a1e = 	0.003574;		double a2e = 0.003294;
+//double b1e = 	0.003574;		double b2e = 0.002890;
+//double c1e = 	0.000042;		double c2e = 0.000042;
 // D0D0bar and D+D-
 //double a1 = 0.740879	;		double a2 = 0.390981;
 //double b1 = 0.846639	;		double b2 = 1.053499;

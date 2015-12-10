@@ -67,7 +67,7 @@ void gepep_fast4pi::Loop()
    double mka = 0.493677;
   
   char fname[1000];
-  sprintf(fname,"%s/plot_kkpipi_nopid.root",outputdir.c_str());
+  sprintf(fname,"%s/plot_4pi.root",outputdir.c_str());
   TFile *f=new TFile(fname,"RECREATE");
   
   TTree *vars = new TTree("vars","vars");
@@ -108,41 +108,41 @@ void gepep_fast4pi::Loop()
 //////evt.set(pip,pim,kap,kam);
 
       pip.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mpi);
-      kap.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mka);
+      kap.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mpi);
       pim.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mpi);
-      kam.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mka);
+      kam.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mpi);
       evt.set(pip,pim,kap,kam);
       deltamass1 = evt.m() - beamene;
 
-      pip.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mpi);
-      kap.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mka);
-      pim.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mpi);
-      kam.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mka);
-      deltamass2 = (pip+pim+kap+kam).m() - beamene;
-      if (fabs(deltamass2) < fabs(deltamass1)){
-          evt.set(pip,pim,kap,kam);
-          deltamass1 = deltamass2;
-      }
+//    pip.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mpi);
+//    kap.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mpi);
+//    pim.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mpi);
+//    kam.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mpi);
+//    deltamass2 = (pip+pim+kap+kam).m() - beamene;
+//    if (fabs(deltamass2) < fabs(deltamass1)){
+//        evt.set(pip,pim,kap,kam);
+//        deltamass1 = deltamass2;
+//    }
 
-      pip.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mpi);
-      kap.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mka);
-      pim.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mpi);
-      kam.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mka);
-      deltamass2 = (pip+pim+kap+kam).m() - beamene;
-      if (fabs(deltamass2) < fabs(deltamass1)){
-          evt.set(pip,pim,kap,kam);
-          deltamass1 = deltamass2;
-      }
+//    pip.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mpi);
+//    kap.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mka);
+//    pim.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mpi);
+//    kam.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mka);
+//    deltamass2 = (pip+pim+kap+kam).m() - beamene;
+//    if (fabs(deltamass2) < fabs(deltamass1)){
+//        evt.set(pip,pim,kap,kam);
+//        deltamass1 = deltamass2;
+//    }
 
-      pip.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mpi);
-      kap.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mka);
-      pim.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mpi);
-      kam.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mka);
-      deltamass2 = (pip+pim+kap+kam).m() - beamene;
-      if (fabs(deltamass2) < fabs(deltamass1)){
-          evt.set(pip,pim,kap,kam);
-          deltamass1 = deltamass2;
-      }
+//    pip.setVectM(Hep3Vector(pippx[0],pippy[0],pippz[0]),mpi);
+//    kap.setVectM(Hep3Vector(pippx[1],pippy[1],pippz[1]),mka);
+//    pim.setVectM(Hep3Vector(pimpx[1],pimpy[1],pimpz[1]),mpi);
+//    kam.setVectM(Hep3Vector(pimpx[0],pimpy[0],pimpz[0]),mka);
+//    deltamass2 = (pip+pim+kap+kam).m() - beamene;
+//    if (fabs(deltamass2) < fabs(deltamass1)){
+//        evt.set(pip,pim,kap,kam);
+//        deltamass1 = deltamass2;
+//    }
       
       ppi1 = evt.pip.rho();
       ppi2 = evt.pim.rho();

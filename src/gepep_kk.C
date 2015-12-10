@@ -6,30 +6,17 @@
 #include <TCanvas.h>
 #include "function.h"
 #include "TF1.h"
-#include "TPaveText.h"
-#include "TGraphErrors.h"
 #include <fstream>
-#include "RooFit.h"
-#include "RooFitResult.h"
-#include "RooRealVar.h"
-#include "RooGaussian.h"
-#include "RooChebychev.h"
-#include "RooCBShape.h"
-#include "RooExponential.h"
-#include "RooPolynomial.h"
-#include "RooBreitWigner.h"
-#include "RooDataHist.h"
-#include "RooDataSet.h"
-#include "RooAddPdf.h"
-#include "RooArgList.h"
-#include "RooPlot.h"
-
-#include "RooRelativisticBW.h"
-#include "RooFFTConvPdf.h"
 
 extern std::string outputdir;
-using namespace RooFit;
 using namespace std;
+
+namespace GEPEP_KK{
+  void FitSpecPhi(std::vector<Event> &evts, double beame, char* namesfx);
+  void FitSpectrumPhi(TTree*& dataraw, double beame, char* namesfx, double &peak, double &peakerror);
+  void FitSpecD(std::vector<Event> &evts, double beame, char* namesfx);
+  void FitSpectrumD(TTree*& dataraw, double beame, char* namesfx, double &peak, double &peakerror);
+}
 
 void gepep_kk::Loop()
 {
@@ -73,66 +60,23 @@ void gepep_kk::Loop()
    // phi -> K K
      double philow=1.005;
      double phiup=1.05;
-     double phipeak=1.019455;// mphi
-   int pointNo=10;
-   double factors[pointNo];
-   double factorserr[pointNo];
-   double deltapeaks[pointNo];
-   double deltapeakserr[pointNo];
-   double factor=factorstart;
-   double factorstep=(1.-factor)*2/pointNo;
-   
-   // try to use roofit
-   RooRealVar x("x","energy",peakvalue,D0low,D0up,"GeV");
-   //RooRealVar x("x","energy",peakvalue,1.015,1.025,"GeV");
-   RooRealVar mean("mean","mean of gaussian",peakvalue,D0low,D0up);
-   RooRealVar mean2("mean2","mean of gaussian2",peakvalue,D0low,D0up);
-   //RooRealVar sigma("sigma","width of gaussian",0.0023,0.0015,0.0040);//phi version
-   //RooRealVar sigma2("sigma2","width of gaussian",0.005,0.003,0.008);
-   RooRealVar sigma("sigma","width of gaussian",0.007,0.003,0.0075);//D0 version
-   RooRealVar sigma2("sigma2","width of gaussian",0.02,0.008,0.05);
-   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
-   RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
-   
-   RooRealVar co1("co1","coefficient #1",0,-0.5,0.5);
-   RooRealVar co2("co2","coefficient #2",0,-0.01,0.5);
-   RooChebychev bkg("bkg","background",x,RooArgList(co1,co2));
-   
- //RooRealVar a0("a0","coefficient #0",100,100,100000);
- //RooRealVar a1("a1","coefficient #1",-50,-100000,100000);
- //RooPolynomial ground("ground","ground",x,RooArgList(a0,a1));
-   
-   RooRealVar signal("signal"," ",1200,10,1000000);//event number
-   RooRealVar signal2("signal2"," ",1200,0,1000000);//event number
-   RooRealVar background("background"," ",200,0,1000000);
-   
-   RooPlot *xframe;
-   //RooDataHist *data_k;
-   RooDataSet *dataset;
-   RooAddPdf *sum;
-   
-   //RooDataSet *dataset = new RooDataSet("dataset","data",dataraw,x);
-   RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
+     double phipeak=1.019461;// mphi
+  
 
-   int Npar;
    char fname[1000];
-   ofstream ofpar;
-   sprintf(fname,"%s/parskk.txt",outputdir.c_str());
-   ofpar.open(fname,std::ios::app);
-   ofstream purepar;
-   sprintf(fname,"parkk");
-   purepar.open(fname,std::ios::app);
-   ofstream purepar2;
-   sprintf(fname,"parkk_phi");
-   purepar2.open(fname,std::ios::app);
+// ofstream ofpar;
+// sprintf(fname,"%s/parskk.txt",outputdir.c_str());
+// ofpar.open(fname,std::ios::app);
+// ofstream purepar;
+// sprintf(fname,"parkk");
+// purepar.open(fname,std::ios::app);
+// ofstream purepar2;
+// sprintf(fname,"parkk_phi");
+// purepar2.open(fname,std::ios::app);
    sprintf(fname,"%s/plot_kk.root",outputdir.c_str());
    TFile *f = new TFile(fname,"RECREATE");
    double mass;
-   TTree *dataraw = new TTree("dataraw","dataraw");
-   dataraw->Branch("x",&mass,"x/D");
-   TTree *datarawf = new TTree("datarawf","dataraw");
-   datarawf->Branch("xx",&mass,"xx/D");
-   
+  
    
    TTree *vars = new TTree("vars","vars");
    double phi1,phi2;
@@ -147,72 +91,16 @@ void gepep_kk::Loop()
    vars->Branch("mass",&mass,"mass/D");
 
 
-   TF1 *facfit = new TF1("facfit",line2,0.9,1.1,2);
-   TH1D *h1    = new TH1D("h1","2 kaon invariant mass",nBins,D0low,D0up);
-   TCanvas *c1 = new TCanvas("","",800,600);
-
-   const int Npart = 1;
-    double costhecut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
-    double start=-1;
-    double stop =1;
-    for(int i=0;i<Npart+1;i++){
-      costhecut[i] = (stop-start)/Npart*i+start;
-    }
+   const int Npart =1 ;
    double m0=peakvalue;
-   double peakest[Npart];
+   //double peakest[Npart];
    double sigma_m=0.0024;//0.0024 for phi,
    double width = 10.*sigma_m;
    double mparticle=0.493677;
-   std::vector<int> partmap;
-   std::vector<std::pair<int,double> > facmap;
-
-   int realsize=0;
-   double partid[Npart];
-   double parter[Npart];
-   double corfac[Npart];
-   double corerr[Npart];
-   
-   double pcut[Npart+1];
-   double facv[Npart];
-   double facev[Npart];
-
-
-   //pcut[0]=0;
-   //pcut[1] = 2.0;
- //pcut[0] =0.0 ;    facv[0] =1.0;       facev[0] =1.0;  
- //pcut[1] =0.10;    facv[1] =1.0     ;  facev[1] =1.0        ;  
- //pcut[2] =0.20;    facv[2] =1.0     ;  facev[2] =1.0        ;
- //pcut[3] =0.30;    facv[3] =1.0     ;  facev[3] =1.0        ;
- //pcut[4] =0.40;    facv[4] =1.0     ;  facev[4] =1.0        ;
- //pcut[5] =0.50;    facv[5] =1.0     ;  facev[5] =1.0        ;
- //pcut[6] =0.60;    facv[6] =1.0     ;  facev[6] =1.0        ;
- //pcut[7] =0.70;    facv[7] =1.0     ;  facev[7] =1.0        ;
- //pcut[8] =0.80;    facv[8] =1.0     ;  facev[8] =1.0        ;
- //pcut[9] =0.90;    facv[9] =1.0     ;  facev[9] =1.0        ;
- //pcut[10]=1.00;    facv[10]=1.0     ;  facev[10]=1.0        ;
- //pcut[11]=1.10;    facv[11]=1.0     ;  facev[11]=1.0        ;
- //pcut[12]=1.20;    facv[12]=1.0     ;  facev[12]=1.0        ;
- //pcut[13]=1.30;    facv[13]=1.0     ;  facev[13]=1.0        ;
- //pcut[14]=1.40;    facv[14]=1.0     ;  facev[14]=1.0        ;
- //pcut[15]=1.50;    facv[15]=1.0     ;  facev[15]=1.0        ;
- //pcut[16]=1.60;    facv[16]=1.0     ;  facev[16]=1.0        ;
- //pcut[17]=1.70;    facv[17]=1.0     ;  facev[17]=1.0        ;
- //pcut[18]=1.80;    facv[18]=1.0;       facev[18]=1.0;  
- //pcut[19]=1.90;    facv[19]=1.0;       facev[19]=1.0;  
- //pcut[20]=2.00;    facv[20]=1.0;       facev[19]=1.0;  
- //pcut[21]=2.20;           
+// std::vector<int> partmap;
+// std::vector<std::pair<int,double> > facmap;
 
    char name[100];
-   TH1D *hmD0[Npart];
-   for (int partj=0;partj<Npart;partj++){
-     sprintf(name,"mass_part%0d",partj);
-     hmD0[partj] = new TH1D(name,name,100,D0low,D0up);
-   }
-   TH1D *hmphi[Npart];
-   for (int partj=0;partj<Npart;partj++){
-     sprintf(name,"massphi_part%0d",partj);
-     hmphi[partj] = new TH1D(name,name,100,philow,phiup);
-   }
    TH1D* hpKD0 = new TH1D("hpKD0","p_{K} (D0)",200,0,2);
    TH1D* hpKphi = new TH1D("hpKphi","p_{K} (phi)",200,0,2);
  
@@ -238,12 +126,12 @@ void gepep_kk::Loop()
 		
 	//if (fabs(costheta1)>0.7) continue;
 	//if (fabs(costheta2)>0.7) continue;
-    //  if (mass>D0low && mass<D0up){
-    //    vars->Fill();
-    //  }
-    //  if (mass>philow && mass<phiup){
-    //    vars->Fill();
-    //  }
+        if (mass>D0low && mass<D0up){
+          vars->Fill();
+        }
+        if (mass>philow && mass<phiup){
+          vars->Fill();
+        }
         //if (costheta1 > 0.8 && costheta2 <-0.8) continue;
 	//if (p1<0.5 || p1>1.3) continue;
 	//if (p1<0.4 || p1>1.3) continue;
@@ -256,8 +144,9 @@ void gepep_kk::Loop()
           
           //if ( costheta1>costhecut[partj] && costheta1<costhecut[partj+1] )
 	  if (mass>D0low-0.02 && mass<D0up+0.02){
-            hmD0[partj]->Fill(mass);
-  	    evts[partj].push_back(evt);
+            //hmD0[partj]->Fill(mass);
+  	    //evts[partj].push_back(evt);
+  	    evtsphi[partj].push_back(evt);
             if (mass > peakvalue-0.007 && mass < peakvalue+0.007) {
 	      hpKD0->Fill(p1);
 	      hpKD0->Fill(p2);
@@ -265,7 +154,7 @@ void gepep_kk::Loop()
 	    break;
 	  }
           if (mass>philow-0.02 && mass<phiup+0.02){
-            hmphi[partj]->Fill(mass);
+            //hmphi[partj]->Fill(mass);
 	    evtsphi[partj].push_back(evt);
             if (mass > phipeak-0.0024 && mass < phipeak+0.0024) {
 	      hpKphi->Fill(p1);
@@ -279,245 +168,122 @@ void gepep_kk::Loop()
    cout<<" D0: ave pK = "<<hpKD0->GetMean()<<" +/- "<<hpKD0->GetRMS()<<endl;
    cout<<"phi: ave pK = "<<hpKphi->GetMean()<<" +/- "<<hpKphi->GetRMS()<<endl;
    std::cout<<"part No: "<< Npart<<std::endl;
-   //vars->Write();
-   for (int partj=0;partj<Npart;partj++){
-     hmD0[partj]->Write();
-     std::cout<<"histogram part "<<partj<<" has entries: "<<hmD0[partj]->GetEntries()<<std::endl;
-     if (hmD0[partj]->GetEntries() > 100
-       &&hmD0[partj]->GetMaximumBin()> 30 //check the the peak position,
-       &&hmD0[partj]->GetMaximumBin()< 70 
-       ){
-       partmap.push_back(partj);
-     	      	
-   	////PeakEstimate::SetMResonace(peakvalue);
-	////PeakEstimate::SetMFinal(mk);
-	////TH1D *hp = new TH1D("hp","hp",200,0,2);
-   	//////TH2D *hp2= new TH2D("hp2","hp2",100,0,2, 100,0,2);
-	////double plow = pcut[partj];
-	////double pup  = pcut[partj+1];
-    ////std::cout<<"p range is "<<plow<<", "<<pup<<std::endl;
-	////char cuts[100];
-	////sprintf(cuts,"p1>%f & p1<%f",plow,pup);
-    ////hp->Reset();
-	////vars->Draw("p1>>hp",cuts);
-	////hp->Fit("gaus","","",plow,pup);
-	////double mean = hp->GetFunction("gaus")->GetParameter(1);
-	////double sigma= hp->GetFunction("gaus")->GetParameter(2);
-    ////hp->Reset();
-	////vars->Draw("p2>>hp",cuts);
-	////hp->Fit("gaus","","",pcut[0],pcut[Npart]);
-	////double mean2 = hp->GetFunction("gaus")->GetParameter(1);
-	////double sigma2= hp->GetFunction("gaus")->GetParameter(2);
-	////PeakEstimate::SetPdisPar(mean, sigma, mean2, sigma2);
-	//////std::cout<<"before est"<<std::endl;
-	////double ps = PeakEstimate::peakshift(plow,pup,0.,2.);
-	////peakest[partj] = ps;
-	////delete hp;
-		//std::cout<<"after  est"<<std::endl;
-       	//hmD0[partj]->Fit("gaus");
-	   	//double mpeak = hmD0[partj]->GetFunction("gaus")->GetParameter(1);
-	   	//std::cout<<"fit peak is "<< mpeak << ", est peak is "<<ps<<std::endl;
+   vars->Write();
 
-	 peakest[partj] = peakvalue;
-     }
-   
-   }
+   GEPEP_KK::FitSpecPhi(evtsphi[0],0,0);
 
    // ~~~~~~~~ draw end
+   f->Close();
+   return;
+}
 
-   // ~~~~~~~~~~ D0 part ~~~~~~~~~~~~~
-   for (int loopj=0;loopj<partmap.size();loopj++){
-     int partj=partmap.at(loopj);
+#include "TPaveText.h"
+#include "TGraphErrors.h"
+#include "RooFit.h"
+#include "RooFitResult.h"
+#include "RooRealVar.h"
+#include "RooGaussian.h"
+#include "RooChebychev.h"
+#include "RooCBShape.h"
+#include "RooExponential.h"
+#include "RooPolynomial.h"
+#include "RooBreitWigner.h"
+#include "RooDataHist.h"
+#include "RooDataSet.h"
+#include "RooAddPdf.h"
+#include "RooArgList.h"
+#include "RooPlot.h"
 
-   // for saving the fit result
-   //double factori = 1.000714;
-   int fittimes = 0;
-   factor = factorstart;
-   for (int i=0;i<pointNo;i++){
-      //xframe->Clear();
-      xframe = x.frame(Title("fit kaon"));
+#include "RooRelativisticBW.h"
+#include "RooRBW_evtgen.h"
+#include "RooFFTConvPdf.h"
 
-      //h1->Reset();
-      dataraw->Reset();
-      std::cout<<"factor is "<<factor<<std::endl;
-      for (Long64_t jentry=0; jentry<evts[partj].size();jentry++) {
-		//p1 = evts[partj].at(jentry).GetP1();
-		//p2 = evts[partj].at(jentry).GetP2();
-        //for (int i=0;i<Npart;i++){
-        //  if (p1>=pcut[i]&&p1<pcut[i+1]){
-        //    factori = facv[i];
-        //    break;
-        //  }
-        //}
-          mass = evts[partj].at(jentry).InvMass(factor,factor);
-          if (mass>D0low && mass<D0up){
-            dataraw->Fill();
-          }
-         // if (Cut(ientry) < 0) continue;
-      }
-      //dataraw->Write();
+using namespace RooFit;
 
-      dataset = new RooDataSet("dataset","data",dataraw,x);
-      char tmpchr[100];
-      sprintf(tmpchr,"data_k_%02d",fittimes);
-      //data_k = new RooDataHist(tmpchr,"data_k",x,h1);
-      sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,bkg),RooArgList(signal,signal2,background));
-      Npar=8;
-      mean.setVal(peakvalue+0.06*(factor-1.0));
-      sum->fitTo(*dataset,Range(D0low,D0up));
-      dataset->plotOn(xframe);
-      sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-      sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
-      sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
-      sum->plotOn(xframe);
-      xframe->Draw();
-      TPaveText *pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
-      pt->SetBorderSize(0);
-      pt->SetFillStyle(4000);
-      pt->SetTextAlign(12);
-      pt->SetTextFont(42);
-      pt->SetTextSize(0.035);
-      sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"#chi^{2}/(100-%d) = %5.6f",Npar,xframe->chiSquare(Npar));
-      pt->AddText(tmpchr);
-      sprintf(name,"factor = %.6f",factor);
-      pt->AddText(name);
-      pt->Draw();
-      sprintf(name,"part%d_fitFor_%dth_time",partj,fittimes);
-      c1->SetName(name);
-      c1->Write();
-      //delete data_k;
-      delete dataset;
-      delete xframe;
-      delete sum;
+double ffun(double *x, double *par)
+{
+  return 1./(par[0]*pow(x[0],par[1]))+par[2];
+}
 
-      //sprintf(tmpchr,"data_k_%d.eps",fittimes);
-      //h1->Draw();
-      //c1->Print(tmpchr);
-      
-      // save pars
-      factors[i]=factor;
-      factorserr[i]=0;
-      deltapeaks[i] = mean.getVal() - peakest[partj];
-      //deltapeaks[i] = mean.getVal() - peakvalue;
-      deltapeakserr[i] = mean.getError();
+void GEPEP_KK::FitSpecPhi(std::vector<Event> &evts, double beame, char* namesfx)
+{
 
-      fittimes++;
-      factor += factorstep;
-   }
+   double philow=1.005;
+   double phiup=1.05;
+   double mphi=1.019461;// mphi
+   double D0low=1.82;
+   double D0up=1.90;
+   double mD=1.86484;// mD0
    
-   TGraphErrors *graph1 = new TGraphErrors(pointNo,factors,deltapeaks,factorserr,deltapeakserr);
-   graph1->SetTitle("delta peak");
-   graph1->SetMarkerStyle(5);
-   graph1->Draw("AP");
-   gStyle->SetOptFit(1111);
-   facfit->SetParameters(1,0.3);
-   facfit->SetParNames("factor","slope");
-   graph1->Fit(facfit,"","",factors[0],factors[pointNo-1]);
-   //factor1=facfit->GetParameter(0);
-   //factor1err=facfit->GetParError(0);
-   factor = facfit->GetParameter(0);
-   sprintf(name,"factors_D0kk_part%d",partj);
-   graph1->SetName(name);
-   graph1->Write();
+   TCanvas *c1 = new TCanvas("","",800,600);
+   double mass;
+   TTree *dataraw = new TTree("dataraw","dataraw");
+   dataraw->Branch("x",&mass,"x/D");
+   TTree *datarawf = new TTree("datarawf","dataraw");
+   datarawf->Branch("xx",&mass,"xx/D");
+   
+   double para,parb,parc, fitmphi, fitmphie, fitmD, fitmDe;
+   TTree* result = new TTree("result","result");
+   result->Branch("para",&para,"para/D");
+   result->Branch("parb",&parb,"parb/D");
+   result->Branch("parc",&parc,"parc/D");
+   result->Branch("mphi",&fitmphi,"mphi/D");
+   result->Branch("mphie",&fitmphie,"mphie/D");
+   result->Branch("mD",&fitmD,"mD/D");
+   result->Branch("mDe",&fitmDe,"mDe/D");
 
-   // draw the best fitting
-      xframe = x.frame(Title("fit kaon"));
-      dataraw->Reset();
-      std::cout<<"factor is "<<factor<<std::endl;
-      for (Long64_t jentry=0; jentry<evts[partj].size();jentry++) {
-	/////p1 = evts[partj].at(jentry).GetP1();
-	/////p2 = evts[partj].at(jentry).GetP2();
-       //for (int i=0;i<Npart;i++){
-       //   if (p1>=pcut[i]&&p1<pcut[i+1]){
-       //     factori = facv[i];
-       //     break;
-       //   }
-       //}
-        // factori = factor;
+   TF1 *facfit = new TF1("facfit",line2,0.9,1.1,2);
+   //TH1D *h1    = new TH1D("h1","2 kaon invariant mass",nBins,D0low,D0up);
 
-         mass = evts[partj].at(jentry).InvMass(factor,factor);
-         if (mass>D0low && mass<D0up){
-           dataraw->Fill();
+   TF1 facfun("facfun",ffun,0,3,3);
+   double pars[3] = {1.9e3, 2.69, -5.7e-4};
+   facfun.SetParameters(pars);
+
+   for (para=1000; para<=5000; para+=100){
+     for (parb=1.0; parb<=5; parb+=0.1){
+       for (parc=-2e-3; parc<2e-3; parc+=1e-4){
+         cout<<"Current parameters: "<<para << "\t" << parb<<"\t"<<parc<<endl;
+	 facfun.SetParameters(para,parb,parc);
+	 dataraw->Reset();
+	 datarawf->Reset();
+         // D to K K
+	 for (Long64_t jentry=0; jentry<evts.size();jentry++) {
+           double p1 = evts.at(jentry).GetP1();
+           double p2 = evts.at(jentry).GetP2();
+	   double f1 = facfun.Eval(p1);
+	   double f2 = facfun.Eval(p2);
+           mass = evts.at(jentry).InvMass(f1,f2);
+           if (mass>D0low && mass<D0up){
+             dataraw->Fill();
+           }
+           if (mass>philow && mass<phiup){
+             datarawf->Fill();
+           }
          }
-      }
-      //dataraw->Write();
-
-      char tmpchr[100];
-      sprintf(tmpchr,"data_k");
-      dataset = new RooDataSet("dataset","data",dataraw,x);
-      sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,bkg),RooArgList(signal,signal2,background));
-      Npar=8;
-      //sum = new RooAddPdf("sum","sum",RooArgList(gaus,ground),RooArgList(signal,background2));
-      mean.setVal(peakvalue+0.06*(factor-1.0));
-      sum->fitTo(*dataset,Range(D0low,D0up));
-      dataset->plotOn(xframe);
-      sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
-      sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
-      sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
-      sum->plotOn(xframe);
-      xframe->Draw();
-      TPaveText *pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
-   ///pt->SetBorderSize(0);
-   ///pt->SetFillStyle(4000);
-   ///pt->SetTextAlign(12);
-   ///pt->SetTextFont(42);
-   ///pt->SetTextSize(0.035);
-      sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"#chi^{2}/(100-%d) = %5.6f",Npar,xframe->chiSquare(Npar));
-      pt->AddText(tmpchr);
-      double factor4err=TMath::Sqrt(TMath::Power(mean.getError()/facfit->GetParameter(1),2) + TMath::Power(facfit->GetParError(0),2));
-      sprintf(name,"factor = %.6f #pm %.6f",factor,factor4err);
-      pt->AddText(name);
-
-      pt->Draw();
-      sprintf(name,"part%d_final_fit",partj);
-      c1->SetName(name);
-      c1->Write();      
-      
-      partid[loopj] = pcut[partj]+(pcut[partj+1]-pcut[partj])/2;
-      parter[loopj] = 0;
-      corfac[loopj] = factor;
-      corerr[loopj] = factor4err;
-   
-
-	  //delete data_k;
-      delete dataset;
-      delete xframe;
-      delete sum;
+ 	 fitmphi=0; fitmphie=0; fitmD=0; fitmDe=0;
+	 char parset[100];
+	 sprintf(parset,"a%f_b%f_c%f",para,parb,parc);
+	 GEPEP_KK::FitSpectrumD(dataraw,mD,parset,fitmD, fitmDe);
+	 GEPEP_KK::FitSpectrumPhi(datarawf,mphi,parset,fitmphi, fitmphie);
+         result->Fill();
+       }
+     }
    }
 
-  realsize = partmap.size();
+   result->Write();
+   return;
+}
+
+void GEPEP_KK::FitSpectrumPhi(TTree*& dataraw, double beame, char* namesfx, double &peak, double &peakerror)
+{
+
+   double philow=1.005;
+   double phiup=1.05;
+   double phipeak=1.019461;// mphi
+   TCanvas *c1 = new TCanvas("","",800,600);
    
-  for (int i=0;i<realsize;i++){
-    ofpar<<"cos="<<costhecut[i]<<"\tfactor: "<<corfac[i]<<"\t +/- \t"<< corerr[i]<<std::endl;
-    purepar<<beamene<<"\t"<<corfac[i]<<"\t"<< corerr[i]<<std::endl;
-  }
-  // ~~~~~~~~~~~~D0 part end ........
-//return;
-   // ~~~~~~~~~~ phi part ~~~~~~~~~~~~~
+   if (fabs(peak)>1e-1) phipeak = peak; 
+
    RooRealVar xx("xx","energy",phipeak,philow,phiup,"GeV");
    RooRealVar meanf("meanf","mean of breitwigner",phipeak,philow,phiup);
    RooRealVar sigmaf("sigmaf","width of breitwiger",0.00426);//phi version
@@ -528,7 +294,9 @@ void gepep_kk::Loop()
   // RooGaussian gaus2f("gaus2f","gauss(x,m,s)",xx,meanf,sigma2f);
    
    //RooBreitWigner brewig("brewig","breitwigner",xx,meanf,sigmaf);
-   RooRelativisticBW brewig("brewig","breitwigner",xx,meanf,sigmaf);
+   //RooRelativisticBW brewig("brewig","breitwigner",xx,meanf,sigmaf);
+   RooRBW_evtgen brewig("brewig","breitwigner",xx,meanf,sigmaf);
+   //RooRBW_evtgen sig("brewig","breitwigner",xx,meanf,sigmaf);
 
    RooFFTConvPdf sig("sig","signal function",xx, brewig, gausg);
    
@@ -539,226 +307,169 @@ void gepep_kk::Loop()
    RooRealVar signalf("signalf"," ",1200,10,1000000);//event number
    RooRealVar signal2f("signal2f"," ",1200,0,1000000);//event number
    RooRealVar backgroundf("backgroundf"," ",200,0,1000000);
+ 
+   RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
+
+    RooDataSet* dataset = new RooDataSet("datasetf","data",dataraw,xx);
+    RooAddPdf *sum = new RooAddPdf("sum","sum",RooArgList(sig,bkgf),RooArgList(signalf,backgroundf));
+    
+    RooPlot* xframe = xx.frame();
+    char tmpchr[100];
+    sprintf(tmpchr,"data_kf_%s",namesfx);
+    //sum = new RooAddPdf("sumf","sum",RooArgList(gausf,gaus2f,bkgf),RooArgList(signalf,signal2f,backgroundf));
+    int Npar=6;
+    //sum = new RooAddPdf("sum","sum",RooArgList(sig,bkgf),RooArgList(signalf,backgroundf));
+    //meanf.setVal(phipeak+0.06*(factor-1.0));
+    sum->fitTo(*dataset,Range(philow,phiup));
+    //sum->fitTo(*dataset,Range(phipeak-0.002,phipeak+0.002));
+    dataset->plotOn(xframe);
+    sum->plotOn(xframe,Components(sig),LineStyle(2),LineColor(2));
+    //sum->plotOn(xframe,Components(gaus2f),LineStyle(2),LineColor(2));
+    sum->plotOn(xframe,Components(bkgf),LineStyle(3),LineColor(3));
+    sum->plotOn(xframe);
+    xframe->Draw();
+    TPaveText *
+    pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
+    pt->SetBorderSize(0);
+    pt->SetFillStyle(4000);
+    pt->SetTextAlign(12);
+    pt->SetTextFont(42);
+    pt->SetTextSize(0.035);
+    sprintf(tmpchr,"#mu = %1.6f #pm %1.6f",meanf.getVal(),meanf.getError());
+    pt->AddText(tmpchr);
+    sprintf(tmpchr,"#sigma = %1.6f #pm %1.6f",sigmag.getVal(),sigmag.getError());
+    pt->AddText(tmpchr);
+    //sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2f.getVal(),sigma2f.getError());
+    //pt->AddText(tmpchr);
+    sprintf(tmpchr,"signal = %.2f #pm %.2f",signalf.getVal(),signalf.getError());
+    pt->AddText(tmpchr);
+    //sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2f.getVal(),signal2f.getError());
+    //pt->AddText(tmpchr);
+    sprintf(tmpchr,"backNo = %.2f #pm %.2f",backgroundf.getVal(),backgroundf.getError());
+    pt->AddText(tmpchr);
+    sprintf(tmpchr,"#chi^{2}/(100-%d) = %5.6f",Npar,xframe->chiSquare(Npar));
+    pt->AddText(tmpchr);
+  //sprintf(name,"factor = %.6f",factor);
+  //pt->AddText(name);
+    pt->Draw();
+   char name[100];
+    sprintf(name,"phipart%s",namesfx);
+    c1->SetName(name);
+    c1->Write();
+    //delete data_k;
+    
+    peak = meanf.getVal();
+    peakerror = meanf.getError();
+
+    delete dataset;
+    delete xframe;
+    delete sum;
+    delete pt;
+    delete c1;
+    return;
+
+}
+
+
+void GEPEP_KK::FitSpecD(std::vector<Event> &evts, double beame, char* namesfx)
+{
+
+}
+
+void GEPEP_KK::FitSpectrumD(TTree*& dataraw, double beame, char* namesfx, double &peak, double &peakerror)
+{ 
+   double D0low=1.82;
+   double D0up=1.90;
+   double peakvalue=1.86484;// mD0
+   TCanvas *c1 = new TCanvas("","",800,600);
+ 
+   if (fabs(peak)>1e-1) peakvalue = peak; 
    
-   // for saving the fit result
-   factor = factorstart;
-   int partj = 0;
-   int  fittimes = 0 ;
-   double simplex[100];
-   double simplexe[100];
-   double simpley[100];
-   double simpleye[100];
-   for (int i=0;i<pointNo;i++){
-      //xframe->Clear();
-      xframe = xx.frame(Title("fit kaon"));
+   // try to use roofit
+   RooRealVar x("x","energy",peakvalue,D0low,D0up,"GeV");
+   //RooRealVar x("x","energy",peakvalue,1.015,1.025,"GeV");
+   RooRealVar mean("mean","mean of gaussian",peakvalue,D0low,D0up);
+   RooRealVar mean2("mean2","mean of gaussian2",peakvalue,D0low,D0up);
+   //RooRealVar sigma("sigma","width of gaussian",0.0023,0.0015,0.0040);//phi version
+   //RooRealVar sigma2("sigma2","width of gaussian",0.005,0.003,0.008);
+   RooRealVar sigma("sigma","width of gaussian",0.007,0.003,0.0075);//D0 version
+   RooRealVar sigma2("sigma2","width of gaussian",0.02,0.008,0.05);
+   RooGaussian gaus("gaus","gauss(x,m,s)",x,mean,sigma);
+   RooGaussian gaus2("gaus2","gauss(x,m,s)",x,mean,sigma2);
+   
+   RooRealVar co1("co1","coefficient #1",0,-0.5,0.5);
+   RooRealVar co2("co2","coefficient #2",0,-0.01,0.5);
+   RooChebychev bkg("bkg","background",x,RooArgList(co1,co2));
+   
+ //RooRealVar a0("a0","coefficient #0",100,100,100000);
+ //RooRealVar a1("a1","coefficient #1",-50,-100000,100000);
+ //RooPolynomial ground("ground","ground",x,RooArgList(a0,a1));
+   
+   RooRealVar signal("signal"," ",1200,10,1000000);//event number
+   RooRealVar signal2("signal2"," ",1200,0,1000000);//event number
+   RooRealVar background("background"," ",200,0,1000000);
+   
+   RooDataSet *dataset;
+   RooAddPdf *sum;
+ 
+   RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR); // set out put message level of roofit
 
-      datarawf->Reset();
-      std::cout<<"factor is "<<factor<<std::endl;
-      for (Long64_t jentry=0; jentry<evtsphi[partj].size();jentry++) {
-		  p1 = evtsphi[partj].at(jentry).GetP1();
-		  p2 = evtsphi[partj].at(jentry).GetP2();
-        //for (int i=0;i<Npart;i++){
-        //  if (p1>=pcut[i]&&p1<pcut[i+1]){
-        //    factori = facv[i];
-        //    break;
-        //  }
-        //}
-          mass = evtsphi[partj].at(jentry).InvMass(factor,factor);
-          if (mass>philow && mass<phiup){
-            datarawf->Fill();
-          }
-         // if (Cut(ientry) < 0) continue;
-      }
-      //datarawf->Write();
-      std::cout<<"Loop end aaaa"<<std::endl;
-
-      dataset = new RooDataSet("datasetf","data",datarawf,xx);
+    RooPlot* xframe = x.frame();
+      dataset = new RooDataSet("dataset","data",dataraw,x);
       char tmpchr[100];
-      sprintf(tmpchr,"data_kf_%02d",fittimes);
-      //sum = new RooAddPdf("sumf","sum",RooArgList(gausf,gaus2f,bkgf),RooArgList(signalf,signal2f,backgroundf));
-      Npar=6;
-      sum = new RooAddPdf("sum","sum",RooArgList(sig,bkgf),RooArgList(signalf,backgroundf));
-      meanf.setVal(phipeak+0.06*(factor-1.0));
-      sum->fitTo(*dataset,Range(philow,phiup));
+      sprintf(tmpchr,"data_k_%s",namesfx);
+      //data_k = new RooDataHist(tmpchr,"data_k",x,h1);
+      sum = new RooAddPdf("sum","sum",RooArgList(gaus,gaus2,bkg),RooArgList(signal,signal2,background));
+      int Npar=8;
+      //mean.setVal(peakvalue+0.06*(factor-1.0));
+      sum->fitTo(*dataset,Range(D0low,D0up));
       dataset->plotOn(xframe);
-      sum->plotOn(xframe,Components(brewig),LineStyle(2),LineColor(2));
-      //sum->plotOn(xframe,Components(gaus2f),LineStyle(2),LineColor(2));
-      sum->plotOn(xframe,Components(bkgf),LineStyle(3),LineColor(3));
+      sum->plotOn(xframe,Components(gaus),LineStyle(2),LineColor(2));
+      sum->plotOn(xframe,Components(gaus2),LineStyle(2),LineColor(2));
+      sum->plotOn(xframe,Components(bkg),LineStyle(3),LineColor(3));
       sum->plotOn(xframe);
       xframe->Draw();
-      TPaveText *
-	  pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
+      TPaveText *pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
       pt->SetBorderSize(0);
       pt->SetFillStyle(4000);
       pt->SetTextAlign(12);
       pt->SetTextFont(42);
       pt->SetTextSize(0.035);
-      sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",meanf.getVal(),meanf.getError());
+      sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",mean.getVal(),mean.getError());
       pt->AddText(tmpchr);
-      sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigmag.getVal(),sigmag.getError());
+      sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigma.getVal(),sigma.getError());
       pt->AddText(tmpchr);
-    //sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2f.getVal(),sigma2f.getError());
-    //pt->AddText(tmpchr);
-      sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signalf.getVal(),signalf.getError());
+      sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2.getVal(),sigma2.getError());
       pt->AddText(tmpchr);
-    //sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2f.getVal(),signal2f.getError());
-    //pt->AddText(tmpchr);
-      sprintf(tmpchr,"backNo = %.2f #pm %.2f",backgroundf.getVal(),backgroundf.getError());
+      sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signal.getVal(),signal.getError());
+      pt->AddText(tmpchr);
+      sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2.getVal(),signal2.getError());
+      pt->AddText(tmpchr);
+      sprintf(tmpchr,"backNo = %.2f #pm %.2f",background.getVal(),background.getError());
       pt->AddText(tmpchr);
       sprintf(tmpchr,"#chi^{2}/(100-%d) = %5.6f",Npar,xframe->chiSquare(Npar));
       pt->AddText(tmpchr);
-      sprintf(name,"factor = %.6f",factor);
-      pt->AddText(name);
+      char name[100];
       pt->Draw();
-      sprintf(name,"part%d_fitFor_%dth_time",partj,fittimes);
+      sprintf(name,"partD%s",namesfx);
       c1->SetName(name);
       c1->Write();
-      //delete data_k;
-      delete dataset;
-      delete xframe;
-      delete sum;
-   std::cout<<"Fit and save end"<<std::endl;
-
-      //sprintf(tmpchr,"data_k_%d.eps",fittimes);
-      //h1->Draw();
-      //c1->Print(tmpchr);
       
-      // save pars
-      factors[i]=factor;
-      factorserr[i]=0;
-	  //deltapeaks[i] = meanf.getVal() - peakest[partj];
-	  deltapeaks[i] = meanf.getVal() - phipeak;
-      deltapeakserr[i] = meanf.getError();
-
-
-	  TH1D hmasstmp("hmasstmp","hmasstmp",100,philow,phiup);
-	  std::cout<<"entries "<<datarawf->GetEntries()<<std::endl;
-	  datarawf->Draw("xx>>hmasstmp");
-	  hmasstmp.Write("rawhist");
-	  hmasstmp.Fit("gaus","","",meanf.getVal()-0.003, meanf.getVal()+0.003);
-	  simplex[i] = factor;//hmasstmp.GetFunction("gaus")->GetParameter(1);
-	  simplexe[i] = 0;// hmasstmp.GetFunction("gaus")->GetParError(1);
-	  simpley[i] = hmasstmp.GetFunction("gaus")->GetParameter(1) - phipeak;
-	  simpleye[i] = hmasstmp.GetFunction("gaus")->GetParError(1);
-	  sprintf(name,"simple_fit_factor_%d",fittimes);
-	  hmasstmp.Write(name);
-
-      fittimes++;
-      factor += factorstep;
-   }
-   
-   TGraphErrors *graph1f;
-   graph1f = new TGraphErrors(pointNo,simplex,simpley,simplexe,simpleye);
-   graph1f->SetTitle("delta peak");
-   graph1f->SetMarkerStyle(5);
-   graph1f->Draw("AP");
-   gStyle->SetOptFit(1111);
-   facfit->SetParameters(1,0.3);
-   facfit->SetParNames("factor","slope");
-   graph1f->Fit(facfit,"","",factors[0],factors[pointNo-1]);
-   //factor1=facfit->GetParameter(0);
-   //factor1err=facfit->GetParError(0);
-   //factor = facfit->GetParameter(0);
-   //sprintf(name,"factors_kk_part%d",partj);
-   //graph1f->SetName(name);
-   graph1f->Write("simpleFItVersion_phi");
-
-
-   graph1f = new TGraphErrors(pointNo,factors,deltapeaks,factorserr,deltapeakserr);
-   graph1f->SetTitle("delta peak");
-   graph1f->SetMarkerStyle(5);
-   graph1f->Draw("AP");
-   gStyle->SetOptFit(1111);
-   facfit->SetParameters(1,0.05);
-   facfit->SetParNames("factor","slope");
-   graph1f->Fit(facfit,"","",factors[0],factors[pointNo-1]);
-   //factor1=facfit->GetParameter(0);
-   //factor1err=facfit->GetParError(0);
-   factor = facfit->GetParameter(0);
-   sprintf(name,"factors_kk_part%d",partj);
-   graph1f->SetName(name);
-   graph1f->Write("RooFitVersion_phi_graph");
-   
-   
-   // draw the best fitting
-      xframe = xx.frame(Title("fit kaon"));
-      datarawf->Reset();
-      std::cout<<"factor is "<<factor<<std::endl;
-      for (Long64_t jentry=0; jentry<evtsphi[partj].size();jentry++) {
-	 p1 = evtsphi[partj].at(jentry).GetP1();
-	 p2 = evtsphi[partj].at(jentry).GetP2();
-       //for (int i=0;i<Npart;i++){
-       //   if (p1>=pcut[i]&&p1<pcut[i+1]){
-       //     factori = facv[i];
-       //     break;
-       //   }
-       //}
-         mass = evtsphi[partj].at(jentry).InvMass(factor,factor);
-         if (mass>philow && mass<phiup){
-           datarawf->Fill();
-         }
-      }
-      //datarawf->Write();
-
-      char tmpchr[100];
-      sprintf(tmpchr,"data_k");
-      dataset = new RooDataSet("dataset","data",datarawf,xx);
-      //sum = new RooAddPdf("sum","sum",RooArgList(gausf,gaus2f,bkgf),RooArgList(signalf,signal2f,backgroundf));
-      sum = new RooAddPdf("sum","sum",RooArgList(sig,bkgf),RooArgList(signalf,backgroundf));
-      //Npar=6;
-      //sum = new RooAddPdf("sum","sum",RooArgList(gaus,ground),RooArgList(signal,background2));
-      meanf.setVal(phipeak+0.06*(factor-1.0));
-      sum->fitTo(*dataset,Range(philow,phiup));
-      dataset->plotOn(xframe);
-      sum->plotOn(xframe,Components(brewig),LineStyle(2),LineColor(2));
-      //sum->plotOn(xframe,Components(gaus2f),LineStyle(2),LineColor(2));
-      sum->plotOn(xframe,Components(bkgf),LineStyle(3),LineColor(3));
-      sum->plotOn(xframe);
-      xframe->Draw();
-      TPaveText *
-	  pt = new TPaveText(0.12,0.50,0.5,0.90,"BRNDC");
-      pt->SetBorderSize(0);
-      pt->SetFillStyle(4000);
-      pt->SetTextAlign(12);
-      pt->SetTextFont(42);
-      pt->SetTextSize(0.035);
-      sprintf(tmpchr,"#mu_{1} = %1.6f #pm %1.6f",meanf.getVal(),meanf.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"#sigma_{1} = %1.6f #pm %1.6f",sigmag.getVal(),sigmag.getError());
-      pt->AddText(tmpchr);
-    //sprintf(tmpchr,"#sigma_{2} = %1.6f #pm %1.6f",sigma2f.getVal(),sigma2f.getError());
-    //pt->AddText(tmpchr);
-      sprintf(tmpchr,"signal1 = %.2f #pm %.2f",signalf.getVal(),signalf.getError());
-      pt->AddText(tmpchr);
-    //sprintf(tmpchr,"signal2 = %.2f #pm %.2f",signal2f.getVal(),signal2f.getError());
-    //pt->AddText(tmpchr);
-      sprintf(tmpchr,"backNo = %.2f #pm %.2f",backgroundf.getVal(),backgroundf.getError());
-      pt->AddText(tmpchr);
-      sprintf(tmpchr,"#chi^{2}/(100-%d) = %5.6f",Npar,xframe->chiSquare(Npar));
-      pt->AddText(tmpchr);
-      double factor4err=TMath::Sqrt(TMath::Power(meanf.getError()/facfit->GetParameter(1),2) + TMath::Power(facfit->GetParError(0),2));
-      sprintf(name,"factor = %.6f #pm %.6f",factor,factor4err);
-      pt->AddText(name);
-
-      pt->Draw();
-      sprintf(name,"part%d_final_fit",partj);
-      c1->SetName(name);
-      c1->Write();      
       
-	  //delete data_k;
+      peak = mean.getVal();
+      peakerror = mean.getError();
       delete dataset;
-      delete xframe;
       delete sum;
+      delete c1;
+      delete pt;
 
-   
-    ofpar<<"\tfactor: "<<factor<<"\t +/- \t"<< factor4err<<std::endl;
-    purepar2<<beamene<<'\t' << "\t"<<factor<<"\t"<< factor4err<<std::endl;
-  
-  // ~~~~~~~~~~~~phi part end ........
-   
-   f->Close();
-   return;
+      return;
+
 }
+
+
+
+
 
 #ifdef gepep_kk_cxx
 gepep_kk::gepep_kk(TTree *tree) : fChain(0) 

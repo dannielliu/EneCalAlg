@@ -111,7 +111,7 @@ void gepep_kpi::Loop()
    TH2D *h2p = new TH2D("h2p","#pi K momentum",200,0,2,200,0,2);
    TH2D *thedis = new TH2D("thedis","#theta",200,0,2,100,0,TMath::Pi());
    TH2D *thedis2= new TH2D("thedis2","#theta",100,0,TMath::Pi(),100,0,TMath::Pi());
-   const  int Npart=5;
+   const  int Npart=17;
  //double thetacut[Npart+1];//={0.0,0.5,1.0,1.5,2.0};
  //double start=0.0;
  //double stop =TMath::Pi();
@@ -124,7 +124,8 @@ void gepep_kpi::Loop()
  //for(int i=0;i<Npart+1;i++){
  //      coscut[i] = (stop-start)/Npart*i+start;
  //}
-   double pcut[Npart+1]={0.4, 0.6, 0.8, 1.0, 1.2, 1.4};
+   double pcut[Npart+1]={0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 
+                         1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0};
 
    double m0=peakvalue;
    double sigma_m = 0.0068;//0.0024 for phi,
@@ -239,7 +240,7 @@ void gepep_kpi::Loop()
 	 mass = evt.m();
 	 //if (parti>=Npart || partj>=Npart || parti<0 || partj<0) continue;
 	 for (int parti=0; parti<Npart; parti++){
-	    if (evtmc.kam.rho()>pcut[parti]&&evtmc.kam.rho()<pcut[parti+1]) {
+	    if (evtmc.pip.rho()>pcut[parti]&&evtmc.pip.rho()<pcut[parti+1]) {
 	      hmtheta[parti]->Fill(mass);
 	    //if (costheta1>coscut[parti]&&costheta1<coscut[parti+1])
 	      //&&theta2>thetacut[partj]&&theta2<thetacut[partj+1])
@@ -247,16 +248,26 @@ void gepep_kpi::Loop()
 	      {
 	            evts_set2.push_back(evt);
 	            evts_setmc.push_back(evtmc);
-	            hpkares->Fill(evt.kam.rho()-evtmc.kam.rho());
-	            hppires->Fill(evt.pip.rho()-evtmc.pip.rho());
-	            hpkaires[parti]->Fill(evt.kam.rho()-evtmc.kam.rho());
-	            hppiires[parti]->Fill(evt.pip.rho()-evtmc.pip.rho());
 	    ////////h2p->Fill(p1,p2);
 	    ////////thedis->Fill(p1,theta1);
 	    ////////thedis->Fill(p2,theta2);
 	    ////////thedis2->Fill(theta1,theta2);
 	            evts_set[parti].push_back(evt);
 	            //vars->Fill();
+	      }
+	      if (mass>m0-sigma_m && mass<m0+sigma_m){
+	        //    hpkares->Fill(evt.kam.rho()-evtmc.kam.rho());
+	            hppires->Fill(evt.pip.rho()-evtmc.pip.rho());
+	          //  hpkaires[parti]->Fill(evt.kam.rho()-evtmc.kam.rho());
+	            hppiires[parti]->Fill((evt.pip.rho()-evtmc.pip.rho())/evtmc.pip.rho());
+	      }
+	    }
+	    if (evtmc.kam.rho()>pcut[parti]&&evtmc.kam.rho()<pcut[parti+1]) {
+	      if (mass>m0-sigma_m && mass<m0+sigma_m){
+	            hpkares->Fill(evt.kam.rho()-evtmc.kam.rho());
+	            //hppires->Fill(evt.pip.rho()-evtmc.pip.rho());
+	            hpkaires[parti]->Fill((evt.kam.rho()-evtmc.kam.rho())/evtmc.kam.rho());
+	            //hppiires[parti]->Fill(evt.pip.rho()-evtmc.pip.rho());
 	      }
 	    }
 	 }
@@ -265,7 +276,7 @@ void gepep_kpi::Loop()
 	 //if (pt1<0.4 || pt1>0.8) continue;
 	 //if (p1<0.6 || p1>0.8) continue;
 	 hmD0->Fill(mass);
-	 if (mass>m0-2*sigma_m && mass<m0+2*sigma_m){
+	 if (mass>m0-sigma_m && mass<m0+sigma_m){
 	   hpka->Fill(p1);
 	   hppi->Fill(p2);
 	 }
@@ -274,13 +285,13 @@ void gepep_kpi::Loop()
    }
 
    TFile *ftmp = new TFile("P_cmp.root","recreate");
-   double xxka[5] = {0.5,0.7,0.9,1.1,1.3};
-   double xeka[5] = {0.1,0.1,0.1,0.1,0.1};
-   double yyka[5],yeka[5];
+   double xxka[Npart];// = {0.5,0.7,0.9,1.1,1.3};
+   double xeka[Npart];// = {0.1,0.1,0.1,0.1,0.1};
+   double yyka[Npart],yeka[Npart];
    double yykaave, yekaave;
-   double yypi[5],yepi[5];
+   double yypi[Npart],yepi[Npart];
    double yypiave, yepiave;
-   double yymm[5],yemm[5];
+   double yymm[Npart],yemm[Npart];
    double yymmave, yemmave;
    ftmp->WriteTObject(hpka,"hpka_DKpi");
    ftmp->WriteTObject(hppi,"hppi_DKpi");
@@ -294,6 +305,8 @@ void gepep_kpi::Loop()
    ftmp->WriteTObject(hppires,"hppires_DKpi");
    ftmp->WriteTObject(hmD0,"hmD0_DKpi");
    for (int parti=0; parti<Npart;parti++){
+     xxka[parti] = (pcut[parti]+pcut[parti+1])/2.0;
+     xeka[parti] = (pcut[parti+1]-pcut[parti])/2.0;
      hpkaires[parti]->Fit("gaus","R","",-0.01,0.01);
      yyka[parti] = hpkaires[parti]->GetFunction("gaus")->GetParameter(1);
      yeka[parti] = hpkaires[parti]->GetFunction("gaus")->GetParError(1);
@@ -305,20 +318,21 @@ void gepep_kpi::Loop()
      hmtheta[parti]->Fit("gaus","R","",m0-sigma_m,m0+sigma_m);
      yymm[parti] = hmtheta[parti]->GetFunction("gaus")->GetParameter(1);
      yemm[parti] = hmtheta[parti]->GetFunction("gaus")->GetParError(1);
+     ftmp->WriteTObject(hmtheta[parti]);
    }
-   TGraphErrors* greshka = new TGraphErrors(5,xxka,yyka,xeka,yeka);
+   TGraphErrors* greshka = new TGraphErrors(Npart,xxka,yyka,xeka,yeka);
    greshka->SetName("pkresolutionshift_pk");
    greshka->GetXaxis()->SetTitle("p_{K} (GeV/c)");
-   greshka->GetYaxis()->SetTitle("average p_{K}(data)-p_{K}(MC) (GeV/c)");
+   greshka->GetYaxis()->SetTitle("average (p_{K}(rec)-p_{K}(truth))/p_{K}(truth) (GeV/c)");
    greshka->Write();
    delete greshka;
-   TGraphErrors* greshpi = new TGraphErrors(5,xxka,yypi,xeka,yepi);
+   TGraphErrors* greshpi = new TGraphErrors(Npart,xxka,yypi,xeka,yepi);
    greshpi->SetName("ppiresolutionshift_pka");
    greshpi->GetXaxis()->SetTitle("p_{K} (GeV/c)");
-   greshpi->GetYaxis()->SetTitle("average p_{#pi}(data)-p_{#pi}(MC) (GeV/c)");
+   greshpi->GetYaxis()->SetTitle("average (p_{#pi}(rec)-p_{#pi}(truth))/p_{#pi}(truth) (GeV/c)");
    greshpi->Write();
    delete greshpi;
-   TGraphErrors* greshmm = new TGraphErrors(5,xxka,yymm,xeka,yemm);
+   TGraphErrors* greshmm = new TGraphErrors(Npart,xxka,yymm,xeka,yemm);
    greshmm->SetName("massshift_pka");
    greshmm->GetXaxis()->SetTitle("p_{K} (GeV/c)");
    greshmm->GetYaxis()->SetTitle("mass shift(MC) (GeV/c)");
